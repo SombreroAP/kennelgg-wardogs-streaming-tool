@@ -118,41 +118,90 @@ void Clips::pollWatches()
 	QDateTime now = QDateTime::currentDateTime();
 	for (auto it = watches_.begin(); it != watches_.end();) {
 		Watch &w = *it;
-		bool done = false;
+		// every new file for this moment, not only the first: a vertical canvas's Backtrack writes
+		// its own file next to the horizontal one, and both belong to the clip
+		QList<QFileInfo> horiz, vert;
 		for (const QString &folder : folders) {
 			if (!QDir(folder).exists())
 				continue;
 			for (const QFileInfo &fi : listClips(folder)) {
 				if (fi.lastModified() < w.since.addSecs(-2) || w.seen.contains(fi.absoluteFilePath()))
 					continue;
-				QDir d = fi.dir();
 				if (fi.lastModified().msecsTo(now) < 2000)
 					continue; // still being written
 				w.seen.insert(fi.absoluteFilePath());
-				QString name = withMoment(nameFor(w.since, w.title, w.tags, "backtrack"), w.momentS);
-				QString target = d.filePath(name + "." + fi.suffix());
-				int n = 2;
-				while (QFile::exists(target))
-					target = d.filePath(name + QString("_%1.").arg(n++) + fi.suffix());
-				if (QFile::rename(fi.absoluteFilePath(), target)) {
-					Entry e{w.since, w.title, w.tags, target, w.momentS, w.firstS, w.kills, w.info};
-					history_.push_back(e);
-					emit logged("Backtrack clip named: " + QFileInfo(target).fileName());
-					joinSeries(target, w.since);
-					e.path = history_.back().path; // joinSeries may have renamed it into the run
-					logEntry(e);
-					emit saved(e);
-					done = true;
-				}
+				bool v = fi.absoluteFilePath().contains("vertical", Qt::CaseInsensitive) ||
+					 fi.fileName().contains("portrait", Qt::CaseInsensitive);
+				(v ? vert : horiz).append(fi);
 			}
 		}
-		if (done || w.since.secsTo(now) > 90)
+		bool done = false;
+		for (const QFileInfo &fi : horiz) {
+			QDir d = fi.dir();
+			QString name = withMoment(nameFor(w.since, w.title, w.tags, "backtrack"), w.momentS);
+			QString target = d.filePath(name + "." + fi.suffix());
+			int n = 2;
+			while (QFile::exists(target))
+				target = d.filePath(name + QString("_%1.").arg(n++) + fi.suffix());
+			if (!QFile::rename(fi.absoluteFilePath(), target))
+				continue;
+			Entry e{w.since, w.title, w.tags, target, w.momentS, w.firstS, w.kills, w.info};
+			e.pathV = w.vertPath; // a vertical file that came first
+			w.vertPath.clear();
+			history_.push_back(e);
+			emit logged("Backtrack clip named: " + QFileInfo(target).fileName());
+			joinSeries(target, w.since);
+			e.path = history_.back().path; // joinSeries may have renamed it into the run
+			logEntry(e);
+			emit saved(e);
+			done = true;
+		}
+		for (const QFileInfo &fi : vert) {
+			QDir d = fi.dir();
+			QString name =
+				withMoment(nameFor(w.since, w.title, w.tags, "backtrack"), w.momentS) + " [vertical]";
+			QString target = d.filePath(name + "." + fi.suffix());
+			int n = 2;
+			while (QFile::exists(target))
+				target = d.filePath(name + QString("_%1.").arg(n++) + fi.suffix());
+			if (!QFile::rename(fi.absoluteFilePath(), target))
+				continue;
+			emit logged("Vertical Backtrack clip named: " + QFileInfo(target).fileName());
+			if (!attachVertical(w.since, target))
+				w.vertPath = target; // its partner has not landed yet: kept for it
+		}
+		if (w.since.secsTo(now) > 90) {
+			if (!w.vertPath.isEmpty()) {
+				// only a vertical file ever came: better a portrait clip than none
+				Entry e{w.since, w.title, w.tags, w.vertPath, w.momentS, w.firstS, w.kills, w.info};
+				e.pathV = w.vertPath;
+				history_.push_back(e);
+				logEntry(e);
+				emit saved(e);
+			}
+			done = true;
+		}
+		if (done && w.vertPath.isEmpty())
 			it = watches_.erase(it);
 		else
 			++it;
 	}
 	if (watches_.empty())
 		watchTimer_.stop();
+}
+
+bool Clips::attachVertical(const QDateTime &when, const QString &path)
+{
+	for (auto it = history_.rbegin(); it != history_.rend(); ++it) {
+		if (qAbs(it->when.secsTo(when)) > 30)
+			continue;
+		if (!it->pathV.isEmpty())
+			continue; // already has one: an older clip in the window
+		it->pathV = path;
+		writeSidecar(*it);
+		return true;
+	}
+	return false;
 }
 
 QString Clips::safe(QString s)
@@ -238,6 +287,12 @@ QString Clips::relabel(const QString &given, const QString &title, const QString
 			renamed_[path] = to;
 		e->path = to;
 		e->title = title.trimmed();
+		if (!e->pathV.isEmpty() && QFile::exists(e->pathV)) {
+			QFileInfo vi(e->pathV);
+			QString vto = vi.dir().filePath(newBase + " [vertical]." + vi.suffix());
+			if (vto != e->pathV && QFile::rename(e->pathV, vto))
+				e->pathV = vto;
+		}
 	}
 	if (!spoken.isEmpty()) {
 		e->info["spoken"] = spoken;
@@ -336,6 +391,8 @@ void Clips::writeSidecar(const Entry &e)
 		o["first_s_from_end"] = e.firstS;
 	if (e.kills > 0)
 		o["kills"] = e.kills;
+	if (!e.pathV.isEmpty())
+		o["vertical"] = QFileInfo(e.pathV).fileName();
 	QFile f(fi.dir().filePath(fi.completeBaseName() + ".json"));
 	if (f.open(QIODevice::WriteOnly | QIODevice::Truncate))
 		f.write(QJsonDocument(o).toJson(QJsonDocument::Indented));

@@ -143,6 +143,7 @@ struct Config {
 	static const char *chimeSourceName() { return "Kennel.gg · Chime"; }
 	static const char *replayFrameName() { return "Kennel.gg · Replay frame"; }
 	static const char *replayFrameNameV() { return "Kennel.gg · Replay frame (vertical)"; }
+	static const char *replaySourceNameV() { return "Kennel.gg · Replay (vertical)"; }
 	int vdoBitrateKbps = 12000; // VDO.Ninja video bitrate asked for on both ends (wired or fibre: 12-20 Mbit/s)
 
 	// dual POV: a squad mate's feed in a small window over your own POV (tank / chopper crews)

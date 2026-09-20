@@ -35,7 +35,8 @@ public:
 	/// The vertical scene as a source (a reference: release it), or null.
 	static obs_source_t *verticalSceneSource(const Config &cfg);
 	/// The instant replay on the vertical scene as well: full width, centred (the clip is 16:9).
-	std::string playMediaVertical(const Config &cfg, int scalePct, bool frame);
+	/// pathV: the vertical canvas's own clip of the moment; "" = show the horizontal one there.
+	std::string playMediaVertical(const Config &cfg, int scalePct, bool frame, const std::string &pathV = "");
 	/// A short sound into the stream's mix: a media source with the file, in the plugin's scene.
 	std::string playSound(const Config &cfg, const std::string &path, int volumePct);
 	/// The swap and the look overlay in the vertical scene, if one is set. "" or a problem.

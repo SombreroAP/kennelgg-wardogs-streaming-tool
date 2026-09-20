@@ -1322,7 +1322,8 @@ void Switcher::applyFriendAudio(const Config &cfg, bool showing)
 		setMute(n, false);
 }
 
-std::string Switcher::playMedia(const Config &cfg, const std::string &path, int scalePct, int volumePct, bool frame)
+std::string Switcher::playMedia(const Config &cfg, const std::string &path, int scalePct, int volumePct, bool frame,
+				const std::string &pathV)
 {
 	obs_data_t *st = obs_data_create();
 	obs_data_set_string(st, "local_file", path.c_str());
@@ -1389,35 +1390,73 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 	obs_source_release(src);
 	obs_source_release(ss);
 	if (cfg.verticalOn()) {
-		std::string ev = playMediaVertical(cfg, scalePct, frame);
+		std::string ev = playMediaVertical(cfg, scalePct, frame, pathV);
 		if (!ev.empty() && log)
 			log("Replay (vertical): " + ev);
 	}
 	return "";
 }
 
-std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool frame)
+std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool frame, const std::string &pathV)
 {
 	obs_source_t *ss = verticalSceneSource(cfg);
 	if (!ss)
 		return "vertical scene '" + cfg.sceneV + "' is not there";
 	obs_scene_t *scene = obs_scene_from_source(ss);
-	obs_source_t *src = obs_get_source_by_name(Config::replaySourceName());
-	if (!src) {
-		obs_source_release(ss);
-		return "no replay source";
-	}
 	uint32_t cw = obs_source_get_width(ss), ch = obs_source_get_height(ss);
 	if (cw == 0 || ch == 0) {
 		cw = 1080;
 		ch = 1920;
 	}
-	// the same media source, a second scene item: full width at the chosen scale, 16:9, centred
-	obs_sceneitem_t *item = obs_scene_find_source(scene, Config::replaySourceName());
+	obs_source_t *src = nullptr;
+	const char *srcName = Config::replaySourceName();
+	bool portrait = !pathV.empty();
+	if (portrait) {
+		// the vertical canvas's own clip of the moment (Aitum's vertical Backtrack), in a media
+		// source of its own: full height, portrait
+		srcName = Config::replaySourceNameV();
+		obs_data_t *st = obs_data_create();
+		obs_data_set_string(st, "local_file", pathV.c_str());
+		obs_data_set_bool(st, "is_local_file", true);
+		obs_data_set_bool(st, "looping", false);
+		obs_data_set_bool(st, "restart_on_activate", false);
+		obs_data_set_bool(st, "close_when_inactive", true);
+		obs_data_set_bool(st, "clear_on_media_end", true);
+		obs_data_set_bool(st, "hw_decode", false);
+		obs_data_set_int(st, "speed_percent", 100);
+		src = obs_get_source_by_name(srcName);
+		if (!src) {
+			src = obs_source_create("ffmpeg_source", srcName, st, nullptr);
+		} else
+			obs_source_update(src, st);
+		obs_data_release(st);
+		if (!src) {
+			obs_source_release(ss);
+			return "could not make the vertical replay source";
+		}
+		hideEverywhere(Config::replaySourceName()); // not the horizontal one as well
+	} else {
+		src = obs_get_source_by_name(srcName);
+		hideEverywhere(Config::replaySourceNameV());
+	}
+	if (!src) {
+		obs_source_release(ss);
+		return "no replay source";
+	}
+	// a scene item for it: the horizontal clip full width at the chosen scale, 16:9, centred;
+	// the portrait clip full height at the chosen scale, 9:16, centred
+	obs_sceneitem_t *item = obs_scene_find_source(scene, srcName);
 	if (!item)
 		item = obs_scene_add(scene, src);
 	float f = std::clamp(scalePct, 10, 100) / 100.0f;
-	float w = cw * f, h = w * 9.0f / 16.0f;
+	float w, h;
+	if (portrait) {
+		h = ch * f;
+		w = h * 9.0f / 16.0f;
+	} else {
+		w = cw * f;
+		h = w * 9.0f / 16.0f;
+	}
 	struct vec2 pos = {(cw - w) / 2.0f, (ch - h) / 2.0f}, bounds = {w, h};
 	if (item) {
 		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
@@ -1426,12 +1465,17 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 		obs_sceneitem_set_visible(item, true);
 		moveToTop(item);
 	}
+	if (portrait) {
+		obs_source_set_muted(src, true); // the horizontal one carries the sound, if any
+		obs_source_media_restart(src);
+	}
 	if (frame) {
 		char *pp = obs_module_file("overlay/overlay.html");
 		std::string page = pp ? pp : "";
 		bfree(pp);
 		std::replace(page.begin(), page.end(), '\\', '/');
-		std::string url = "file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel);
+		std::string url =
+			"file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel) + (portrait ? "&v=1" : "");
 		std::string e2 = ensureBrowserSource(scene, Config::replayFrameNameV(), url, false, (int)w, (int)h);
 		if (e2.empty()) {
 			if (obs_sceneitem_t *fi = obs_scene_find_source(scene, Config::replayFrameNameV())) {
@@ -1488,11 +1532,13 @@ int64_t Switcher::mediaDurationMs() const
 
 void Switcher::seekMedia(int64_t ms)
 {
-	obs_source_t *src = obs_get_source_by_name(Config::replaySourceName());
-	if (!src)
-		return;
-	obs_source_media_set_time(src, ms);
-	obs_source_release(src);
+	for (const char *n : {Config::replaySourceName(), Config::replaySourceNameV()}) {
+		obs_source_t *src = obs_get_source_by_name(n);
+		if (!src)
+			continue;
+		obs_source_media_set_time(src, ms);
+		obs_source_release(src);
+	}
 }
 
 bool Switcher::mediaEnded() const
@@ -1539,7 +1585,16 @@ void Switcher::stopMedia(const Config &cfg)
 		obs_data_release(st);
 		obs_source_release(src);
 	}
+	if (obs_source_t *v = obs_get_source_by_name(Config::replaySourceNameV())) {
+		obs_source_media_stop(v);
+		obs_data_t *st = obs_data_create();
+		obs_data_set_string(st, "local_file", "");
+		obs_source_update(v, st);
+		obs_data_release(st);
+		obs_source_release(v);
+	}
 	hideEverywhere(Config::replaySourceName());
+	hideEverywhere(Config::replaySourceNameV());
 	hideEverywhere(Config::replayFrameName());
 	hideEverywhere(Config::replayFrameNameV());
 	(void)cfg;

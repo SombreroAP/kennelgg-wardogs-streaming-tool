@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.18.14
+- **The vertical scene replays the vertical clip.** With Aitum's vertical Backtrack on, a clip produces a portrait file too, in the Vertical folder. The plugin used to name only the first file it found and leave the other; it now names both, keeps the portrait one as the clip's vertical companion (noted in the .json), and the instant replay on the vertical scene plays that file full height, seeked and stopped in step with the horizontal one, instead of a cropped copy of the horizontal clip. Without a vertical file it shows the horizontal clip there as before.
+- **Clip + replay waits two seconds** for the file to be closed properly before playing it, and with a vertical canvas up to three seconds more for the vertical file to land and be paired.
+
 ## 0.18.13
 - The Dual POV crew-mate list on the Dual tab follows the same rule as the dock's pickers: in a Kennel.gg voice channel it lists only the people live in it; anywhere else it lists the whole squad, with a dot on the ones known to be streaming. The one already chosen stays in the list whatever its state. (The dock's own Dual POV picker already worked this way.)
 

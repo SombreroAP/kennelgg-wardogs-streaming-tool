@@ -25,6 +25,7 @@ public:
 		double momentS = -1, firstS = -1;
 		int kills = 0;
 		QJsonObject info; // what ClipHound knew: kind, description, killer, victim, icons, events
+		QString pathV;    // the same moment from the vertical canvas's Backtrack, when there is one
 	};
 	explicit Clips(QObject *parent = nullptr);
 
@@ -97,8 +98,11 @@ private:
 		double momentS = -1, firstS = -1;
 		int kills = 0;
 		QJsonObject info;
+		QString vertPath; // a vertical Backtrack file found before its horizontal partner
 	};
 	std::deque<Watch> watches_;
+	/// Give a vertical Backtrack file to the entry it belongs with (the newest within 30 s of `when`).
+	bool attachVertical(const QDateTime &when, const QString &path);
 	QTimer watchTimer_;
 	void pollWatches();
 	/// "name" -> "name @-7.4s" when the moment is known: the marker Kennel Cut reads off the name.
