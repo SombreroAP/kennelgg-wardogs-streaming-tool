@@ -136,6 +136,7 @@ private:
 	FramePreview *dualPick_ = nullptr;
 	QLabel *dualState_ = nullptr;
 	void dualToUi();
+	void fillDualFriends(); // the crew-mate list, narrowed to who is live when you are in Kennel.gg voice
 	void dualFromUi(bool preset);
 	QPlainTextEdit *logView_ = nullptr;
 	void refreshLogs();

@@ -2240,10 +2240,47 @@ QWidget *SettingsDialog::buildDualTab()
 											    ? QString("nothing yet")
 											    : e_->vehicleSeat())
 						  : QString("")));
-		if (dualFriend_ && dualFriend_->count() != (int)e_->cfg.friends.size() + 1)
-			dualToUi();
+		if (dualFriend_)
+			fillDualFriends(); // who is live changes; the list follows, only rebuilt when it differs
 	});
 	return w;
+}
+
+void SettingsDialog::fillDualFriends()
+{
+	const Config &c = e_->cfg;
+	// the same rule as the dock's pickers: in a Kennel.gg voice channel only the people live in it,
+	// anywhere else the whole squad with a dot on the ones known to be streaming. The one already
+	// chosen is kept whatever its state, so a setting is never lost to a moment offline
+	bool live = e_->rosterLive();
+	QStringList names{"(none)"};
+	QList<int> idx{-1};
+	for (size_t i = 0; i < c.friends.size(); i++) {
+		const Friend &f = c.friends[i];
+		Engine::Feed st = e_->feedState(f);
+		bool chosen = (int)i == c.dualFriend;
+		if (live && st != Engine::Feed::Live && !chosen)
+			continue;
+		QString label = QString::fromStdString(f.name);
+		if (st == Engine::Feed::Live)
+			label += "  \u25cf";
+		else if (live && chosen)
+			label += "  (not live now)";
+		names << label;
+		idx << (int)i;
+	}
+	QStringList shown;
+	for (int i = 0; i < dualFriend_->count(); i++)
+		shown << dualFriend_->itemText(i);
+	bool was = building_;
+	building_ = true;
+	if (shown != names) {
+		dualFriend_->clear();
+		for (int i = 0; i < names.size(); i++)
+			dualFriend_->addItem(names[i], idx[i]);
+	}
+	dualFriend_->setCurrentIndex(std::max(0, dualFriend_->findData(c.dualFriend)));
+	building_ = was;
 }
 
 void SettingsDialog::dualToUi()
@@ -2252,11 +2289,7 @@ void SettingsDialog::dualToUi()
 	bool was = building_;
 	building_ = true;
 	dualOn_->setChecked(c.dualEnabled);
-	dualFriend_->clear();
-	dualFriend_->addItem("(none)", -1);
-	for (size_t i = 0; i < c.friends.size(); i++)
-		dualFriend_->addItem(QString::fromStdString(c.friends[i].name), (int)i);
-	dualFriend_->setCurrentIndex(std::max(0, dualFriend_->findData(c.dualFriend)));
+	fillDualFriends();
 	int pi = dualPreset_->findData(QString::fromStdString(c.dualPreset));
 	dualPreset_->setCurrentIndex(pi < 0 ? 0 : pi);
 	dualX_->setValue(c.dualX * 100);

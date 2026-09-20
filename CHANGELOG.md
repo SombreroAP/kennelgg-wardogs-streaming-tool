@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.18.13
+- The Dual POV crew-mate list on the Dual tab follows the same rule as the dock's pickers: in a Kennel.gg voice channel it lists only the people live in it; anywhere else it lists the whole squad, with a dot on the ones known to be streaming. The one already chosen stays in the list whatever its state. (The dock's own Dual POV picker already worked this way.)
+
 ## 0.18.12
 - **Voice (beta): quicker again, without the old jump.** The hold on a command that a longer phrase begins with ("clip", "replay", "dual") is 1.1 s and now starts from the first partial result instead of after the listener's own wait for silence, so it lands about 1.2 s after the last word instead of 1.8 s; a command nothing longer begins with lands in under a second, and "clip and replay" said in one breath fires before the sentence is over. A pause of up to about half a second between "clip" and "and replay" is bridged; a longer one is two asks.
 - Whisper's second look at the wake phrase is re-taken at the end of the sentence when its first look at a half-sentence said no, so a command is not lost to one bad glance.
