@@ -325,7 +325,9 @@ private:
 	QString voiceStatus_;          // what ClipHound says the listener is doing
 	QString voicePending_;         // the manual clip waiting for its spoken name
 	bool replayAfterClip_ = false; // "clip replay": play the clip back once it is saved
-	bool voiceFlowing_ = false;    // the first audio piece has been sent since the tap was attached
+	int replayAfterClipTries_ = 0; // waits of 500 ms left for the vertical file to land
+	void replayAfterClipTick();
+	bool voiceFlowing_ = false; // the first audio piece has been sent since the tap was attached
 	std::chrono::steady_clock::time_point nearSince_ = std::chrono::steady_clock::now();
 	float downX_ = 0, downY_ = 0; // where the log was found when we went down (it does not move)
 	std::chrono::steady_clock::time_point fullSince_; // last poll the log scored a clean match in that spot

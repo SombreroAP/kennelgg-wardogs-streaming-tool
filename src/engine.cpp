@@ -127,10 +127,10 @@ Engine::Engine(QObject *parent) : QObject(parent)
 		if (replayAfterClip_ && e.tags.contains("manual")) {
 			// "hey kennel, clip replay": the clip is on disk; a moment for OBS to close it, then play
 			replayAfterClip_ = false;
-			QTimer::singleShot(1200, this, [this]() {
-				if (!stopping_)
-					playReplay("voice: clip replay");
-			});
+			// two seconds for the file to be closed properly; with a vertical canvas, up to three
+			// more while its own Backtrack file lands and is paired with this clip
+			replayAfterClipTries_ = cfg.verticalOn() ? 6 : 0;
+			QTimer::singleShot(2000, this, &Engine::replayAfterClipTick);
 		}
 		// a clip you asked for yourself is named by what you said around the moment you asked
 		if (cfg.voiceEnabled && cfg.voiceNames && voice.attached() && e.tags.contains("manual") &&
@@ -1950,6 +1950,23 @@ void Engine::sendVoiceConfig()
 	bridge.sendJson(o);
 }
 
+void Engine::replayAfterClipTick()
+{
+	if (stopping_)
+		return;
+	if (replayAfterClipTries_ > 0) {
+		const auto &h = clips.history();
+		bool haveV = !h.empty() && !h.back().pathV.isEmpty();
+		if (!haveV) {
+			replayAfterClipTries_--;
+			QTimer::singleShot(500, this, &Engine::replayAfterClipTick);
+			return;
+		}
+	}
+	replayAfterClipTries_ = 0;
+	playReplay("clip replay");
+}
+
 void Engine::applyVoice()
 {
 	if (!cfg.voiceEnabled || bridge.clients() == 0) {
@@ -3003,7 +3020,8 @@ void Engine::playReplay(const QString &why)
 	if (replaying())
 		stopReplay("replaced");
 	std::string e = sw.playMedia(cfg, last->path.toStdString(), cfg.replayScale,
-				     cfg.replaySound ? cfg.replayVolume : 0, true);
+				     cfg.replaySound ? cfg.replayVolume : 0, true,
+				     cfg.verticalOn() ? last->pathV.toStdString() : std::string());
 	if (!e.empty()) {
 		log("Instant replay: " + QString::fromStdString(e));
 		return;

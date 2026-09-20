@@ -93,7 +93,7 @@ public:
 	/// under the always-on-top list. Loads and starts it; seek and stop are the caller's, on
 	/// timers, since the length is only known once it has loaded. "" or a problem.
 	std::string playMedia(const Config &cfg, const std::string &path, int scalePct, int volumePct,
-			      bool frame = false);
+			      bool frame = false, const std::string &pathV = "");
 	/// The playing file's length in ms (0 until it has loaded), and a seek into it.
 	int64_t mediaDurationMs() const;
 	void seekMedia(int64_t ms);
