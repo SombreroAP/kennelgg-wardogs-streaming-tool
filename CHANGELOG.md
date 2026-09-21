@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.18.16
+- **The vertical swap was being covered by the game.** The vertical "Always on top here" guess ticked a capture card as a camera, so every swap on the vertical scene was lifted under the game feed. The game source can no longer be in either on-top list and is taken out of existing settings once. Also, when the vertical scene carries the same name as the main scene ("GAMING" on both), the fallback lookup could land on the main canvas's copy; it now never resolves to the main canvas.
+- The log says which scene, on which canvas and at what size, the vertical swap resolved to, when a squad mate's feed is shown there, and any error in plain words.
+
 ## 0.18.15
 - **A dock or hotkey clip takes the last sentence you said.** It used to be titled from a fixed window, eight seconds before the press to four after, which often caught half of two sentences. The listener now marks where each sentence ends, and a press takes the last one you finished; if you were mid-sentence when you pressed, or start one within a moment of pressing, it waits for that sentence to end (up to four seconds) and uses it. Nothing said in the last twenty seconds and the old window applies. "PV" comes out as "POV" in titles. Naming now works with voice commands switched off, as the tick box always said.
 

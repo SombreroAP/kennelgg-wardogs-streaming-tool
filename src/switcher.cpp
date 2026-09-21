@@ -983,19 +983,24 @@ obs_source_t *Switcher::verticalSceneSource(const Config &cfg)
 		}
 	}
 	if (!ss) {
-		// the scene may have moved canvas, or be an older plugin's: any canvas that has it
+		// the scene may have moved canvas, or be an older plugin's: any OTHER canvas that has it.
+		// Never the main one: a vertical scene often carries the same name as the main scene
+		// ("GAMING" on both), and resolving to the main copy put the portrait swap on the wrong
+		// canvas with nothing to show for it
 		std::pair<const char *, obs_source_t *> ctx(cfg.sceneV.c_str(), nullptr);
 		obs_enum_canvases(
 			[](void *p, obs_canvas_t *cv) {
 				auto *c = (std::pair<const char *, obs_source_t *> *)p;
+				if (obs_canvas_get_flags(cv) & MAIN)
+					return true;
 				c->second = obs_canvas_get_source_by_name(cv, c->first);
 				return c->second == nullptr;
 			},
 			&ctx);
 		ss = ctx.second;
 	}
-	if (!ss)
-		ss = obs_get_source_by_name(cfg.sceneV.c_str());
+	if (!ss && cfg.sceneV != cfg.sceneName)
+		ss = obs_get_source_by_name(cfg.sceneV.c_str()); // an older vertical plugin's scene, main canvas
 	if (ss && !obs_scene_from_source(ss)) {
 		obs_source_release(ss);
 		ss = nullptr;
@@ -1015,13 +1020,27 @@ std::string Switcher::applyVertical(const Config &cfg, bool on)
 	if (!scene) {
 		if (ss)
 			obs_source_release(ss);
-		return "vertical scene '" + cfg.sceneV + "' is not there";
+		return "vertical scene '" + cfg.sceneV + "' is not there (on a canvas other than the main one)";
 	}
 	// the portrait canvas's size: a scene reports its canvas's base size
 	uint32_t cw = obs_source_get_width(ss), ch = obs_source_get_height(ss);
 	if (cw == 0 || ch == 0) {
 		cw = 1080;
 		ch = 1920;
+	}
+	{
+		// say once which scene, on which canvas, at what size: the thing to check in a log
+		std::string cvName = "?";
+		if (obs_canvas_t *cv = obs_source_get_canvas(ss)) {
+			cvName = obs_canvas_get_name(cv) ? obs_canvas_get_name(cv) : "?";
+			obs_canvas_release(cv);
+		}
+		std::string where = "'" + cfg.sceneV + "' on canvas '" + cvName + "' (" + std::to_string(cw) + "x" +
+				    std::to_string(ch) + ")";
+		if (where != lastVerticalWhere_ && log) {
+			lastVerticalWhere_ = where;
+			log("Vertical: the scene is " + where + ".");
+		}
 	}
 	std::string err;
 	const Friend *f = cfg.active();
@@ -1054,6 +1073,8 @@ std::string Switcher::applyVertical(const Config &cfg, bool on)
 			bool show = on && isActive;
 			if (show)
 				moveToTop(item);
+			if (show && !obs_sceneitem_visible(item) && log)
+				log("Vertical: showing " + g.name + "'s feed.");
 			obs_sceneitem_set_visible(item, show);
 		}
 		obs_source_release(src);
@@ -1111,9 +1132,12 @@ void Switcher::raiseOnTop(const Config &cfg)
 		return;
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	// last first, so the first one in the list ends up the topmost
-	for (auto it = cfg.onTop.rbegin(); it != cfg.onTop.rend(); ++it)
+	for (auto it = cfg.onTop.rbegin(); it != cfg.onTop.rend(); ++it) {
+		if (*it == cfg.gameSource || it->rfind("Kennel", 0) == 0)
+			continue; // the game itself over the squad mate would undo the swap
 		if (obs_sceneitem_t *item = obs_scene_find_source(scene, it->c_str()))
 			moveToTop(item);
+	}
 	obs_source_release(ss);
 }
 
@@ -1126,9 +1150,12 @@ void Switcher::raiseOnTopV(const Config &cfg)
 		return;
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	const auto &names = cfg.onTopV.empty() ? cfg.onTop : cfg.onTopV;
-	for (auto it = names.rbegin(); it != names.rend(); ++it)
+	for (auto it = names.rbegin(); it != names.rend(); ++it) {
+		if (*it == cfg.gameSource || it->rfind("Kennel", 0) == 0)
+			continue; // the game itself over the squad mate would undo the swap
 		if (obs_sceneitem_t *item = obs_scene_find_source(scene, it->c_str()))
 			moveToTop(item);
+	}
 	obs_source_release(ss);
 }
 
@@ -1172,7 +1199,8 @@ std::vector<std::string> Switcher::guessOnTopV(const Config &cfg)
 {
 	std::vector<std::string> out;
 	for (const auto &[name, id] : sceneItemsV(cfg))
-		if (looksOnTop(name, id))
+		if (looksOnTop(name, id) &&
+		    name != cfg.gameSource) // a capture card looks like a camera, but it is the game
 			out.push_back(name);
 	return out;
 }
@@ -1191,7 +1219,7 @@ std::vector<std::string> Switcher::guessOnTop(const Config &cfg)
 		bool alert = n.find("alert") != std::string::npos || n.find("streamlabs") != std::string::npos ||
 			     n.find("streamelement") != std::string::npos ||
 			     n.find("stream element") != std::string::npos;
-		if (cam || alert)
+		if ((cam || alert) && name != cfg.gameSource) // a capture card looks like a camera, but it is the game
 			out.push_back(name);
 	}
 	return out;

@@ -13,6 +13,7 @@
 class Switcher {
 public:
 	std::function<void(const std::string &)> log;
+	std::string lastVerticalWhere_; // the vertical scene as last logged
 
 	/// Show the active squad mate (on) or go back to the streamer's own POV. Returns problems, if any.
 	std::vector<std::string> apply(const Config &cfg, bool on);

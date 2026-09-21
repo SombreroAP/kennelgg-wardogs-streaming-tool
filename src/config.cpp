@@ -133,6 +133,7 @@ void Config::load()
 	DEFB(verticalEnabled);
 	DEFB(verticalV2);
 	DEFB(onTopVSeeded);
+	DEFB(onTopGameFixV1);
 	DEFB(invSwitch);
 	DEFI(lookTopV);
 	DEFI(vdoBitrateKbps);
@@ -298,6 +299,7 @@ void Config::load()
 	GETB(verticalEnabled);
 	GETB(verticalV2);
 	GETB(onTopVSeeded);
+	GETB(onTopGameFixV1);
 	GETB(invSwitch);
 	GETI(lookTopV);
 	GETI(vdoBitrateKbps);
@@ -468,6 +470,15 @@ void Config::load()
 		verticalEnabled = !sceneV.empty(); // whoever had picked a vertical scene had opted in
 	}
 	rosterGuild.clear(); // the roster is the Kennel.gg server only now; nothing else to pick
+	if (!onTopGameFixV1) {
+		// the guess ticked a capture card as a camera, which lifted the game over the squad mate
+		onTopGameFixV1 = true;
+		auto strip = [&](std::vector<std::string> &v) {
+			v.erase(std::remove(v.begin(), v.end(), gameSource), v.end());
+		};
+		strip(onTop);
+		strip(onTopV);
+	}
 	if (!cpuDefaultsV1) {
 		// they were on for everyone without anyone choosing; the encodes they run are the
 		// heaviest thing the app does, so they start off and are switched on on purpose
@@ -628,6 +639,7 @@ void Config::save() const
 	SETB(verticalEnabled);
 	SETB(verticalV2);
 	SETB(onTopVSeeded);
+	SETB(onTopGameFixV1);
 	SETB(invSwitch);
 	SETI(lookTopV);
 	SETI(vdoBitrateKbps);

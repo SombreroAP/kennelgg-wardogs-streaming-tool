@@ -2932,8 +2932,10 @@ void Engine::applyNow(bool on, const QString &why)
 	auto errors = sw.apply(cfg, on);
 	{
 		std::string ev = sw.applyVertical(cfg, on); // the same swap on the portrait canvas, if set
-		if (!ev.empty())
+		if (!ev.empty()) {
 			errors.push_back("vertical: " + ev);
+			log(QString::fromStdString("Vertical: " + ev));
+		}
 	}
 	if (!on) {
 		// your own POV takes priority when you are up: every squad mate and the look overlay go, in every scene

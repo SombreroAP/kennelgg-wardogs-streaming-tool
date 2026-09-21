@@ -67,11 +67,13 @@ struct Config {
 	std::string sceneV;      // the vertical scene the swap is applied in
 	bool verticalOn() const { return verticalEnabled && !sceneV.empty(); }
 	std::vector<std::string> onTopV; // the vertical scene's camera and alerts (its own sources)
-	bool onTopVSeeded = false;       // guessed once from that scene
-	int lookTopV = 22;               // portrait: the POV tag's height, percent of the canvas from the top
-	std::string lookPos = "ml";      // where the POV tag sits: tl tc ml mc bl br
-	bool lookPosV1 = false;          // one-time move off the bottom-left corner
-	bool audioAutoPicked = false;    // desktop audio was ticked automatically once
+	bool onTopVSeeded = false;
+	bool onTopGameFixV1 =
+		false; // one-time: the game source taken out of the on-top lists (0.18.16)       // guessed once from that scene
+	int lookTopV = 22;            // portrait: the POV tag's height, percent of the canvas from the top
+	std::string lookPos = "ml";   // where the POV tag sits: tl tc ml mc bl br
+	bool lookPosV1 = false;       // one-time move off the bottom-left corner
+	bool audioAutoPicked = false; // desktop audio was ticked automatically once
 	bool bringToFront = true;
 	bool keepWarm = true;
 	bool preloadFeeds = false;   // every squad mate's feed loaded and playing, hidden and silent
