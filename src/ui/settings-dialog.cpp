@@ -2567,7 +2567,7 @@ QWidget *SettingsDialog::buildVoiceTab()
 	fc->addRow(
 		voiceNames_,
 		muted("\"hey kennel, clip that, he fell off the roof\" saves \"He Fell Off The Roof - date time.mp4\". "
-		      "Clips from the dock or the hotkey are named from what was being said around the moment.",
+		      "Clips from the dock or the hotkey take the last sentence you said.",
 		      gc));
 	mk(voiceCmdDual_, "Kennel - force dual point of view", e_->cfg.voiceCmdDual,
 	   "\"dual\", \"dual pov\", \"split screen\": Dual POV on; \"dual off\" turns it off.");

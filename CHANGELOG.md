@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.18.15
+- **A dock or hotkey clip takes the last sentence you said.** It used to be titled from a fixed window, eight seconds before the press to four after, which often caught half of two sentences. The listener now marks where each sentence ends, and a press takes the last one you finished; if you were mid-sentence when you pressed, or start one within a moment of pressing, it waits for that sentence to end (up to four seconds) and uses it. Nothing said in the last twenty seconds and the old window applies. "PV" comes out as "POV" in titles. Naming now works with voice commands switched off, as the tick box always said.
+
 ## 0.18.14
 - **The vertical scene replays the vertical clip.** With Aitum's vertical Backtrack on, a clip produces a portrait file too, in the Vertical folder. The plugin used to name only the first file it found and leave the other; it now names both, keeps the portrait one as the clip's vertical companion (noted in the .json), and the instant replay on the vertical scene plays that file full height, seeked and stopped in step with the horizontal one, instead of a cropped copy of the horizontal clip. Without a vertical file it shows the horizontal clip there as before.
 - **Clip + replay waits two seconds** for the file to be closed properly before playing it, and with a vertical canvas up to three seconds more for the vertical file to land and be paired.

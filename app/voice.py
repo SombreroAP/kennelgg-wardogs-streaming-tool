@@ -114,6 +114,8 @@ class Voice:
         self._got = 0               # samples received since the last level report
         self._sq = 0.0              # their energy
         self._first = True
+        self._utts = []             # (start, end) of the last sentences heard, by wall clock
+        self._utt_start = 0.0       # when the sentence now being said began (0 = none)
         self._grammar_wake = None
         self._report_at = time.time() + 30
         self._status = ""
@@ -241,14 +243,20 @@ class Voice:
                         self._flush_pending(time.time())
                 chunk = b"".join(self._q)
                 self._q.clear()
-            if not self.commands or self._vosk is None:
-                continue
+            if self._vosk is None or not (self.commands or self.names):
+                continue   # the listener also marks where sentences end, which names dock clips
             self._flush_pending(time.time())
             if rec is None or self._grammar_wake != self.wake:
                 rec = self._recogniser()
             try:
                 if rec.AcceptWaveform(chunk):
                     text = json.loads(rec.Result()).get("text", "")
+                    now = time.time()
+                    if text.strip():
+                        # a sentence ended (the listener finalises on a pause): its span names a
+                        # clip pressed on the dock or a hotkey
+                        self._utts = (self._utts + [(self._utt_start or now - 2.0, now)])[-12:]
+                    self._utt_start = 0.0
                     clean = text.replace("[unk]", " unk ").strip()
                     if clean.replace("unk", "").strip():
                         print(f"[voice] heard: {text[:120]}")   # what the model makes of you, [unk] = not a command
@@ -256,6 +264,8 @@ class Voice:
                 else:
                     # a command should not wait for a pause in the talking: look at the partial too
                     part = json.loads(rec.PartialResult()).get("partial", "").replace("[unk]", " unk ").strip()
+                    if part and not self._utt_start:
+                        self._utt_start = time.time() - 0.5   # the first words came a moment before the partial
                     if part.replace("unk", "").strip() and self._heard(part, partial=True):
                         rec.Reset()
             except Exception as e:
@@ -397,6 +407,8 @@ class Voice:
             print(f"[voice] name: {e}")
 
     def _heard(self, text: str, partial: bool = False) -> bool:
+        if not self.commands:
+            return False
         t = " " + re.sub(r"[^a-z0-9' ]", " ", text.lower()) + " "
         t = re.sub(r"\s+", " ", t)
         t = t.replace(" p o v s ", " povs ").replace(" p o v ", " pov ").replace(" pee oh vee ", " pov ")
@@ -595,8 +607,28 @@ class Voice:
         # window runs from the command onwards and waits for it. Asked from the dock or a
         # hotkey: what was being said around the moment
         by_voice = abs(epoch - self._last_clip_cmd) < 4.0
-        t0, t1 = (self._last_clip_cmd - 1.0, self._last_clip_cmd + VOICE_AFTER_S) if by_voice \
-            else (epoch - BEFORE_S, epoch + AFTER_S)
+        if by_voice:
+            t0, t1 = self._last_clip_cmd - 1.0, self._last_clip_cmd + VOICE_AFTER_S
+        else:
+            # pressed on the dock or a hotkey: the last sentence you said. If you were still
+            # talking at the press, that sentence, once it ends (up to four seconds)
+            # the listener's first partial for a sentence comes up to a second after it began, so
+            # a press as you start talking has to give it that moment before deciding
+            just_finished = any(epoch - 1.0 <= e <= epoch + 0.3 for _, e in self._utts)
+            if not just_finished:
+                # not right after a sentence: give one that is starting up to 1.5 s to show
+                deadline = epoch + 1.5
+                while not self._utt_start and time.time() < deadline:
+                    time.sleep(0.1)
+            if self._utt_start and self._utt_start <= epoch + 1.5:
+                deadline = time.time() + 4.0
+                while self._utt_start and time.time() < deadline:
+                    time.sleep(0.1)
+            last = next(((s, e) for s, e in reversed(self._utts) if e <= epoch + 4.5 and e >= epoch - 20.0), None)
+            if last:
+                t0, t1 = last[0] - 0.4, last[1] + 0.3
+            else:
+                t0, t1 = epoch - BEFORE_S, epoch + AFTER_S   # nothing said lately: the old window
         wait = t1 - time.time() + 0.3
         if wait > 0:
             time.sleep(min(wait, VOICE_AFTER_S + 1))
@@ -661,6 +693,7 @@ class Voice:
         wake = wake.split()[-1] if wake else "kennel"   # "hey kennel" -> "kennel": "hey" may be misheard
         """A few words fit for a file name: the command words and filler dropped, Title Case."""
         t = text.lower()
+        t = re.sub(r"\bp\s?[.]?\s?v\b", "pov", t)   # "PV", "P V" as the recognisers write it
         t = re.sub(r"[^a-z0-9' ]", " ", t)
         # "kennel clip that <what it was>": what follows the ask is the title, whatever came before
         # the ask can arrive as "kennel clip that", or with the wake word misheard ("then I'll
@@ -686,4 +719,4 @@ class Voice:
         if not words:
             return ""
         words = words[:MAX_TITLE_WORDS] if len(words) > MAX_TITLE_WORDS else words
-        return " ".join(w.capitalize() for w in words)[:48].strip()
+        return " ".join("POV" if w == "pov" else w.capitalize() for w in words)[:48].strip()
