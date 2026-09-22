@@ -181,7 +181,10 @@ public:
 
 	void start();
 	void stop();
-	void reloadConfig(); // after the settings dialog saved
+	/// OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP: OBS is about to release every source (exit, or a
+	/// scene-collection change). Lets go of everything of ours first; reloadConfig() starts it again.
+	void sceneCleanup();
+	void reloadConfig(); // after the settings dialog saved, and after a scene-collection change
 	void loadTemplates();
 	void applySearchWidth();
 	static QString langName(const std::string &lang); // "es" -> "Spanish"
@@ -302,6 +305,10 @@ private:
 	QString lastRosterStatus_;
 	void checkAccess(); // say it once when the roster locks or unlocks
 	std::atomic<bool> busy_{false}, stopping_{false}, frameBusy_{false}, stopped_{false};
+	std::atomic<int> workers_{0}; // detached worker threads in flight (they count themselves out)
+	bool paused_ = false;         // sceneCleanup() ran; reloadConfig() starts the timers again
+	void stopTimers();
+	void waitWorkers(int ms);
 	Capture capGame_, capFriend_, capRoi_;
 	QString appStatus_;
 	QJsonObject twitch_;

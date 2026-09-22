@@ -37,6 +37,15 @@ void Bridge::close()
 		server_.close();
 }
 
+void Bridge::flush(int ms)
+{
+	for (auto *c : clients_) {
+		c->sock->flush();
+		if (c->sock->bytesToWrite() > 0)
+			c->sock->waitForBytesWritten(ms);
+	}
+}
+
 void Bridge::onNewConnection()
 {
 	while (QTcpSocket *s = server_.nextPendingConnection()) {

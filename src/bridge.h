@@ -24,6 +24,8 @@ public:
 	explicit Bridge(QObject *parent = nullptr);
 	bool listen(quint16 port);
 	void close();
+	/// Pushes what is queued on every socket out, waiting up to ms per client (no event loop needed).
+	void flush(int ms);
 	bool listening() const { return server_.isListening(); }
 	/// Companion-app clients (ClipHound): a controller such as the Stream Deck plugin is not counted,
 	/// so "is ClipHound here" keeps meaning that. Everyone still gets sendJson.

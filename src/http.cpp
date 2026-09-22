@@ -1,6 +1,11 @@
 #include "http.h"
 #include <QPointer>
 #include <QUrl>
+#include <QElapsedTimer>
+#include <atomic>
+#include <chrono>
+#include <mutex>
+#include <set>
 #include <thread>
 #ifdef _WIN32
 #define NOMINMAX
@@ -16,7 +21,24 @@
 
 namespace Http {
 
+static std::atomic<bool> g_closing{false};
+static std::atomic<int> g_threads{0};
 #ifdef _WIN32
+// the requests in flight, so shutdown() can close them from the main thread: closing a request
+// handle makes the call blocked on it return at once instead of at its timeout
+static std::mutex g_mu;
+static std::set<HINTERNET> g_active;
+static void track(HINTERNET h)
+{
+	std::lock_guard<std::mutex> lk(g_mu);
+	g_active.insert(h);
+}
+static bool untrack(HINTERNET h)
+{
+	std::lock_guard<std::mutex> lk(g_mu);
+	return g_active.erase(h) > 0; // false: shutdown() closed it already
+}
+
 static QString lastError(const char *where)
 {
 	DWORD e = GetLastError();
@@ -27,6 +49,10 @@ Result request(const QString &method, const QString &url, const QByteArray &body
 	       const QString &userAgent)
 {
 	Result out;
+	if (g_closing) {
+		out.error = "OBS is closing";
+		return out;
+	}
 	QUrl u(url);
 	if (!u.isValid() || u.host().isEmpty()) {
 		out.error = "bad address";
@@ -61,6 +87,7 @@ Result request(const QString &method, const QString &url, const QByteArray &body
 		WinHttpCloseHandle(session);
 		return out;
 	}
+	track(req);
 	std::wstring hdrs =
 		(QString("Cache-Control: no-cache\r\nAccept: application/json, */*\r\n") + headers).toStdWString();
 	if (!WinHttpSendRequest(req, hdrs.c_str(), (DWORD)-1L,
@@ -90,7 +117,12 @@ Result request(const QString &method, const QString &url, const QByteArray &body
 		else
 			out.error = QString("HTTP %1").arg(status);
 	}
-	WinHttpCloseHandle(req);
+	if (untrack(req)) {
+		WinHttpCloseHandle(req);
+	} else {
+		out.ok = false;
+		out.error = "OBS is closing";
+	}
 	WinHttpCloseHandle(conn);
 	WinHttpCloseHandle(session);
 	return out;
@@ -100,6 +132,10 @@ Result request(const QString &method, const QString &url, const QByteArray &body
 	       const QString &userAgent)
 {
 	Result out;
+	if (g_closing) {
+		out.error = "OBS is closing";
+		return out;
+	}
 	QNetworkAccessManager nam;
 	QNetworkRequest req{QUrl(url)};
 	req.setHeader(QNetworkRequest::UserAgentHeader, userAgent);
@@ -137,8 +173,14 @@ Result get(const QString &url, int timeoutMs, const QString &userAgent)
 void requestAsync(QObject *ctx, const QString &method, const QString &url, const QByteArray &body,
 		  const QString &headers, int timeoutMs, const QString &userAgent, std::function<void(Result)> done)
 {
+	if (g_closing)
+		return;
 	QPointer<QObject> alive(ctx);
+	g_threads++;
 	std::thread([alive, method, url, body, headers, timeoutMs, userAgent, done]() {
+		struct Out {
+			~Out() { g_threads--; }
+		} counted;
 		Result r = request(method, url, body, headers, timeoutMs, userAgent);
 		if (!alive)
 			return;
@@ -155,8 +197,14 @@ void requestAsync(QObject *ctx, const QString &method, const QString &url, const
 void getAsync(QObject *ctx, const QString &url, int timeoutMs, const QString &userAgent,
 	      std::function<void(Result)> done)
 {
+	if (g_closing)
+		return;
 	QPointer<QObject> alive(ctx);
+	g_threads++;
 	std::thread([alive, url, timeoutMs, userAgent, done]() {
+		struct Out {
+			~Out() { g_threads--; }
+		} counted;
 		Result r = get(url, timeoutMs, userAgent);
 		if (!alive)
 			return;
@@ -168,6 +216,24 @@ void getAsync(QObject *ctx, const QString &url, int timeoutMs, const QString &us
 			},
 			Qt::QueuedConnection);
 	}).detach();
+}
+
+void shutdown()
+{
+	g_closing = true;
+#ifdef _WIN32
+	std::set<HINTERNET> live;
+	{
+		std::lock_guard<std::mutex> lk(g_mu);
+		live.swap(g_active);
+	}
+	for (HINTERNET h : live)
+		WinHttpCloseHandle(h);
+#endif
+	QElapsedTimer t;
+	t.start();
+	while (g_threads > 0 && t.elapsed() < 2000)
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 } // namespace Http

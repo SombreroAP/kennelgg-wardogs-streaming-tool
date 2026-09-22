@@ -172,6 +172,10 @@ static void onFrontendEvent(enum obs_frontend_event event, void *)
 						g_dock->showSupportNote();
 				});
 		}
+	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP) {
+		// before OBS releases every source (at exit, or a collection change): ours go first
+		if (g_engine)
+			g_engine->sceneCleanup();
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED) {
 		if (g_engine)
 			g_engine->reloadConfig();

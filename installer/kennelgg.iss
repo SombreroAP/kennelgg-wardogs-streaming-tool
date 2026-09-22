@@ -52,6 +52,12 @@ Name: "app"; Description: "ClipHound - kill-feed OCR clipping app (auto-started 
 [InstallDelete]
 ; the plugin used to live under its old module id; two copies would both load
 Type: filesandordirs; Name: "{commonappdata}\obs-studio\plugins\kennel-wardogs"
+; and under its first name (POVBridge). A stale copy loads next to this one, holds sources of its own
+; at exit and fights over ClipHound's bridge port
+Type: filesandordirs; Name: "{commonappdata}\obs-studio\plugins\povbridge"
+Type: files; Name: "{autopf}\obs-studio\obs-plugins\64bit\povbridge.dll"
+Type: files; Name: "{autopf}\obs-studio\obs-plugins\64bit\povbridge.pdb"
+Type: filesandordirs; Name: "{autopf}\obs-studio\data\obs-plugins\povbridge"
 Type: filesandordirs; Name: "{commonprograms}\Kennel WARDOGS"
 
 [Dirs]
@@ -83,6 +89,8 @@ begin
     // cannot remove a DLL that a still-running OBS has open, so say so plainly rather than leave
     // someone with a plugin that sits at "starting" for ever.
     OldPlugin := ExpandConstant('{commonappdata}\obs-studio\plugins\kennel-wardogs');
+    if not DirExists(OldPlugin) then
+      OldPlugin := ExpandConstant('{commonappdata}\obs-studio\plugins\povbridge');
     if DirExists(OldPlugin) then begin
       DelTree(OldPlugin, True, True, True);
       if DirExists(OldPlugin) then

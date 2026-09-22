@@ -647,11 +647,13 @@ void Engine::start()
 #ifdef _WIN32
 	// Two copies of this plugin both load, and the second one gets no bridge port: ClipHound then
 	// connects to the wrong one and everything looks like it is "starting" for ever.
-	if (QFileInfo::exists("C:/ProgramData/obs-studio/plugins/kennel-wardogs"))
-		log("An older copy of this plugin is still installed at "
-		    "C:\\ProgramData\\obs-studio\\plugins\\kennel-wardogs. Close OBS, delete that folder, "
-		    "and start OBS again - with both installed they fight over ClipHound's bridge and clips "
-		    "never fire.");
+	for (const char *old :
+	     {"C:/ProgramData/obs-studio/plugins/kennel-wardogs", "C:/ProgramData/obs-studio/plugins/povbridge"})
+		if (QFileInfo::exists(old))
+			log(QString("An older copy of this plugin is still installed at %1. Close OBS, delete that "
+				    "folder, and start OBS again - with both installed they fight over ClipHound's "
+				    "bridge, clips never fire, and OBS can hang on the way out.")
+				    .arg(QString(old).replace('/', '\\')));
 #endif
 	applyRosterConfig();
 	sw.stopMedia(cfg); // the replay source forgets last session's file (it was decoding it at load)
@@ -873,27 +875,31 @@ void Engine::closeApp()
 {
 	if (!cfg.closeAppWithObs)
 		return;
+	bool told = false;
 	if (bridge.clients() > 0) {
 		QJsonObject o;
 		o["type"] = "shutdown";
 		bridge.sendJson(o);
-		// give it a moment to exit cleanly before the socket goes away
-		QElapsedTimer t;
-		t.start();
-		while (bridge.clients() > 0 && t.elapsed() < 1500)
-			QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+		// the bytes out before the socket goes. This used to spin the event loop for up to 1.5 s
+		// from inside OBS's exit handler, which let timers and other plugins' work run mid-exit
+		bridge.flush(300);
+		told = true;
 	}
 #ifdef _WIN32
 	if (appPid_ > 0) {
 		HANDLE h = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, (DWORD)appPid_);
 		if (h) {
-			if (WaitForSingleObject(h, 0) == WAIT_TIMEOUT)
+			// a moment to exit on its own, then it is ended: OBS must not wait on it
+			DWORD r = WaitForSingleObject(h, told ? 1500 : 0);
+			if (r == WAIT_TIMEOUT)
 				TerminateProcess(h, 0);
 			CloseHandle(h);
+			log(r == WAIT_TIMEOUT ? "ClipHound was ended with OBS." : "ClipHound closed with OBS.");
 		}
 		appPid_ = 0;
 	}
 #endif
+	(void)told;
 }
 
 void Engine::stop()
@@ -903,19 +909,63 @@ void Engine::stop()
 	if (stopped_.exchange(true))
 		return;
 	stopping_ = true;
+	stopTimers();
+	stateTimer_.stop();
+	roster.stop();
 	voice.detach();
 	closeApp();
-	timer_.stop();
-	frameTimer_.stop();
-	webLiveTimer_.stop();
-	downDelay_.stop();
-	upDelay_.stop();
 	bridge.close();
+	Http::shutdown(); // the live checks and the roster fetch: cancelled, and their threads waited for
 	stopReplay("OBS closing");
 	sw.shutdown(); // the dual-POV scene and its browser page, before obs-browser unloads
 	// the poll and frame workers capture `this`: let them finish before the object can go
-	for (int i = 0; i < 100 && (busy_ || frameBusy_); i++)
-		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+	waitWorkers(2000);
+}
+
+void Engine::stopTimers()
+{
+	timer_.stop();
+	frameTimer_.stop();
+	webLiveTimer_.stop();
+	healthTimer_.stop();
+	popoutTimer_.stop();
+	replayTimer_.stop();
+	downDelay_.stop();
+	upDelay_.stop();
+}
+
+void Engine::waitWorkers(int ms)
+{
+	// the workers finish on their own; what matters is that none is still inside libobs (a source
+	// lookup, a render) when OBS takes the sources or the graphics away. The old wait watched
+	// busy_/frameBusy_, which only clear from a queued call - one that cannot run while OBS's exit
+	// handler has the thread - so it always ran its full two seconds and proved nothing
+	QElapsedTimer t;
+	t.start();
+	while (workers_ > 0 && t.elapsed() < ms)
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	if (workers_ > 0)
+		log(QString("%1 worker thread(s) still running after %2 ms.").arg((int)workers_).arg(ms));
+}
+
+void Engine::sceneCleanup()
+{
+	// OBS is about to release every source: at exit, and when the scene collection changes.
+	// Nothing of ours may keep one alive past this point. The dual-POV scene (its browser page and
+	// the squad's window captures inside it) and the microphone tap did, so OBS logged "Not all
+	// sources were cleared when clearing scene data" at every close, and with a Backtrack output
+	// still running the video teardown that followed could hang - OBS never got to unloading
+	// its modules and had to be ended from Task Manager.
+	if (stopped_ || paused_)
+		return;
+	paused_ = true;
+	stopTimers();
+	waitWorkers(2000);
+	if (replaying())
+		stopReplay("scene collection closing");
+	if (voice.attached())
+		voice.detach();
+	sw.shutdown();
 }
 
 void Engine::applyRosterConfig()
@@ -1005,9 +1055,22 @@ void Engine::setMyDiscord(const QString &user)
 	emit stateChanged();
 }
 
+namespace {
+/// Counts a detached worker out when its body ends, whichever way it ends.
+struct WorkerGuard {
+	std::atomic<int> &n;
+	explicit WorkerGuard(std::atomic<int> &c) : n(c) {}
+	~WorkerGuard() { n--; }
+};
+} // namespace
+
 void Engine::detectDiscordUser(bool byHand)
 {
+	if (stopping_)
+		return;
+	workers_++;
 	std::thread([this, byHand]() {
+		WorkerGuard guard(workers_);
 		std::optional<DiscordIpc::User> u = DiscordIpc::currentUser(1500);
 		QString name = u ? u->username.trimmed().toLower() : QString();
 		QMetaObject::invokeMethod(
@@ -1511,6 +1574,15 @@ void Engine::watchPopouts()
 
 void Engine::reloadConfig()
 {
+	if (paused_ && !stopping_) {
+		// after a scene-collection change: sceneCleanup() let go of everything, so start again
+		paused_ = false;
+		timer_.start(std::max(100, cfg.pollMs));
+		healthTimer_.start(5000);
+		webLiveTimer_.start();
+		if (bridge.clients() > 0 && frameTimer_.interval() > 0)
+			frameTimer_.start();
+	}
 	applyVoice();
 	if (cfg.verticalOn()) {
 		// the squad's sources into the vertical scene now, not only at the first swap
@@ -2603,7 +2675,9 @@ void Engine::frameTick()
 	}
 	frameBusy_ = true;
 	std::string name = cfg.gameSource;
+	workers_++;
 	std::thread([this, due, name]() {
+		WorkerGuard guard(workers_);
 		struct Out {
 			int id;
 			QByteArray jpeg;
@@ -2677,7 +2751,9 @@ void Engine::tick()
 	bool preview = previewWanted_;
 
 	std::shared_ptr<AltSet> alts = altDets_;
+	workers_++;
 	std::thread([this, gameName, friendName, wantRevive, preview, quick, reviveFull, alts]() {
+		WorkerGuard guard(workers_);
 		Result r;
 		obs_source_t *src = obs_get_source_by_name(gameName.c_str());
 		if (src) {

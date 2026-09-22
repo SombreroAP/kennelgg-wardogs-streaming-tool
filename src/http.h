@@ -25,4 +25,7 @@ void requestAsync(QObject *ctx, const QString &method, const QString &url, const
 /// get() on its own thread; `done` runs on ctx's thread afterwards (not at all if ctx is gone).
 void getAsync(QObject *ctx, const QString &url, int timeoutMs, const QString &userAgent,
 	      std::function<void(Result)> done);
+/// At OBS exit: refuses new requests, cancels the ones in flight and waits briefly for their threads,
+/// so no thread of ours is still inside the network stack when the process goes down.
+void shutdown();
 } // namespace Http

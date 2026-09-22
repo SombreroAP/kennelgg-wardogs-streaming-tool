@@ -2,6 +2,11 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.18.17
+- **OBS could stay running after you closed it.** OBS releases every source on the way out and then tears the video down; the plugin was still holding its dual-POV scene (the browser page and the squad's window captures inside it) and the microphone tap at that point, which OBS logged at every close as "Not all sources were cleared when clearing scene data". With a Backtrack output still running when you closed, the teardown that followed could hang: OBS never reached the point of unloading its modules and had to be ended from Task Manager. The plugin now lets go of everything it holds the moment OBS starts clearing the scene collection, before any source is released, and picks it all up again after a scene-collection change.
+- At exit the plugin no longer spins OBS's event loop while it waits for ClipHound to close, cancels its web requests (live checks, the roster) and waits for their threads, and waits for its own worker threads by counting them rather than by a flag that could not clear in time.
+- The installer removes a copy of the plugin left under its first name (POVBridge), which otherwise loads next to this one, and the log says so if one is found.
+
 ## 0.18.16
 - **The vertical swap was being covered by the game.** The vertical "Always on top here" guess ticked a capture card as a camera, so every swap on the vertical scene was lifted under the game feed. The game source can no longer be in either on-top list and is taken out of existing settings once. Also, when the vertical scene carries the same name as the main scene ("GAMING" on both), the fallback lookup could land on the main canvas's copy; it now never resolves to the main canvas.
 - The log says which scene, on which canvas and at what size, the vertical swap resolved to, when a squad mate's feed is shown there, and any error in plain words.
