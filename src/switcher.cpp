@@ -1360,9 +1360,9 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 	obs_data_set_bool(st, "restart_on_activate", false);
 	obs_data_set_bool(st, "close_when_inactive", true);
 	obs_data_set_bool(st, "clear_on_media_end", true);
-	// software decode: the GPU decoder refused a 1440p60 recording at load ("more than 32 decode
-	// surfaces"), and a ten-second replay is nothing for the CPU
-	obs_data_set_bool(st, "hw_decode", false);
+	// software decode unless asked for: the GPU decoder refused a 1440p60 recording at load ("more
+	// than 32 decode surfaces") on one PC, and a ten-second replay is nothing for the CPU
+	obs_data_set_bool(st, "hw_decode", cfg.replayHwDecode);
 	obs_data_set_int(st, "speed_percent", 100);
 	std::string e = createInScene(cfg, "ffmpeg_source", Config::replaySourceName(), st, false, false);
 	obs_data_release(st);
@@ -1391,7 +1391,11 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 	obs_source_set_volume(src, std::clamp(volumePct, 0, 100) / 100.0f);
 	obs_source_set_muted(src, volumePct <= 0);
 	obs_source_media_restart(src);
-	obs_sceneitem_set_visible(item, true);
+	// hidden until showMedia(): the file opens and plays from its start while nobody sees it, the
+	// seek to the moment is made, and only then does it appear. Shown from the off, the viewer got
+	// the first frames of the file, then the jump, then a stall while the decoder worked forward
+	// from the keyframe before the seek point: the "buffering" at the start of every replay
+	obs_sceneitem_set_visible(item, false);
 	moveToTop(item);
 	// the frame: the look page in replay mode, rendered at the replay's own size and laid exactly
 	// over it, so its edge and "Instant replay" tag sit on the picture
@@ -1407,7 +1411,7 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 				obs_sceneitem_set_bounds_type(fi, OBS_BOUNDS_SCALE_INNER);
 				obs_sceneitem_set_bounds(fi, &bounds);
 				obs_sceneitem_set_pos(fi, &pos);
-				obs_sceneitem_set_visible(fi, true);
+				obs_sceneitem_set_visible(fi, false); // with the picture, from showMedia()
 				moveToTop(fi);
 			}
 		} else if (log)
@@ -1450,7 +1454,7 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 		obs_data_set_bool(st, "restart_on_activate", false);
 		obs_data_set_bool(st, "close_when_inactive", true);
 		obs_data_set_bool(st, "clear_on_media_end", true);
-		obs_data_set_bool(st, "hw_decode", false);
+		obs_data_set_bool(st, "hw_decode", cfg.replayHwDecode);
 		obs_data_set_int(st, "speed_percent", 100);
 		src = obs_get_source_by_name(srcName);
 		if (!src) {
@@ -1490,7 +1494,7 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
 		obs_sceneitem_set_bounds(item, &bounds);
 		obs_sceneitem_set_pos(item, &pos);
-		obs_sceneitem_set_visible(item, true);
+		obs_sceneitem_set_visible(item, false); // showMedia(), once the seek has taken
 		moveToTop(item);
 	}
 	if (portrait) {
@@ -1510,7 +1514,7 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 				obs_sceneitem_set_bounds_type(fi, OBS_BOUNDS_SCALE_INNER);
 				obs_sceneitem_set_bounds(fi, &bounds);
 				obs_sceneitem_set_pos(fi, &pos);
-				obs_sceneitem_set_visible(fi, true);
+				obs_sceneitem_set_visible(fi, false);
 				moveToTop(fi);
 			}
 		}
@@ -1566,6 +1570,39 @@ void Switcher::seekMedia(int64_t ms)
 			continue;
 		obs_source_media_set_time(src, ms);
 		obs_source_release(src);
+	}
+}
+
+void Switcher::showMedia(const Config &cfg)
+{
+	auto show = [](obs_source_t *ss, const char *name) {
+		obs_scene_t *scene = ss ? obs_scene_from_source(ss) : nullptr;
+		if (obs_sceneitem_t *it = scene ? obs_scene_find_source(scene, name) : nullptr) {
+			obs_sceneitem_set_visible(it, true);
+			moveToTop(it);
+		}
+	};
+	if (obs_source_t *ss = sceneSource(cfg)) {
+		show(ss, Config::replaySourceName());
+		show(ss, Config::replayFrameName());
+		obs_source_release(ss);
+		raiseOnTop(cfg); // camera and alerts back over it
+	}
+	if (!cfg.verticalOn())
+		return;
+	if (obs_source_t *vs = verticalSceneSource(cfg)) {
+		// the portrait twin when it has a file, else the horizontal clip laid on the vertical scene
+		bool portrait = false;
+		if (obs_source_t *v = obs_get_source_by_name(Config::replaySourceNameV())) {
+			obs_data_t *st = obs_source_get_settings(v);
+			portrait = !std::string(obs_data_get_string(st, "local_file")).empty();
+			obs_data_release(st);
+			obs_source_release(v);
+		}
+		show(vs, portrait ? Config::replaySourceNameV() : Config::replaySourceName());
+		show(vs, Config::replayFrameNameV());
+		obs_source_release(vs);
+		raiseOnTopV(cfg);
 	}
 }
 

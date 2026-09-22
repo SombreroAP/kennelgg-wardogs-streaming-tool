@@ -3109,6 +3109,7 @@ void Engine::playReplay(const QString &why)
 	pendingReplay_ = *last;
 	replayLengthMs_ = 1; // "playing, not yet sought"
 	replaySought_ = false;
+	replayShown_ = false;
 	replayClock_.start();
 	replayTimer_.start(150);
 	addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  REPLAY " + replayWhat_);
@@ -3159,6 +3160,8 @@ void Engine::requestHighlights(const QString &why, bool thenPlay)
 			continue;
 		QJsonObject c;
 		c["path"] = e.path;
+		if (!e.pathV.isEmpty() && QFileInfo::exists(e.pathV))
+			c["pathV"] = e.pathV; // the vertical canvas's clip of the same moment
 		c["title"] = e.title;
 		c["tags"] = QJsonArray::fromStringList(e.tags);
 		c["when"] = e.when.toString(Qt::ISODate);
@@ -3174,6 +3177,7 @@ void Engine::requestHighlights(const QString &why, bool thenPlay)
 	o["out"] = highlightsDir();
 	o["player"] = playerName();
 	o["max"] = cfg.highlightsMax;
+	o["vertical"] = cfg.verticalOn(); // a portrait compilation as well, from the twins
 	bridge.sendJson(o);
 	highlightsBuilding_ = true;
 	highlightsThenPlay_ = thenPlay;
@@ -3222,6 +3226,10 @@ void Engine::playCompilation(const QString &why)
 		folder.isEmpty() || !QDir(folder).exists()
 			? QFileInfoList()
 			: QDir(folder).entryInfoList({"*.mp4", "*.mkv", "*.mov"}, QDir::Files, QDir::Time);
+	// the portrait compilation sits next to its landscape one, named "... [vertical]"
+	files.erase(std::remove_if(files.begin(), files.end(),
+				   [](const QFileInfo &f) { return f.completeBaseName().endsWith(" [vertical]"); }),
+		    files.end());
 	// nothing built yet, or clips saved since the last one: build first, then play
 	QDateTime lastClip;
 	for (const auto &e : clips.history())
@@ -3238,8 +3246,18 @@ void Engine::playCompilation(const QString &why)
 	}
 	if (replaying())
 		stopReplay("replaced");
+	QString pathV;
+	if (cfg.verticalOn()) {
+		QFileInfo v(files.first().absolutePath() + "/" + files.first().completeBaseName() + " [vertical]." +
+			    files.first().suffix());
+		if (v.exists())
+			pathV = v.absoluteFilePath();
+		else
+			log("Play highlights: no vertical compilation next to this one, so the vertical scene gets the "
+			    "landscape one (the twin is built when vertical clips are there).");
+	}
 	std::string e = sw.playMedia(cfg, files.first().absoluteFilePath().toStdString(), 100,
-				     cfg.replaySound ? cfg.replayVolume : 0);
+				     cfg.replaySound ? cfg.replayVolume : 0, false, pathV.toStdString());
 	if (!e.empty()) {
 		log("Play highlights: " + QString::fromStdString(e));
 		return;
@@ -3249,6 +3267,7 @@ void Engine::playCompilation(const QString &why)
 	pendingReplay_.path.clear();
 	replayLengthMs_ = 1;
 	replaySought_ = true; // from the start, to the end
+	replayShown_ = false;
 	replayStartMs_ = 0;
 	replayEndMs_ = 0; // = the whole file, once its length is known
 	replayClock_.start();
@@ -3292,6 +3311,17 @@ void Engine::replayTick()
 	if (replayStartMs_ > 0 && replaySeekChecks_ < 3 && replayClock_.elapsed() > 500 && t < replayStartMs_ - 1500) {
 		sw.seekMedia(replayStartMs_);
 		replaySeekChecks_++;
+		replayClock_.restart();
+		return;
+	}
+	if (!replayShown_) {
+		// on screen once the seek has taken (at once when playing from the start); if it has not
+		// taken after a moment, show anyway rather than leave the viewer with nothing
+		bool there = replayStartMs_ == 0 || t >= replayStartMs_ - 300 || replayClock_.elapsed() > 1500;
+		if (!there || st != OBS_MEDIA_STATE_PLAYING)
+			return;
+		sw.showMedia(cfg);
+		replayShown_ = true;
 		replayClock_.restart();
 		return;
 	}

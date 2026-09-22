@@ -98,6 +98,8 @@ public:
 	/// The playing file's length in ms (0 until it has loaded), and a seek into it.
 	int64_t mediaDurationMs() const;
 	void seekMedia(int64_t ms);
+	/// playMedia() leaves the replay hidden while it opens and seeks; this puts it on screen (both canvases).
+	void showMedia(const Config &cfg);
 	bool mediaEnded() const;
 	int mediaState() const;      // obs_media_state, OBS_MEDIA_STATE_NONE when there is no source
 	int64_t mediaTimeMs() const; // where playback is in the file

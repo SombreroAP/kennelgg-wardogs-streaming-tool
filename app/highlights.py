@@ -127,13 +127,14 @@ class Highlights:
                 return int(h) * 3600 + int(m) * 60 + float(s)
         return 0.0
 
-    def _window(self, path: str) -> tuple[float, float]:
-        """(start, length) of the action inside the file, from the plugin's sidecar."""
+    def _window(self, path: str, side_of: str | None = None) -> tuple[float, float]:
+        """(start, length) of the action inside the file, from the plugin's sidecar (side_of: another
+        file's sidecar, for the vertical twin of a clip - the two were saved at the same instant)."""
         dur = self._probe_duration(path)
         if dur <= 0:
             raise RuntimeError("could not read the file's length")
         first = last = None
-        side = os.path.splitext(path)[0] + ".json"
+        side = os.path.splitext(side_of or path)[0] + ".json"
         if os.path.exists(side):
             try:
                 d = json.load(open(side, encoding="utf-8"))
@@ -164,17 +165,20 @@ class Highlights:
                     "-maxrate", "40M", "-bufsize", "80M", "-profile:v", "high", "-pix_fmt", "yuv420p"]
         return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
 
-    def _seg_path(self, path: str, start: float, length: float) -> str:
+    def _seg_path(self, path: str, start: float, length: float, w: int = W, h: int = H) -> str:
         st = os.stat(path)
-        key = hashlib.sha1(f"{path}|{st.st_size}|{int(st.st_mtime)}|{start:.1f}|{length:.1f}|{W}x{H}@{FPS}".encode()).hexdigest()[:16]
+        key = hashlib.sha1(f"{path}|{st.st_size}|{int(st.st_mtime)}|{start:.1f}|{length:.1f}|{w}x{h}@{FPS}".encode()).hexdigest()[:16]
         return os.path.join(self.work, f"seg-{key}.mp4")
 
-    def segment(self, path: str, tags: list[str]) -> str:
-        start, length = self._window(path)
-        out = self._seg_path(path, start, length)
+    def segment(self, path: str, tags: list[str], vertical: bool = False, side_of: str | None = None) -> str:
+        """The action cut out of the file. vertical: the portrait twin of a clip, sized 9:16, its window
+        taken from the landscape clip's sidecar (side_of)."""
+        w, h = (H, W) if vertical else (W, H)
+        start, length = self._window(path, side_of)
+        out = self._seg_path(path, start, length, w, h)
         if os.path.exists(out) and os.path.getsize(out) > 0:
             return out
-        vf = (f"scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,"
+        vf = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,"
               f"fps={FPS},format=yuv420p")
         cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.2f}", "-i", path, "-t", f"{length:.2f}",
                "-vf", vf, *self._pick_encoder(), "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
@@ -188,7 +192,9 @@ class Highlights:
         return out
 
     # ---- the compilation -----------------------------------------------------------------------
-    def _card(self, lines: list[str], seconds: float, name: str) -> str:
+    def _card(self, lines: list[str], seconds: float, name: str, vertical: bool = False) -> str:
+        w, h = (H, W) if vertical else (W, H)
+        name = name + ("-v" if vertical else "")
         out = os.path.join(self.work, f"card-{hashlib.sha1((name + '|'.join(lines)).encode()).hexdigest()[:12]}.mp4")
         if os.path.exists(out):
             return out
@@ -196,13 +202,13 @@ class Highlights:
         vf = []
         if font:
             fe = _ff_escape(font)
-            ys = [H * 0.40, H * 0.55] if len(lines) > 1 else [H * 0.46]
-            sizes = [110, 48]
+            ys = [h * 0.40, h * 0.55] if len(lines) > 1 else [h * 0.46]
+            sizes = [84, 40] if vertical else [110, 48]
             for i, text in enumerate(lines[:2]):
                 col = "0xC99A3B" if i == 0 else "0xECE7DB"
                 vf.append(f"drawtext=fontfile='{fe}':text='{_ff_escape(text)}':fontcolor={col}:fontsize={sizes[i]}:"
                           f"x=(w-text_w)/2:y={int(ys[i])}")
-        cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"color=c=0x1c1f1d:s={W}x{H}:r={FPS}:d={seconds}",
+        cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"color=c=0x1c1f1d:s={w}x{h}:r={FPS}:d={seconds}",
                "-f", "lavfi", "-i", f"anullsrc=r=48000:cl=stereo:d={seconds}"]
         if vf:
             cmd += ["-vf", ",".join(vf)]
@@ -280,20 +286,49 @@ class Highlights:
             raise RuntimeError("no clip could be cut")
         player = (o.get("player") or "").strip() or "HIGHLIGHTS"
         when = datetime.datetime.now()
-        parts = [self._card([player.upper(), f"HIGHLIGHTS  ·  {when.strftime('%d %b %Y').upper()}"], CARD_INTRO_S, "intro"),
-                 *segs, self._card(["kennel.gg", "The Kennel  ·  WARDOGS community"], CARD_OUTRO_S, "outro")]
-        self._say("Highlights: joining...")
-        lst = os.path.join(self.work, "concat.txt")
+        intro = [player.upper(), f"HIGHLIGHTS  ·  {when.strftime('%d %b %Y').upper()}"]
+        outro = ["kennel.gg", "The Kennel  ·  WARDOGS community"]
+        parts = [self._card(intro, CARD_INTRO_S, "intro"), *segs, self._card(outro, CARD_OUTRO_S, "outro")]
+        final = os.path.join(out_dir, f"Highlights {when.strftime('%Y-%m-%d %H-%M')}.mp4")
+        self._join(parts, final, "")
+        # the vertical canvas's own compilation, from the clips' portrait twins, when the plugin
+        # runs the vertical scene: named "... [vertical]" next to the landscape one
+        final_v = ""
+        vclips = [c for c in order if c.get("pathV") and os.path.exists(c["pathV"])]
+        if o.get("vertical") and vclips:
+            segs_v = []
+            for i, c in enumerate(vclips):
+                self._say(f"Highlights: cutting vertical {i + 1} of {len(vclips)}...")
+                try:
+                    segs_v.append(self.segment(c["pathV"], c.get("tags") or [], vertical=True, side_of=c["path"]))
+                except Exception as e:
+                    print(f"[highlights] skipped vertical {c['pathV']}: {e}")
+            if segs_v:
+                parts_v = [self._card(intro, CARD_INTRO_S, "intro", True), *segs_v,
+                           self._card(outro, CARD_OUTRO_S, "outro", True)]
+                final_v = final[:-4] + " [vertical].mp4"
+                try:
+                    self._join(parts_v, final_v, "-v")
+                except Exception as e:
+                    print(f"[highlights] vertical compilation failed: {e}")
+                    final_v = ""
+        self._say(f"Highlights ready: {os.path.basename(final)} ({len(segs)} clips)")
+        self.b.send({"type": "highlights_ready", "ok": True, "path": final, "pathV": final_v, "clips": len(segs)})
+
+    def _join(self, parts: list[str], final: str, tag: str):
+        """Concatenate the parts into `final`, with a music track under it when there is one."""
+        out_dir = os.path.dirname(final)
+        self._say("Highlights: joining..." if not tag else "Highlights: joining the vertical one...")
+        lst = os.path.join(self.work, f"concat{tag}.txt")
         with open(lst, "w", encoding="utf-8") as f:
             for p in parts:
                 f.write("file '" + p.replace("\\", "/").replace("'", "'\\''") + "'\n")
-        joined = os.path.join(self.work, "joined.mp4")
+        joined = os.path.join(self.work, f"joined{tag}.mp4")
         r = subprocess.run([self.ff, "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst,
                             "-c", "copy", "-movflags", "+faststart", joined], capture_output=True, text=True,
                            creationflags=_NOWIN | _LOWPRI)
         if r.returncode != 0:
             raise RuntimeError("join: " + r.stderr.strip()[-200:])
-        final = os.path.join(out_dir, f"Highlights {when.strftime('%Y-%m-%d %H-%M')}.mp4")
         music = []
         for folder in (os.path.join(out_dir, "music"), os.path.join(_base_dir(), "music")):
             for ext in ("*.mp3", "*.m4a", "*.wav", "*.flac"):
@@ -315,5 +350,3 @@ class Highlights:
                 shutil.copyfile(joined, final)
         else:
             shutil.copyfile(joined, final)
-        self._say(f"Highlights ready: {os.path.basename(final)} ({len(segs)} clips)")
-        self.b.send({"type": "highlights_ready", "ok": True, "path": final, "clips": len(segs)})

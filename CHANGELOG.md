@@ -2,6 +2,11 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.18.18
+- **No more "buffering" as a replay starts.** The replay used to appear the moment its file opened: the viewer saw the first frames of the file, then the jump to the moment, then a stall while the decoder worked forward from the keyframe before it. The file now opens and seeks while it is still hidden, and the replay appears only once playback has reached the moment, on both canvases. If it has not got there after a moment and a half it is shown anyway.
+- Settings, Clips: "Decode replays on the GPU", off by default, for a PC where the software decoder cannot keep up with a 1440p60 recording.
+- **Play highlights on the vertical scene plays a vertical compilation.** When the vertical scene is on, ClipHound also builds a portrait compilation from the clips' vertical twins (the same moments, cut to the same windows, portrait cards), named "... [vertical]" next to the landscape one, and the vertical scene plays that. With no vertical twins yet, the vertical scene gets the landscape one as before and the log says so.
+
 ## 0.18.17
 - **OBS could stay running after you closed it.** OBS releases every source on the way out and then tears the video down; the plugin was still holding its dual-POV scene (the browser page and the squad's window captures inside it) and the microphone tap at that point, which OBS logged at every close as "Not all sources were cleared when clearing scene data". With a Backtrack output still running when you closed, the teardown that followed could hang: OBS never reached the point of unloading its modules and had to be ended from Task Manager. The plugin now lets go of everything it holds the moment OBS starts clearing the scene collection, before any source is released, and picks it all up again after a scene-collection change.
 - At exit the plugin no longer spins OBS's event loop while it waits for ClipHound to close, cancels its web requests (live checks, the roster) and waits for their threads, and waits for its own worker threads by counting them rather than by a flag that could not clear in time.

@@ -114,7 +114,7 @@ private:
 	QSpinBox *seriesS_ = nullptr;
 	QSpinBox *replayPre_ = nullptr, *replayPost_ = nullptr, *replayScale_ = nullptr, *replayVol_ = nullptr,
 		 *replayCool_ = nullptr;
-	QCheckBox *replayChat_ = nullptr, *replaySound_ = nullptr, *highlightsAuto_ = nullptr;
+	QCheckBox *replayChat_ = nullptr, *replaySound_ = nullptr, *replayHw_ = nullptr, *highlightsAuto_ = nullptr;
 	QSpinBox *highlightsMax_ = nullptr, *clipTrimLead_ = nullptr, *runGap_ = nullptr;
 	QCheckBox *clipTrim_ = nullptr, *runMerge_ = nullptr, *runCutGaps_ = nullptr;
 	QLineEdit *chatKick_ = nullptr, *chatYouTube_ = nullptr, *highlightsFolder_ = nullptr, *replayLabel_ = nullptr,

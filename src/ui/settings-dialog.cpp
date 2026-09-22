@@ -1666,6 +1666,9 @@ QWidget *SettingsDialog::buildClipsTab()
 	fi->addRow("Sound level", replayVol_);
 	replayVol_->setEnabled(e_->cfg.replaySound);
 	connect(replaySound_, &QCheckBox::toggled, replayVol_, &QSpinBox::setEnabled);
+	replayHw_ = new QCheckBox("Decode replays on the GPU (try it if a replay stutters as it starts)", gi);
+	replayHw_->setChecked(e_->cfg.replayHwDecode);
+	fi->addRow(replayHw_);
 	replayLabel_ = new QLineEdit(QString::fromStdString(e_->cfg.replayLabel), gi);
 	replayLabel_->setPlaceholderText("Instant replay");
 	fi->addRow("Frame says", replayLabel_);
@@ -1716,6 +1719,7 @@ QWidget *SettingsDialog::buildClipsTab()
 		connect(sb, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
 	connect(replayChat_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(replaySound_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	connect(replayHw_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(highlightsAuto_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	for (auto *c : {clipTrim_, runMerge_, runCutGaps_})
 		connect(c, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
@@ -3147,6 +3151,7 @@ void SettingsDialog::collect()
 		c.replayWord = replayWord_->text().trimmed().isEmpty() ? "!replay"
 								       : replayWord_->text().trimmed().toStdString();
 		c.replaySound = replaySound_->isChecked();
+		c.replayHwDecode = replayHw_->isChecked();
 		c.highlightsAuto = highlightsAuto_->isChecked();
 		c.highlightsMax = highlightsMax_->value();
 		c.clipTrim = clipTrim_->isChecked();

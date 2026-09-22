@@ -116,6 +116,7 @@ void Config::load()
 	DEFI(replayCooldownS);
 	DEFB(replayChat);
 	DEFB(replaySound);
+	DEFB(replayHwDecode);
 	DEFB(highlightsAuto);
 	DEFB(clipTrim);
 	DEFI(clipTrimLeadS);
@@ -282,6 +283,7 @@ void Config::load()
 	GETI(replayCooldownS);
 	GETB(replayChat);
 	GETB(replaySound);
+	GETB(replayHwDecode);
 	GETB(highlightsAuto);
 	GETB(clipTrim);
 	GETI(clipTrimLeadS);
@@ -622,6 +624,7 @@ void Config::save() const
 	SETI(replayCooldownS);
 	SETB(replayChat);
 	SETB(replaySound);
+	SETB(replayHwDecode);
 	SETB(highlightsAuto);
 	SETB(clipTrim);
 	SETI(clipTrimLeadS);
