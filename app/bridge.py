@@ -92,7 +92,7 @@ class Bridge:
             self._last_err = msg
             print(f"[bridge] cannot reach the plugin at {self.url}: {msg}")
             print("[bridge] is OBS running with the plugin, and is the ClipHound bridge on "
-                  "(Settings -> ClipHound)? Retrying every 3 s.")
+                  "(Settings, Advanced, ClipHound connection)? Retrying every 3 s.")
 
     # ---- connection ----
     def _run(self):

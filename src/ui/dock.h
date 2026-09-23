@@ -1,8 +1,8 @@
 #pragma once
 #include <QWidget>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QLabel>
-#include <QComboBox>
 #include <QPushButton>
 #include <QProgressBar>
 #include <QListWidget>
@@ -10,49 +10,61 @@
 #include <QCheckBox>
 #include <QPointer>
 #include <QDialog>
+#include <QTimer>
+#include <QMap>
 #include "engine.h"
 
-/// The small always-visible panel: state, active squad mate, the two buttons, settings.
+class FlowLayout;
+
+/// The always-visible panel. Top to bottom: what is on stream, a health strip that says what is
+/// wrong and fixes it, messages in place of pop-up windows, then one row of people for the main
+/// view, one for Dual POV, and the clip buttons. Everything else is behind the ⋯ menu.
 class Dock : public QWidget {
 	Q_OBJECT
 public:
 	explicit Dock(Engine *engine, QWidget *parent = nullptr);
 public slots:
 	void refresh();
-	void openSettings();
+	void openSettings(const QString &page = QString());
 	void openWizard();
 	void openLogs();
 	void openSquad();
-	void showSupportNote();
-	void showLanguageNote();
 	void openClips(const QString &focusPath = QString());
+	/// A health or banner action: the engine's own, or a window the dock opens.
+	void runFix(const QString &id);
 
 private:
 	Engine *e_;
 	bool noteNext_ = false; // the next manual clip opens the note dialog
-	QLabel *state_, *last_, *app_, *clip_;
-	QListWidget *events_;
-	QLabel *detector_;
-	QLabel *near_ = nullptr;
-	QLabel *update_ = nullptr;
-	QLabel *locked_ = nullptr;
-	QLabel *sceneWarn_ = nullptr;
-	QCheckBox *closest_ = nullptr;
-	QPushButton *dual_ = nullptr;
-	QComboBox *active_;
-	QComboBox *dualPick_ = nullptr;
-	QCheckBox *dualAuto_ = nullptr;
-	QPushButton *show_, *back_, *clipNow_, *appBtn_;
-	QCheckBox *autoSwitch_ = nullptr;
-	QPushButton *showPop_ = nullptr;
-	QPushButton *replay_ = nullptr, *highlights_ = nullptr;
-	QHBoxLayout *liveRow_ = nullptr;
-	QList<QPushButton *> liveButtons_;
-	QStringList liveNames_;
-	QStringList liveShown_;
-	QList<int> liveIdx_;
-	QToolButton *saveBtn_;
 	bool filling_ = false;
+	bool compact() const;
+	void refreshHealth();
+	void rebuildBanners();
+	void rebuildPeople();
+	void addPopouts();
+
+	QLabel *state_ = nullptr, *last_ = nullptr, *clip_ = nullptr, *near_ = nullptr;
+	QToolButton *menuBtn_ = nullptr, *saveBtn_ = nullptr;
+	QMap<QString, QToolButton *> dots_;
+	QVBoxLayout *banners_ = nullptr;
+	QStringList bannerKeys_;
+	QWidget *voiceRow_ = nullptr;
+	QProgressBar *voiceBar_ = nullptr;
+	QLabel *voiceLbl_ = nullptr;
+	QCheckBox *autoSwitch_ = nullptr, *dualAuto_ = nullptr;
+	QLabel *dualHead_ = nullptr;
+	FlowLayout *povFlow_ = nullptr, *dualFlow_ = nullptr;
+	QWidget *povBox_ = nullptr, *dualBox_ = nullptr;
+	QLabel *povEmpty_ = nullptr;
+	QPushButton *meBtn_ = nullptr, *closestBtn_ = nullptr, *dualOffBtn_ = nullptr;
+	QList<QPushButton *> povBtns_, dualBtns_;
+	QList<int> peopleIdx_;
+	QString peopleKey_;
+	QPushButton *replay_ = nullptr, *highlights_ = nullptr, *addPop_ = nullptr, *showPop_ = nullptr;
+	QWidget *squadRow_ = nullptr, *eventsHead_ = nullptr;
+	QListWidget *events_ = nullptr;
+	QAction *appAct_ = nullptr, *compactAct_ = nullptr, *compactLiveAct_ = nullptr;
+	QTimer tick_;
 	QPointer<QDialog> settings_;
 	QPointer<QWidget> wizard_;
 	QPointer<QDialog> squad_;

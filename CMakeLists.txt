@@ -46,6 +46,7 @@ target_sources(
     src/capture.cpp
     src/switcher.cpp
     src/engine.cpp
+    src/health.cpp
     src/bridge.cpp
     src/clips.cpp
     src/roster.cpp

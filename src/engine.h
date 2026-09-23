@@ -46,6 +46,44 @@ public:
 	void broadcastState();
 	QTimer stateTimer_; // stateChanged fires a lot; the broadcast is coalesced
 	QString voiceStatus() const { return voiceStatus_; }
+
+	/// One area the dock's health strip shows: fine, needs a look, broken, or switched off. Each
+	/// knows what would fix it, as actions the dock offers as buttons.
+	struct HealthItem {
+		QString key;   // game | scene | cliphound | discord | replay | voice
+		QString label; // what the dot says
+		int level = 0; // 0 fine, 1 needs a look, 2 broken, 3 off; the item is left out when not in use
+		QString why;   // one plain line
+		QList<QPair<QString, QString>> fixes; // action id, button text
+	};
+	QList<HealthItem> health() const;
+	/// A message in the dock instead of a window over OBS: nothing modal ever opens by itself while
+	/// someone streams. Problems from the health strip first, then one-off notes.
+	struct Banner {
+		QString id;
+		int level = 0; // 0 note, 1 needs a look, 2 broken
+		QString text;  // rich text
+		QList<QPair<QString, QString>> actions;
+		bool dismissable = true;
+	};
+	QList<Banner> banners() const;
+	void dismissBanner(const QString &id);
+	/// Carry out a health or banner action. False when it is not the engine's to do (it opens a
+	/// window: Settings, Setup, the Squad panel, the logs): the dock does those.
+	bool runAction(const QString &id);
+	/// The dock added these pop-outs: remind to mute them in Discord, and to check in-game names.
+	void noteAddedPopouts(const QStringList &names);
+	/// Closest was asked for without ClipHound running: say so in the dock, with a way to start it.
+	void noteClosestNeedsApp();
+	/// Pressed Stop: ClipHound being off is then a choice, not a problem.
+	bool appStoppedByUser() const { return appUserStopped_; }
+	/// The microphone's level as it goes to ClipHound, dBFS (-120 when silent or not listening).
+	double voiceLevelDb() const { return voiceLevelDb_; }
+	/// The last thing the listener did with what you said, for the dock: "heard ... → clip saved".
+	QString voiceHeard() const { return voiceHeard_; }
+	int voiceHeardKind() const { return voiceHeardKind_; } // 0 nothing yet, 1 command, 2 not understood, 3 wake
+	QDateTime voiceHeardAt() const { return voiceHeardAt_; }
+	bool streamingOrRecording() const;
 	/// The scene live in OBS right now, when it is not the scene the plugin works in (else "").
 	QString sceneMismatch() const;
 	QString playerName() const;
@@ -157,6 +195,8 @@ signals:
 	/// The damage log keeps scoring close to, never over, the line for every wording we have:
 	/// the game is probably in a language the plugin does not know. Once per install.
 	void languageUnknown();
+	/// The microphone's level, about ten times a second while voice listens.
+	void voiceLevel(double db);
 
 public:
 	bool applied() const { return applied_; }
@@ -327,8 +367,24 @@ private:
 	bool applied_ = false, detected_ = false, applying_ = false, lookPreview_ = false, previewWanted_ = false;
 	int downRun_ = 0, upRun_ = 0, tickN_ = 0;
 	double peakScore_ = 0;
-	double nearBest_ = 0;          // best below-threshold score since nearSince_
-	int nearMinutes_ = 0;          // minutes in which the best score came close without a match
+	double nearBest_ = 0; // best below-threshold score since nearSince_
+	int nearMinutes_ = 0; // minutes in which the best score came close without a match
+	double voiceLevelDb_ = -120;
+	qint64 voicePcmMs_ = 0, voiceLoudMs_ = 0, voiceAttachMs_ = 0;
+	QString voiceHeard_;
+	int voiceHeardKind_ = 0;
+	QDateTime voiceHeardAt_;
+	void setVoiceHeard(const QString &text, int kind);
+	QSet<QString> dismissed_;
+	bool langBanner_ = false;            // the damage log never matched a wording we have
+	QString oldCopy_;                    // an older copy of the plugin found installed
+	QHash<QString, quintptr> minimised_; // squad mates whose pop-out is minimised, and its window
+	QStringList muteNames_;              // pop-outs just added: mute them in Discord
+	QStringList nameCheck_;              // just added while Closest is on: check their in-game names
+	bool closestAsk_ = false;            // Closest pressed without ClipHound
+	bool appUserStopped_ = false;
+	QString frameSaved_;           // a frame saved from a banner, to attach to a ticket
+	double lastNearBest_ = -1;     // the best below-threshold score of the last whole minute
 	QString voiceStatus_;          // what ClipHound says the listener is doing
 	QString voicePending_;         // the manual clip waiting for its spoken name
 	bool replayAfterClip_ = false; // "clip replay": play the clip back once it is saved

@@ -611,6 +611,13 @@ void Switcher::untuckPopout(const Popout &p)
 	int x = std::max((int)mi.rcMonitor.left, (int)mi.rcMonitor.right - w - 40);
 	SetWindowPos(hwnd, HWND_NOTOPMOST, x, r.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
 }
+
+void Switcher::restorePopout(uintptr_t h)
+{
+	HWND hwnd = reinterpret_cast<HWND>(h);
+	if (hwnd && IsWindow(hwnd) && IsIconic(hwnd))
+		ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+}
 #endif
 
 #ifndef _WIN32
@@ -623,6 +630,7 @@ bool Switcher::parkPopout(const Popout &, int, int, int)
 	return false;
 }
 void Switcher::untuckPopout(const Popout &) {}
+void Switcher::restorePopout(uintptr_t) {}
 std::vector<std::string> Switcher::monitors()
 {
 	return {};

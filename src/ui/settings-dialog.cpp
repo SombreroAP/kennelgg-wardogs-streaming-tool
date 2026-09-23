@@ -85,7 +85,7 @@ void FramePreview::paintEvent(QPaintEvent *)
 	if (img_.isNull()) {
 		p.setPen(QColor(139, 144, 150));
 		p.drawText(rect(), Qt::AlignCenter | Qt::TextWordWrap,
-			   "No frame yet. Set the game source on the Switch tab and keep this window open.");
+			   "No frame yet. Set the game source under General and keep this window open.");
 		return;
 	}
 	QRect ir = imageRect();
@@ -463,7 +463,7 @@ private:
 			break;
 		case FriendKind::Kick:
 			hint_->setText(
-				"Kick's own player in a browser source, like Twitch. Type the channel as it appears in the address bar (kick.com/<name>). They just need to be live. Their stream includes their mic; its sound is not played unless you tick that on the Switch tab.");
+				"Kick's own player in a browser source, like Twitch. Type the channel as it appears in the address bar (kick.com/<name>). They just need to be live. Their stream includes their mic; its sound is not played unless you tick that under Squad & POV.");
 			break;
 		case FriendKind::YouTube:
 			hint_->setText(
@@ -657,15 +657,38 @@ SettingsDialog::SettingsDialog(Engine *engine, QWidget *parent) : QDialog(parent
 		page->setMinimumWidth(560); // narrower than this and the two-column rows get silly
 		tabs->addTab(sa, name);
 	};
-	scrolled(buildSwitchTab(), "Switch");
-	scrolled(buildLookTab(), "Look");
-	scrolled(buildDetectTab(), "Detect");
-	scrolled(buildDualTab(), "Dual POV");
-	scrolled(buildClipsTab(), "Clips");
-	scrolled(buildVoiceTab(), "Voice (beta)");
-	scrolled(buildAppTab(), "ClipHound");
+	tabs_ = tabs;
+	for (int i = 0; i < PCount; i++) {
+		pageW_[i] = new QWidget(this);
+		pages_[i] = new QVBoxLayout(pageW_[i]);
+	}
+	buildGeneral();
+	// each builder puts its groups on the page they belong to; what is left of its own page is empty
+	for (QWidget *left : {buildSwitchTab(), buildClipsTab(), buildAppTab()})
+		left->hide();
+	pages_[PLook]->addWidget(buildLookTab());
+	{
+		auto *gd = new QGroupBox("Downed detection", pageW_[PAdvanced]);
+		auto *gl = new QVBoxLayout(gd);
+		gl->addWidget(buildDetectTab());
+		pages_[PAdvanced]->insertWidget(0, gd, 1);
+	}
+	pages_[PDual]->addWidget(buildDualTab());
+	pages_[PVoice]->addWidget(buildVoiceTab());
+	pages_[PGeneral]->addWidget(genAppBox_);
+	for (int i : {PGeneral, PVertical, PLook, PAdvanced})
+		pages_[i]->addStretch(1);
+	scrolled(pageW_[PGeneral], "General");
+	scrolled(pageW_[PSquad], "Squad && POV");
+	scrolled(pageW_[PDual], "Dual POV");
+	scrolled(pageW_[PClips], "Clips && replays");
+	scrolled(pageW_[PVertical], "Vertical (beta)");
+	scrolled(pageW_[PVoice], "Voice (beta)");
+	scrolled(pageW_[PLook], "Stream look");
+	scrolled(pageW_[PAdvanced], "Advanced");
 	tabs->addTab(buildLogsTab(), "Logs"); // already a scrolling text view
 	scrolled(buildAboutTab(), "Help");
+	tabKeys_ = {"general", "squad", "dual", "clips", "vertical", "voice", "look", "advanced", "logs", "help"};
 	// every spin box and drop-down: no accidental changes from a scroll (see WheelGuard)
 	{
 		auto *guard = new WheelGuard(this);
@@ -708,6 +731,58 @@ SettingsDialog::~SettingsDialog()
 		e_->previewLook(false);
 }
 
+void SettingsDialog::showPage(const QString &key)
+{
+	int i = tabKeys_.indexOf(key);
+	if (tabs_ && i >= 0 && i < tabs_->count())
+		tabs_->setCurrentIndex(i);
+}
+
+static QLabel *muted(const QString &t, QWidget *p);
+
+/// Who you are, your game and scene, and ClipHound: everything a new setup needs, on one page. The
+/// game-and-scene group itself comes from the squad builder, the language row from detection.
+void SettingsDialog::buildGeneral()
+{
+	QWidget *pg = pageW_[PGeneral];
+	auto *you = new QGroupBox("You", pg);
+	genYou_ = new QFormLayout(you);
+	playerName_ = new QLineEdit(QString::fromStdString(e_->cfg.playerName), you);
+	playerName_->setPlaceholderText("your name in WARDOGS, if left blank");
+	playerName_->setToolTip("Shown to squad mates on the same network and on the highlights title card.");
+	auto *me = new QHBoxLayout();
+	discordUser_ = new QLineEdit(QString::fromStdString(e_->cfg.myDiscord), you);
+	discordUser_->setPlaceholderText("the lower-case one under your display name");
+	auto *detect = new QPushButton("Detect", you);
+	detect->setToolTip("Ask the Discord app on this PC who it is logged in as.");
+	me->addWidget(discordUser_, 1);
+	me->addWidget(detect);
+	pages_[PGeneral]->addWidget(you);
+	// the in-game name row goes in first, from the kill-feed builder that owns the field
+	genYou_->addRow("Name shown to others", playerName_);
+	genYou_->addRow("Your Discord username", me);
+	genYou_->addRow(muted("Your Discord username lets the Kennel.gg bot follow your voice channel and keeps "
+			      "your own stream out of your squad.",
+			      you));
+	connect(playerName_, &QLineEdit::editingFinished, this, [this]() { saveAndApply(); });
+	connect(discordUser_, &QLineEdit::editingFinished, this, [this]() {
+		QString v = discordUser_->text().trimmed().toLower();
+		if (v.toStdString() != e_->cfg.myDiscord)
+			e_->setMyDiscord(v);
+	});
+	connect(detect, &QPushButton::clicked, this, [this]() { e_->detectDiscordUser(true); });
+	connect(e_, &Engine::discordUserDetected, this, [this](const QString &u, bool) {
+		if (!u.isEmpty() && discordUser_)
+			discordUser_->setText(u);
+	});
+	genAppBox_ = new QGroupBox("ClipHound", pg);
+	genApp_ = new QFormLayout(genAppBox_);
+	genApp_->addRow(muted("ClipHound reads the kill feed for clips, the NEARBY list for Closest, and listens "
+			      "for voice commands. It runs in the background; its connection settings are under "
+			      "Advanced.",
+			      genAppBox_));
+}
+
 static QLabel *muted(const QString &t, QWidget *p)
 {
 	auto *l = new QLabel(t, p);
@@ -728,8 +803,9 @@ QWidget *SettingsDialog::buildSwitchTab()
 	auto *w = new QWidget(this);
 	auto *v = new QVBoxLayout(w);
 
-	auto *g1 = new QGroupBox("Your side", w);
+	auto *g1 = new QGroupBox("Your game and scene", w);
 	auto *f1 = new QFormLayout(g1);
+	genGame_ = f1;
 	game_ = new QComboBox(g1);
 	scene_ = new QComboBox(g1);
 	auto *refresh = new QPushButton("Refresh", g1);
@@ -751,9 +827,9 @@ QWidget *SettingsDialog::buildSwitchTab()
 	f1->addRow("Your game source", gr);
 	f1->addRow("Scene", scene_);
 	f1->addRow(muted(
-		"The game source is watched for the damage log (rendered on its own, so it can stay under the friend). Squad mates are shown on top of it in this scene. Browser sources for Twitch / VDO.Ninja and the look overlay are created here when first needed.",
+		"The game source is watched for the damage log (rendered on its own, so it can stay under the squad mate's feed). Squad mates are shown on top of it in this scene, and only this scene. Browser sources for Twitch / VDO.Ninja and the look overlay are created here when first needed.",
 		g1));
-	v->addWidget(g1);
+	pages_[PGeneral]->addWidget(g1);
 	connect(refresh, &QPushButton::clicked, this, [this]() { fillSources(); });
 	connect(game_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int i) {
 		if (gameDetect_ && i >= 0 && gameDetect_->currentText() != game_->currentText()) {
@@ -767,7 +843,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 	// ----- the vertical canvas, beta
 	auto *gv = new QGroupBox("Vertical canvas (beta)", w);
 	auto *fv = new QFormLayout(gv);
-	verticalOn_ = new QCheckBox("Also swap and replay on a vertical canvas (beta, off by default)", gv);
+	verticalOn_ = new QCheckBox("Also swap and replay on a vertical canvas", gv);
 	verticalOn_->setChecked(e_->cfg.verticalEnabled);
 	fv->addRow(verticalOn_);
 	sceneV_ = new QComboBox(gv);
@@ -804,7 +880,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 			 gv));
 	connect(onTopV_, &QListWidget::itemChanged, this, [this](QListWidgetItem *) { saveAndApply(); });
 	connect(onTopV_->model(), &QAbstractItemModel::rowsMoved, this, [this]() { saveAndApply(); });
-	v->addWidget(gv);
+	pages_[PVertical]->addWidget(gv);
 	connect(verticalOn_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(sceneV_, &QComboBox::currentIndexChanged, this, [this](int) { saveAndApply(); });
 
@@ -830,7 +906,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 		fb->addWidget(b);
 	fb->addStretch(1);
 	h2->addLayout(fb);
-	v->addWidget(g2, 1);
+	pages_[PSquad]->addWidget(g2, 1);
 	connect(testBtn, &QPushButton::clicked, this, [this]() { testFeed(); });
 	connect(add, &QPushButton::clicked, this, [this]() { editFriend(-1); });
 	connect(edit, &QPushButton::clicked, this, [this]() { editFriend(friends_->currentRow()); });
@@ -926,9 +1002,9 @@ QWidget *SettingsDialog::buildSwitchTab()
 	nearLbl_->setWordWrap(true);
 	fc->addRow("Nearby now", nearLbl_);
 	fc->addRow(muted(
-		"The moment you go down, ClipHound reads the NEARBY list in the bottom-right corner of your game and tells the plugin who is how far away, so the POV you cut to is the squad mate who can actually revive you. Nothing is read while you are up, so it costs nothing between fights. While this is on, the squad mate box in the dock follows the closest one by itself; untick it (here or in the dock) to choose the squad mate yourself. It needs ClipHound running, the blue NEARBY box set on the Detect tab, and each squad mate's in-game name filled in (Edit... → In-game name). Without a reading, the squad mate picked in the dock is used as before.",
+		"The moment you go down, ClipHound reads the NEARBY list in the bottom-right corner of your game and tells the plugin who is how far away, so the POV you cut to is the squad mate who can actually revive you. Nothing is read while you are up, so it costs nothing between fights. While this is on, the dock's Closest button is lit and the squad mate shown follows the nearest one by itself; press a squad mate on the dock (or untick this) to choose yourself. It needs ClipHound running, the blue NEARBY box set under Advanced, and each squad mate's in-game name typed in the Squad window. Without a reading, the squad mate picked on the dock is used as before.",
 		gc));
-	v->addWidget(gc);
+	pages_[PSquad]->addWidget(gc);
 	connect(nearOn_, &QCheckBox::toggled, this, [this](bool on) {
 		if (on && !e_->appConnected()) {
 			auto r = QMessageBox::question(
@@ -954,9 +1030,6 @@ QWidget *SettingsDialog::buildSwitchTab()
 			nearOn_->blockSignals(false);
 		}
 	});
-
-	playerName_ = new QLineEdit(QString::fromStdString(e_->cfg.playerName), w);
-	playerName_->hide(); // set in Setup; kept here so it round-trips with the rest
 
 	auto *gRoster = new QGroupBox("Squad from Discord", w);
 	auto *fRoster = new QFormLayout(gRoster);
@@ -997,7 +1070,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 	connect(&e_->roster, &Roster::changed, this, showRoster);
 	connect(&e_->roster, &Roster::polled, this, showRoster);
 	showRoster();
-	v->addWidget(gRoster);
+	pages_[PSquad]->addWidget(gRoster);
 
 	auto *g3 = new QGroupBox("Sound while a squad mate is on screen", w);
 	auto *v3 = new QVBoxLayout(g3);
@@ -1016,7 +1089,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 		      g3),
 		1);
 	v3->addLayout(h3, 1);
-	v->addWidget(g3, 1);
+	pages_[PSquad]->addWidget(g3, 1);
 	connect(mute_, &QListWidget::itemChanged, this, [this](QListWidgetItem *) { saveAndApply(); });
 	connect(friendAudio_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(e_, &Engine::stateChanged, this, [this]() {
@@ -1037,14 +1110,14 @@ QWidget *SettingsDialog::buildSwitchTab()
 		      gTop),
 		1);
 	vTop->addLayout(hTop, 1);
-	v->addWidget(gTop, 1);
+	pages_[PSquad]->addWidget(gTop, 1);
 	onTop_->setDragDropMode(QAbstractItemView::InternalMove);
 	connect(onTop_, &QListWidget::itemChanged, this, [this](QListWidgetItem *) { saveAndApply(); });
 	connect(onTop_->model(), &QAbstractItemModel::rowsMoved, this, [this]() { saveAndApply(); });
 
 	auto *g4 = new QGroupBox("Extras", w);
 	auto *v4 = new QVBoxLayout(g4);
-	bringFront_ = new QCheckBox("Move the friend source to the top of the scene when shown", g4);
+	bringFront_ = new QCheckBox("Move the squad mate's feed to the top of the scene when shown", g4);
 	invSwitch_ = new QCheckBox("Magazine packing / inventory POV switching: show a squad mate while your inventory "
 				   "screen is open (needs ClipHound)",
 				   g4);
@@ -1056,7 +1129,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 	v4->addWidget(invSwitch_);
 	connect(invSwitch_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	keepWarm_ = new QCheckBox(
-		"Keep the friend feed warm: leave the source on but invisible and muted, so the player never reconnects (instant switch)",
+		"Keep the squad mate's feed warm: leave the source on but invisible and muted, so the player never reconnects (instant switch)",
 		g4);
 	preload_ = new QCheckBox(
 		"Keep every squad mate's feed loaded and playing, hidden and silent, so there is no black screen while it starts (uses their bandwidth for each one)",
@@ -1066,7 +1139,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 	v4->addWidget(preload_);
 	connect(preload_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	v4->addWidget(keepWarm_);
-	v->addWidget(g4);
+	pages_[PSquad]->addWidget(g4);
 	connect(rosterOn_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(rosterSources_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(rosterUrl_, &QLineEdit::editingFinished, this, [this]() { saveAndApply(); });
@@ -1085,7 +1158,7 @@ QWidget *SettingsDialog::buildLookTab()
 {
 	auto *w = new QWidget(this);
 	auto *v = new QVBoxLayout(w);
-	auto *g = new QGroupBox("Ham it up", w);
+	auto *g = new QGroupBox("Over a squad mate's feed", w);
 	auto *f = new QFormLayout(g);
 	lookName_ = new QCheckBox("Name tag  (\"POV · PUP\", Kennel colours)", g);
 	auto *nameRow = new QHBoxLayout();
@@ -1120,12 +1193,12 @@ QWidget *SettingsDialog::buildLookTab()
 	f->addRow(lookGrain_, grain_);
 	lookVig_ = new QCheckBox("Vignette  (darkened edges)", g);
 	f->addRow(lookVig_);
-	lookMark_ = new QCheckBox("Kennel.gg mark  (small and faint, bottom-right; on by default)", g);
+	lookMark_ = new QCheckBox("Kennel.gg mark  (small and faint, bottom-right)", g);
 	f->addRow(lookMark_);
 	preview_ = new QPushButton("Preview look in OBS", g);
 	f->addRow(preview_);
 	f->addRow(muted(
-		"Drawn by a browser source named \"Kennel look\" that the plugin adds to your scene and shows on top of the friend while you are downed. Nothing touches the friend's feed itself, so it is the same for a Discord pop-out, Twitch or VDO.Ninja.",
+		"Drawn by a browser source named \"Kennel look\" that the plugin adds to your scene and shows on top of the squad mate while you are downed. Nothing touches their feed itself, so it is the same for a Discord pop-out, Twitch or VDO.Ninja.",
 		g));
 	v->addWidget(g);
 	v->addStretch(1);
@@ -1159,15 +1232,17 @@ QWidget *SettingsDialog::buildDetectTab()
 	auto *v = new QVBoxLayout(w);
 	auto *gs = new QHBoxLayout();
 	gameDetect_ = new QComboBox(w);
-	gameDetect_->setToolTip("The OBS source that shows WARDOGS - the same setting as on the Switch tab.");
+	gameDetect_->setToolTip("The OBS source that shows WARDOGS - the same setting as under General.");
 	auto *gsRefresh = new QPushButton("Refresh", w);
-	gs->addWidget(new QLabel("Your game source", w));
+	auto *gsLabel = new QLabel("Your game source", w);
+	gsLabel->hide();
+	gs->addWidget(gsLabel);
 	gs->addWidget(gameDetect_, 1);
 	gs->addWidget(gsRefresh);
-	v->addLayout(gs);
-	v->addWidget(muted(
-		"This is the source the damage log and the NEARBY list are read from: your capture card, Game Capture or Window Capture of WARDOGS. Same setting as the Switch tab.",
-		w));
+	// the game source is chosen once, under General; this copy stays hidden so the two agree
+	for (QWidget *hide : {(QWidget *)gameDetect_, (QWidget *)gsRefresh})
+		hide->hide();
+	delete gs;
 	connect(gsRefresh, &QPushButton::clicked, this, [this]() { fillSources(); });
 	connect(gameDetect_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) {
 		if (building_ || !game_ || gameDetect_->currentText().isEmpty())
@@ -1230,7 +1305,7 @@ QWidget *SettingsDialog::buildDetectTab()
 		updateAreas();
 	});
 	v->addWidget(muted(
-		"The blue box is the NEARBY list in the bottom-right corner of your game: the squad mates next to you and how far away they are. It is what \"Show whoever is closest\" on the Switch tab reads, through ClipHound, from the moment you go down until you are back up. Drag round it with a little margin, including room above for a full squad, then press Test read to see what ClipHound makes of it.",
+		"The blue box is the NEARBY list in the bottom-right corner of your game: the squad mates next to you and how far away they are. It is what \"Show whoever is closest\" (Squad & POV) reads, through ClipHound, from the moment you go down until you are back up. Drag round it with a little margin, including room above for a full squad, then press Test read to see what ClipHound makes of it.",
 		w));
 
 	auto *row = new QHBoxLayout();
@@ -1272,7 +1347,8 @@ QWidget *SettingsDialog::buildDetectTab()
 			lrow->addWidget(
 				new QLabel(QString("found: %1").arg(Engine::langName(e_->cfg.gameLangFound)), w));
 		lrow->addStretch(1);
-		v->addLayout(lrow);
+		ll->hide(); // the form row carries the label
+		genGame_->addRow("Game language", lrow);
 		connect(lang, &QComboBox::currentIndexChanged, this, [this, lang](int) {
 			if (building_)
 				return;
@@ -1454,7 +1530,7 @@ QWidget *SettingsDialog::buildDetectTab()
 	pollMs_->setSingleStep(50);
 	pollMs_->setValue(e_->cfg.pollMs);
 	mdRow->addWidget(minDown_);
-	mdRow->addWidget(muted("ms minimum on the friend (stops flicker during the revive animation)", g));
+	mdRow->addWidget(muted("ms minimum on the squad mate (stops flicker during the revive animation)", g));
 	mdRow->addWidget(pollMs_);
 	mdRow->addWidget(muted("ms between polls", g));
 	mdRow->addStretch(1);
@@ -1463,7 +1539,7 @@ QWidget *SettingsDialog::buildDetectTab()
 	auto_->setChecked(e_->cfg.autoDetect);
 	f->addRow(auto_);
 	revive_ = new QCheckBox(
-		"Watch the friend's feed for \"REVIVING\": when they are on you, switch back the instant the damage log goes (no confirm delay, 10 polls / s)",
+		"Watch the squad mate's feed for \"REVIVING\": when they are on you, switch back the instant the damage log goes (no confirm delay, 10 polls / s)",
 		g);
 	revive_->setChecked(e_->cfg.watchRevive);
 	f->addRow(revive_);
@@ -1476,7 +1552,7 @@ QWidget *SettingsDialog::buildDetectTab()
 	rvRow->addWidget(reviveLbl_);
 	f->addRow("Revive match threshold", rvRow);
 	f->addRow(muted(
-		"Hotkeys live in OBS Settings → Hotkeys: \"Kennel.gg Wardogs: show friend's POV / back to me\", \"...capture damage-log template\" and \"...save a clip now\". On a two-PC setup send them from the gaming PC with KeyBridge.",
+		"Hotkeys live in OBS Settings → Hotkeys: \"Kennel.gg Wardogs: show squad mate's POV / back to me\", \"...capture damage-log template\" and \"...save a clip now\". On a two-PC setup send them from the gaming PC with KeyBridge.",
 		g));
 	v->addWidget(g);
 
@@ -1545,9 +1621,9 @@ QWidget *SettingsDialog::buildClipsTab()
 	clipDowned_->setChecked(e_->cfg.clipOnDowned);
 	f1->addRow(clipDowned_);
 	f1->addRow(muted(
-		"Hotkey \"Kennel.gg Wardogs: save a clip now\" and the dock's Clip now button save one by hand. Replay length is OBS's Settings → Output → Replay Buffer.",
+		"The dock's Save clip button and the hotkey \"Kennel.gg Wardogs: save a clip now\" save one by hand.",
 		g1));
-	v->addWidget(g1);
+	pages_[PClips]->addWidget(g1);
 
 	auto *gh = new QGroupBox("Also fire OBS hotkeys on a clip (Aitum Backtrack, anything else)", w);
 	auto *vh = new QVBoxLayout(gh);
@@ -1578,7 +1654,7 @@ QWidget *SettingsDialog::buildClipsTab()
 	vh->addWidget(muted(
 		"Tick the hotkeys OBS should press for you on every clip: with Aitum Backtrack that is its \"Save\" hotkey for the source you want (Backtrack names its own files, so the file-name template above does not apply to those). Untick the replay buffer above to clip with Backtrack alone.",
 		gh));
-	v->addWidget(gh);
+	pages_[PClips]->addWidget(gh);
 	auto *gr = new QGroupBox("Rolling highlights", w);
 	auto *fr = new QFormLayout(gr);
 	seriesS_ = new QSpinBox(gr);
@@ -1641,7 +1717,7 @@ QWidget *SettingsDialog::buildClipsTab()
 		"re-encoded on the GPU, with the seams placed by matching the clips' sound so nothing repeats. The "
 		"original clips are kept. Cutting the dead space is off by default: it turns a run into the kills alone.",
 		gr));
-	v->addWidget(gr);
+	pages_[PClips]->addWidget(gr);
 
 	auto *gi = new QGroupBox("Instant replay", w);
 	auto *fi = new QFormLayout(gi);
@@ -1690,7 +1766,8 @@ QWidget *SettingsDialog::buildClipsTab()
 	chatKick_->setPlaceholderText("your Kick channel (optional)");
 	chatYouTube_ = new QLineEdit(QString::fromStdString(e_->cfg.chatYouTube), gi);
 	chatYouTube_->setPlaceholderText("your YouTube channel or @handle (optional)");
-	fi->addRow("Twitch chat", muted("Your Twitch chat is read through the login on the ClipHound tab.", gi));
+	fi->addRow("Twitch chat",
+		   muted("Your Twitch chat is read through the Twitch login under Twitch clips, below.", gi));
 	fi->addRow("Kick chat", chatKick_);
 	fi->addRow("YouTube chat", chatYouTube_);
 	highlightsFolder_ = new QLineEdit(QString::fromStdString(e_->cfg.highlightsFolder), gi);
@@ -1710,11 +1787,11 @@ QWidget *SettingsDialog::buildClipsTab()
 		gi));
 	fi->addRow(muted(
 		"Instant replay plays the last highlight back on the stream, cut down to the action, framed and tagged, sized "
-		"under your camera and alerts (the always-on-top list on the Switch tab). The dock button and a hotkey play "
+		"under your camera and alerts (the always-on-top list under Squad & POV). The dock button and a hotkey play "
 		"it; so can chat, once per cooldown. The clip carries whatever the stream carried, your mic included, so its "
 		"sound is off unless you tick it on. Play highlights plays the newest video in the highlights folder, full screen.",
 		gi));
-	v->addWidget(gi);
+	pages_[PClips]->addWidget(gi);
 	for (auto *sb : {replayPre_, replayPost_, replayScale_, replayVol_, replayCool_})
 		connect(sb, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
 	connect(replayChat_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
@@ -1733,7 +1810,7 @@ QWidget *SettingsDialog::buildClipsTab()
 	connect(useReplay_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	fillHotkeys();
 
-	auto *g2 = new QGroupBox("Companion app (ClipHound)", w);
+	auto *g2 = new QGroupBox("ClipHound connection", w);
 	auto *f2 = new QFormLayout(g2);
 	auto *br = new QHBoxLayout();
 	bridgeOn_ = new QCheckBox("Bridge on, port", g2);
@@ -1761,15 +1838,15 @@ QWidget *SettingsDialog::buildClipsTab()
 	f2->addRow("App", ap);
 	launchApp_ = new QCheckBox("Start it when OBS starts", g2);
 	launchApp_->setChecked(e_->cfg.launchApp);
-	f2->addRow(launchApp_);
+	genApp_->addRow(launchApp_);
 	closeApp_ = new QCheckBox("Close it when OBS closes", g2);
 	closeApp_->setChecked(e_->cfg.closeAppWithObs);
-	f2->addRow(closeApp_);
+	genApp_->addRow(closeApp_);
 	connect(closeApp_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	f2->addRow(muted(
 		"The app reads the kill feed (OCR) and asks the plugin for clips over ws://127.0.0.1:<port>. The plugin sends it native-resolution crops of the game source and POV events; the app sends clip requests with tags. Downed detection stays in the plugin.",
 		g2));
-	v->addWidget(g2);
+	pages_[PAdvanced]->addWidget(g2);
 	connect(browse, &QPushButton::clicked, this, [this]() {
 		QString p = QFileDialog::getOpenFileName(this, "Companion app", appPath_->text(),
 							 "Programs (*.exe *.bat *.cmd);;All files (*)");
@@ -1787,7 +1864,7 @@ QWidget *SettingsDialog::buildClipsTab()
 	auto *v3 = new QVBoxLayout(g3);
 	clipList_ = new QListWidget(g3);
 	v3->addWidget(clipList_);
-	v->addWidget(g3, 1);
+	pages_[PClips]->addWidget(g3, 1);
 	auto fillClips = [this]() {
 		clipList_->clear();
 		auto &h = e_->clips.history();
@@ -1810,11 +1887,14 @@ QWidget *SettingsDialog::buildAppTab()
 {
 	auto *w = new QWidget(this);
 	auto *v = new QVBoxLayout(w);
-	auto *g = new QGroupBox("ClipHound - kill-feed clips", w);
+	auto *g = new QGroupBox("Kill-feed clips (ClipHound)", w);
 	auto *f = new QFormLayout(g);
 	appName_ = new QLineEdit(QString::fromStdString(e_->cfg.appPlayerName), g);
 	appName_->setPlaceholderText("exactly as it appears in the kill feed");
-	f->addRow("Your in-game name", appName_);
+	appName_->setToolTip(
+		"Your name exactly as the kill feed shows it. Left blank, ClipHound cannot tell your kills "
+		"from anyone else's.");
+	genYou_->insertRow(0, "Your name in WARDOGS", appName_);
 	auto *libRow = new QHBoxLayout();
 	appLibrary_ = new QLineEdit(QString::fromStdString(e_->cfg.appLibrary), g);
 	appLibrary_->setPlaceholderText("blank = no index; otherwise index.csv and Resolve metadata are kept here");
@@ -1823,7 +1903,7 @@ QWidget *SettingsDialog::buildAppTab()
 	libRow->addWidget(libBrowse);
 	f->addRow("Clip library index", libRow);
 	f->addRow(muted(
-		"Where the clip files themselves go is the Clips tab's clip folder. The library is an optional index of what happened in each clip.",
+		"The clip files themselves go where the replay buffer saves them. The library is an optional index of what happened in each clip.",
 		g));
 	appEveryKill_ = new QCheckBox(
 		"Clip every kill I get (otherwise only notable ones: 120 m+, headshots, vehicles, explosives, multi-kills)",
@@ -1839,7 +1919,7 @@ QWidget *SettingsDialog::buildAppTab()
 	f->addRow(muted(
 		"Kills within this many seconds of each other count as one multi-kill (double, triple...). Default 30 s.",
 		g));
-	v->addWidget(g);
+	pages_[PClips]->addWidget(g);
 
 	auto *ga = new QGroupBox("Kill-feed area", w);
 	auto *fa = new QVBoxLayout(ga);
@@ -1864,9 +1944,9 @@ QWidget *SettingsDialog::buildAppTab()
 	areaLbl_ = muted("", ga);
 	fa->addWidget(areaLbl_);
 	fa->addWidget(muted(
-		"Drag a box round the kill feed - the list of kills on the left, about half way down - with a bit of margin. The game must be running so you can see where it is. Reading faster gets the clip sooner; a kill is decided about three quarters of a second after it appears whatever the rate, so 10 a second is plenty and 5 costs half the CPU. (The NEARBY box that drives the POV switch is on the Detect tab.)",
+		"Drag a box round the kill feed - the list of kills on the left, about half way down - with a bit of margin. The game must be running so you can see where it is. Reading faster gets the clip sooner; a kill is decided about three quarters of a second after it appears whatever the rate, so 10 a second is plenty and 5 costs half the CPU. (The NEARBY box that drives Closest is in Downed detection, above.)",
 		ga));
-	v->addWidget(ga, 1);
+	pages_[PAdvanced]->addWidget(ga, 1);
 	auto setArea = [this](QRectF r) {
 		Config &c = e_->cfg;
 		c.feedX = r.x();
@@ -1906,8 +1986,7 @@ QWidget *SettingsDialog::buildAppTab()
 	ft->addRow(muted(
 		"Log in as the account that should own the clips (a bot account such as InfoKennel works). A code appears and is copied; twitch.tv/activate opens, paste the code, done. Needs ClipHound running.",
 		gt));
-	v->addWidget(gt);
-	v->addStretch(1);
+	pages_[PClips]->addWidget(gt);
 
 	auto push = [this]() {
 		Config &c = e_->cfg;
@@ -1981,7 +2060,7 @@ void SettingsDialog::showNearbyTest()
 		pic->setText("No frame from the game source yet.");
 	v->addWidget(pic);
 	v->addWidget(muted("The blue box, as the plugin sees it. If this is not the NEARBY list, drag the box again "
-			   "on the Detect tab while the game is showing.",
+			   "under Advanced while the game is showing.",
 			   d));
 	auto *out = new QPlainTextEdit(d);
 	out->setReadOnly(true);
@@ -2032,7 +2111,7 @@ void SettingsDialog::showNearbyTest()
 		else if (texts.isEmpty())
 			t += "Rows were found but no text came out of them. Try dragging the box a little wider, and make sure it is not covering the map or the score bar.\n";
 		else
-			t += "Text was read but it does not match any squad mate's in-game name. Set each squad mate's In-game name on the Switch tab to exactly what is shown above.\n";
+			t += "Text was read but it does not match any squad mate's in-game name. Set each squad mate's in-game name in the Squad window to exactly what is shown above.\n";
 		if (!o.value("saved").toString().isEmpty())
 			t += "\nClipHound saved what it looked at: " + o.value("saved").toString();
 		out->setPlainText(t);
@@ -2112,8 +2191,7 @@ QWidget *SettingsDialog::buildDualTab()
 	f->addRow(dualAuto_);
 	dualKeep_ = new QCheckBox("Leave the window up when I get out of the vehicle (off: it goes by itself)", g);
 	f->addRow(dualKeep_);
-	dualLook_ = new QCheckBox(
-		"A small frame and their name on the window (uses the look effects from the Look tab)", g);
+	dualLook_ = new QCheckBox("A small frame and their name on the window (uses the effects from Stream look)", g);
 	f->addRow(dualLook_);
 	connect(dualLook_, &QCheckBox::toggled, this, [this](bool on) {
 		if (building_)
@@ -2360,7 +2438,7 @@ void SettingsDialog::refreshAppTab()
 	QString st = t.value("state").toString();
 	bool connected = e_->appConnected();
 	if (!connected)
-		twitchLbl_->setText("ClipHound is not running (Clips tab → Start now)");
+		twitchLbl_->setText("ClipHound is not running (start it from General, or the dock's menu)");
 	else if (st == "code")
 		twitchLbl_->setText("Go to " + t.value("verification_uri").toString() + " and enter code  " +
 				    t.value("user_code").toString());
@@ -2464,7 +2542,7 @@ QWidget *SettingsDialog::buildVoiceTab()
 	auto *v = new QVBoxLayout(w);
 	auto *g = new QGroupBox("Voice control (beta) - English only", w);
 	auto *f = new QFormLayout(g);
-	voiceOn_ = new QCheckBox("Listen to my microphone (through ClipHound) - beta, off by default", g);
+	voiceOn_ = new QCheckBox("Listen to my microphone (through ClipHound)", g);
 	voiceOn_->setChecked(e_->cfg.voiceEnabled);
 	f->addRow(voiceOn_);
 	f->addRow(muted("Your microphone's sound goes from OBS to ClipHound on this PC, where it is turned into "
@@ -2725,18 +2803,25 @@ QWidget *SettingsDialog::buildAboutTab()
 		"<h3>Kennel.gg Wardogs Streaming Tool</h3>"
 		"<p>Downed in WARDOGS? Your stream shows a squad mate's POV (video and game audio) until you are back up. Your mic is never touched.</p>"
 		"<ol>"
-		"<li><b>Switch tab:</b> pick your game source, add squad mates, tick the game-audio inputs to mute.</li>"
-		"<li><b>Get downed once</b> and watch the Detect tab: the bar goes red when the damage log is found.</li>"
-		"<li><b>Look tab:</b> name tag, camcorder frame, grain, vignette. Preview them in OBS.</li>"
-		"<li>The <b>Kennel.gg Wardogs dock</b> (View → Docks) shows the state and has the manual buttons.</li>"
+		"<li><b>General:</b> your name in WARDOGS, your game source and scene, the game language.</li>"
+		"<li><b>Squad &amp; POV:</b> squad mates, Closest, what is muted, what stays on top.</li>"
+		"<li><b>Get downed once</b>: the dock's pill turns red and your stream shows the squad mate.</li>"
+		"<li><b>Stream look:</b> name tag, camcorder frame, grain, vignette. Preview them in OBS.</li>"
+		"<li>The <b>Kennel.gg Wardogs dock</b> (View → Docks) shows what is on stream, what needs fixing, and "
+		"the buttons.</li>"
 		"</ol>"
+		"<p><b>Ways to control it.</b> The dock's buttons. OBS hotkeys (Settings → Hotkeys, \"Kennel.gg "
+		"Wardogs\"): swap, Dual POV, save a clip, instant replay, highlights. The Stream Deck plugin, from "
+		"<a href=\"https://kennel.gg/obs/\">kennel.gg/obs</a>: squad mate, cycle, clip, replay, clip and "
+		"replay, voice, Dual POV, back to me. Voice (beta): \"hey kennel\" and a command. Chat: "
+		"subscribers, VIPs and moderators type <code>!replay</code> (Clips &amp; replays).</p>"
 		"<p><b>Squad mate feeds.</b> Twitch: nothing for them to do, ~2 s behind with low-latency mode, includes their mic. "
 		"VDO.Ninja: they open one link in Chrome/Edge and share their game window with system audio, ~0.3 s, no mic. "
 		"Discord Go Live (~0.5-1 s, 720p without Nitro): they Go Live in the call, you pop their stream out into its own window, add a Window Capture of it "
 		"(Windows 10 method, keep it unminimised) and press Add pop-outs. Its sound is not handled: Discord hands OBS one mix for the whole call.</p>"
-		"<p><b>Timing the switch back.</b> While your friend is on screen, the plugin also watches their feed for the word REVIVING and the progress ring. "
+		"<p><b>Timing the switch back.</b> While a squad mate is on screen, the plugin also watches their feed for the word REVIVING and the progress ring. "
 		"When it sees it, the switch back fires the instant the damage log disappears from your own game, with no confirmation delay. "
-		"Your own feed is the trigger because it has no latency; the friend's feed only arms it.</p>"
+		"Your own feed is the trigger because it has no latency; the squad mate's feed only arms it.</p>"
 		"<p>Settings and templates: <code>" +
 		QString::fromStdString(Config::configDir()) + "</code></p>");
 	v->addWidget(l);

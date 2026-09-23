@@ -13,6 +13,10 @@
 #include <QProgressBar>
 #include <QPlainTextEdit>
 #include <QRadioButton>
+#include <QFormLayout>
+#include <QGroupBox>
+#include <QTabWidget>
+#include <QVBoxLayout>
 #include "engine.h"
 
 /// Shows the latest game frame with the found header and the capture box; drag to move the box.
@@ -55,6 +59,8 @@ class SettingsDialog : public QDialog {
 public:
 	explicit SettingsDialog(Engine *engine, QWidget *parent = nullptr);
 	~SettingsDialog() override;
+	/// Bring a tab to the front: general, squad, dual, clips, vertical, voice, look, advanced, logs, help.
+	void showPage(const QString &key);
 
 private:
 	Engine *e_;
@@ -95,6 +101,17 @@ private:
 	QSlider *reviveThr_;
 	QLabel *reviveLbl_;
 
+	// The tabs are by what you are trying to do. The builders below make their groups and hand each
+	// one to the page it belongs on; General collects who you are, your game and ClipHound.
+	enum Page { PGeneral, PSquad, PDual, PClips, PVertical, PVoice, PLook, PAdvanced, PCount };
+	QWidget *pageW_[PCount] = {};
+	QVBoxLayout *pages_[PCount] = {};
+	QTabWidget *tabs_ = nullptr;
+	QStringList tabKeys_;
+	QFormLayout *genYou_ = nullptr, *genGame_ = nullptr, *genApp_ = nullptr;
+	QGroupBox *genAppBox_ = nullptr;
+	QLineEdit *discordUser_ = nullptr;
+	void buildGeneral();
 	QWidget *buildSwitchTab();
 	QWidget *buildLookTab();
 	QWidget *buildDetectTab();

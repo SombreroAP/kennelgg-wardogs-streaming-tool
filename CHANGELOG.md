@@ -2,6 +2,21 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.0
+A new dock, Setup and Settings, built around what streamers actually ran into this month.
+
+- **The dock says what is wrong, and fixes it.** A health strip under the status pill: Game, Scene, ClipHound, Discord, Replay and Voice, each a dot that goes amber or red. Hover for the reason, click for the fix: start ClipHound, start the replay buffer, switch to the plugin's scene or make the live one the plugin's, detect your Discord username, pick another mic.
+- **No more pop-up windows over OBS.** Everything that used to open a window by itself is now a message in the dock with its buttons: the game language not recognised (with Save a frame), a minimised pop-out whose picture froze (with Restore), an old copy of the plugin still installed (with Open its folder), Closest pressed without ClipHound (with Start ClipHound), a newer build, the support note. Setup only opens by itself when you are not streaming or recording; otherwise the dock says it is not finished.
+- **One row of people per view.** On screen: Me, each squad mate, and Closest; the one who goes up when you are downed has a dashed edge, the one on stream is lit. Dual POV: Off or a squad mate. Auto switch and Auto in vehicles sit on the headings. This replaces the drop-down, Show friend's POV / Back to me, and Force Dual POV.
+- **Voice shows what it hears.** While voice control is on, the dock has a mic level bar and the last thing it heard with what came of it: a command, "not a command", or the wake phrase waiting for one.
+- **Clips row:** Save clip, Instant replay and Highlights side by side, and the last clip with Rename and Replay links.
+- **Add pop-outs no longer asks for each in-game name in a row of windows.** The dock reminds you to mute the new pop-outs in Discord; the Squad window has an In-game name column you type straight into, and when Closest is on the dock asks you to check them.
+- Squad, Settings, Setup, Logs, Clips, Start/Stop ClipHound, the Kennel.gg Discord and a **compact mode** (always, or only while streaming or recording) are in the ⋯ menu.
+- **Setup:** the first page asks your name as the kill feed shows it (clips need it) and the game language. The squad page is three short steps, and says plainly that squad automation is for members of the Kennel.gg Discord (it used to tell you to add the bot to your own server, which it now leaves). The clips page sets the replay length. The last page checks everything live, with a fix button for anything red, and offers voice control, the vertical canvas and the Stream Deck plugin.
+- **Settings by task:** General (your names, your game and scene, the language, ClipHound), Squad & POV, Dual POV, Clips & replays, Vertical (beta), Voice (beta), Stream look, Advanced (downed detection, the ClipHound connection, the kill-feed area), Logs and Help. The game source is set in one place; Help lists every way to drive the tool.
+- Every message that named an old tab points at the new one, and "squad mate" replaces "friend" everywhere.
+- Fixed: the Squad window's "Parked on monitor" choice could save the wrong monitor.
+
 ## 0.18.18
 - **No more "buffering" as a replay starts.** The replay used to appear the moment its file opened: the viewer saw the first frames of the file, then the jump to the moment, then a stall while the decoder worked forward from the keyframe before it. The file now opens and seeks while it is still hidden, and the replay appears only once playback has reached the moment, on both canvases. If it has not got there after a moment and a half it is shown anyway.
 - Settings, Clips: "Decode replays on the GPU", off by default, for a PC where the software decoder cannot keep up with a 1440p60 recording.

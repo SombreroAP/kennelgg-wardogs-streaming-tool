@@ -66,6 +66,8 @@ public:
 	static bool parkPopout(const Popout &p, int mon, int slot, int total);
 	/// The opposite: off the top, back fully on screen.
 	static void untuckPopout(const Popout &p);
+	/// A minimised pop-out back up (its picture froze while minimised), without taking the focus.
+	static void restorePopout(uintptr_t hwnd);
 	/// The monitors, as "2560x1600 at 0,0" strings in the order parkPopout counts them.
 	static std::vector<std::string> monitors();
 	static std::vector<Popout> discordPopouts();

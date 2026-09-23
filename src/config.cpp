@@ -104,6 +104,8 @@ void Config::load()
 	DEFB(setupDone);
 	DEFI(startCount);
 	DEFB(supportAsked);
+	DEFB(dockCompact);
+	DEFB(dockCompactLive);
 	DEFI(rosterPollS);
 	DEFB(rosterAddSources);
 	DEFB(popoutTuck);
@@ -271,6 +273,8 @@ void Config::load()
 	GETB(setupDone);
 	GETI(startCount);
 	GETB(supportAsked);
+	GETB(dockCompact);
+	GETB(dockCompactLive);
 	GETI(rosterPollS);
 	GETB(rosterAddSources);
 	GETB(popoutTuck);
@@ -612,6 +616,8 @@ void Config::save() const
 	SETB(setupDone);
 	SETI(startCount);
 	SETB(supportAsked);
+	SETB(dockCompact);
+	SETB(dockCompactLive);
 	SETI(rosterPollS);
 	SETB(rosterAddSources);
 	SETB(popoutTuck);

@@ -1,7 +1,7 @@
 #pragma once
 #include <QDialog>
 #include <QLabel>
-#include <QListWidget>
+#include <QTableWidget>
 #include <QPushButton>
 #include <QCheckBox>
 #include <QLineEdit>
@@ -22,13 +22,13 @@ private:
 	void addPopouts();
 	void makeActive();
 	void removeSelected();
-	void editGameName();
 	void showInDual();
-	void askGameName(int idx);
 	Engine *e_;
 	QLabel *result_, *rosterState_;
-	QListWidget *list_;
-	QPushButton *add_, *active_, *remove_, *gameName_, *dual_, *show_ = nullptr;
+	QTableWidget *list_;
+	bool filling_ = false;
+	int currentRow() const;
+	QPushButton *add_, *active_, *remove_, *dual_, *show_ = nullptr;
 	QCheckBox *roster_;
 	QLineEdit *me_;
 };

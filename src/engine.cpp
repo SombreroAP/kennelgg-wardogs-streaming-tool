@@ -103,6 +103,19 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&voice, &VoiceTap::pcm, this, [this](const QByteArray &pcm) {
 		if (bridge.clients() > 0)
 			bridge.sendAudio(pcm);
+		// the loudest sample of the piece, for the dock's level bar and the "is it silent" check
+		{
+			const int16_t *s = (const int16_t *)pcm.constData();
+			int n = (int)(pcm.size() / 2), peak = 0;
+			for (int i = 0; i < n; i++)
+				peak = std::max(peak, std::abs((int)s[i]));
+			qint64 now = QDateTime::currentMSecsSinceEpoch();
+			voicePcmMs_ = now;
+			voiceLevelDb_ = peak > 0 ? 20.0 * std::log10(peak / 32768.0) : -120.0;
+			if (voiceLevelDb_ > -60)
+				voiceLoudMs_ = now;
+			emit voiceLevel(voiceLevelDb_);
+		}
 		if (!voiceFlowing_) {
 			voiceFlowing_ = true;
 			log("Voice: microphone audio is flowing to ClipHound.");
@@ -247,6 +260,7 @@ void Engine::setReplaySecondsByUser(int seconds)
 
 void Engine::launchApp()
 {
+	appUserStopped_ = false;
 	if (bridge.clients() > 0) {
 		log("ClipHound is already running.");
 		return;
@@ -259,11 +273,12 @@ void Engine::launchApp()
 		cfg.save();
 	}
 	if (p.isEmpty()) {
-		log("ClipHound: no app path set and nothing at " + def + " (Settings → Clips → Browse).");
+		log("ClipHound: no app path set and nothing at " + def +
+		    " (Settings, Advanced, ClipHound connection, Browse).");
 		return;
 	}
 	if (!QFileInfo::exists(p)) {
-		log("ClipHound not found at " + p + " (Settings → Clips → Browse).");
+		log("ClipHound not found at " + p + " (Settings, Advanced, ClipHound connection, Browse).");
 		return;
 	}
 	QString dir = QFileInfo(p).absolutePath();
@@ -538,7 +553,7 @@ void Engine::autoPickAudio()
 	cfg.save();
 	if (!picked.isEmpty())
 		log("While a squad mate is on screen, " + picked.join(", ") +
-		    " is muted so their sound plays instead of yours (Settings, Switch, to change).");
+		    " is muted so their sound plays instead of yours (Settings, Squad & POV, to change).");
 }
 
 void Engine::start()
@@ -553,7 +568,7 @@ void Engine::start()
 			obs_source_release(s);
 			if (!cfg.sceneName.empty())
 				log("Scene: '" + QString::fromStdString(cfg.sceneName) +
-				    "' is the scene the plugin works in (it was the one live). Change it under Settings, Switch, "
+				    "' is the scene the plugin works in (it was the one live). Change it under Settings, General, "
 				    "if you stream WARDOGS from another.");
 		}
 	}
@@ -571,7 +586,7 @@ void Engine::start()
 			cfg.appPath = def.toStdString();
 			cfg.launchApp = true;
 			cfg.save();
-			log("Found ClipHound from the installer; it will start with OBS (Settings → Clips).");
+			log("Found ClipHound from the installer; it will start with OBS (Settings, General).");
 		}
 	}
 	clips.nameTemplate = QString::fromStdString(cfg.clipNameTemplate);
@@ -649,7 +664,7 @@ void Engine::start()
 	// connects to the wrong one and everything looks like it is "starting" for ever.
 	for (const char *old :
 	     {"C:/ProgramData/obs-studio/plugins/kennel-wardogs", "C:/ProgramData/obs-studio/plugins/povbridge"})
-		if (QFileInfo::exists(old))
+		if (QFileInfo::exists(old) && (oldCopy_ = QString(old).replace('/', '\\'), true))
 			log(QString("An older copy of this plugin is still installed at %1. Close OBS, delete that "
 				    "folder, and start OBS again - with both installed they fight over ClipHound's "
 				    "bridge, clips never fire, and OBS can hang on the way out.")
@@ -794,7 +809,7 @@ void Engine::checkForUpdate(bool manual)
 void Engine::twitchLogin()
 {
 	if (bridge.clients() == 0) {
-		log("Twitch login needs ClipHound running (Settings → Clips → Start now).");
+		log("Twitch login needs ClipHound running (the dock's menu, Start ClipHound).");
 		return;
 	}
 	QJsonObject o;
@@ -867,6 +882,7 @@ void Engine::stopApp()
 	}
 #endif
 	appPid_ = 0;
+	appUserStopped_ = true;
 	log("ClipHound stopped.");
 	emit stateChanged();
 }
@@ -1525,6 +1541,13 @@ void Engine::watchPopouts()
 					    "on the Squad panel to reach its controls.");
 			}
 			QString minKey = QString::fromStdString(f.name) + "/min";
+			if (wins[hit].minimized != minimised_.contains(QString::fromStdString(f.name))) {
+				if (wins[hit].minimized)
+					minimised_.insert(QString::fromStdString(f.name), (quintptr)wins[hit].hwnd);
+				else
+					minimised_.remove(QString::fromStdString(f.name));
+				emit stateChanged();
+			}
 			if (wins[hit].minimized && popoutNote_ != minKey) {
 				popoutNote_ = minKey;
 				log("Squad: " + QString::fromStdString(f.name) +
@@ -1532,6 +1555,7 @@ void Engine::watchPopouts()
 				    "sit behind the game, just not minimised).");
 			}
 		} else if (f.onPopout()) {
+			minimised_.remove(QString::fromStdString(f.name));
 			// gone this tick. A stream that hiccups, a pop-out Discord redraws, a title that is
 			// blank for a second: none of that is "closed". Give it a while before deciding.
 			f.popoutMissingMs += popoutTimer_.interval();
@@ -1641,7 +1665,7 @@ QImage Engine::lastFrame() const
 std::string Engine::stateText() const
 {
 	const Friend *f = cfg.active();
-	std::string name = f ? f->name : "friend";
+	std::string name = f ? f->name : "squad mate";
 	if (!cfg.enabled)
 		return "Auto switch off - your own POV";
 	if (applied_)
@@ -1834,6 +1858,10 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 			}
 			bfree(p);
 		}
+	} else if (type == "voice_miss") {
+		setVoiceHeard("\u201c" + o.value("heard").toString().simplified() + "\u201d \u2192 not a command", 2);
+	} else if (type == "voice_wake") {
+		setVoiceHeard("wake phrase heard, listening for a command", 3);
 	} else if (type == "voice_ready") {
 		// the app's voice module is up: the settings sent at connect may have come too early
 		if (cfg.voiceEnabled)
@@ -2063,6 +2091,8 @@ void Engine::applyVoice()
 		return;
 	}
 	voiceFlowing_ = false;
+	voiceAttachMs_ = voiceLoudMs_ = QDateTime::currentMSecsSinceEpoch();
+	voicePcmMs_ = 0;
 	QString err = voice.attach(mic);
 	if (!err.isEmpty()) {
 		log("Voice: " + err);
@@ -2077,6 +2107,21 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 	if (!cfg.voiceEnabled || !cfg.voiceCommands)
 		return;
 	log("Voice command: " + cmd + (name.isEmpty() ? "" : " " + name) + "  (\"" + heard + "\")");
+	{
+		static const QHash<QString, QString> did = {{"replay", "instant replay"},
+							    {"clip", "clip saved"},
+							    {"clip_replay", "clip saved, replaying"},
+							    {"dual", "Dual POV"},
+							    {"dual_on", "Dual POV on"},
+							    {"dual_off", "Dual POV off"},
+							    {"highlights", "highlights"},
+							    {"me", "back to you"},
+							    {"force", "squad mate's POV"},
+							    {"closest", "closest squad mate"},
+							    {"change", "next squad mate"},
+							    {"show", "showing " + name}};
+		setVoiceHeard("\u201c" + heard.simplified() + "\u201d \u2192 " + did.value(cmd, cmd), 1);
+	}
 	if (cmd == "replay" && cfg.voiceCmdReplay) {
 		playReplay("voice");
 	} else if (cmd == "dual" && cfg.voiceCmdDual) {
@@ -2248,7 +2293,7 @@ QString Engine::nearbyStatus() const
 	if (!detected_ && !applied_)
 		return "N/A while you are up";
 	if (!nearbyAt_.isValid())
-		return nearbyEmptySince_.isValid() ? "nobody matched yet - use Test read on the Detect tab"
+		return nearbyEmptySince_.isValid() ? "nobody matched yet - use Test read under Settings, Advanced"
 						   : (bridge.clients() > 0 ? "read when you go down (nothing read yet)"
 									   : "ClipHound is not running");
 	QString t = nearbyText();
@@ -2460,8 +2505,8 @@ void Engine::pickClosest(const QString &why, bool decisive)
 				log(bridge.clients() == 0
 					    ? "Closest squad mate: ClipHound is not running, so the NEARBY list cannot be read - keeping the squad mate you picked."
 					    : (nearbyFresh()
-						       ? "Closest squad mate: nobody in the NEARBY list is one of your squad mates (check their in-game names in Settings → Switch)."
-						       : "Closest squad mate: no reading from the NEARBY list yet (check the blue box on the Detect tab)."));
+						       ? "Closest squad mate: nobody in the NEARBY list is one of your squad mates (check their in-game names in the Squad window)."
+						       : "Closest squad mate: no reading from the NEARBY list yet (check the blue box under Settings, Advanced)."));
 		}
 		return;
 	}
@@ -2861,7 +2906,7 @@ void Engine::onResult(Result r)
 		lastReviveSeen_ = clock_::now();
 		reviveProgress_ = r.progress;
 		if (!was) {
-			log("Friend is reviving you - switching back the instant the damage log goes.");
+			log("A squad mate is reviving you - switching back the instant the damage log goes.");
 			sendPov("reviving");
 		}
 	} else if (!revivingRecent())
@@ -2892,11 +2937,12 @@ void Engine::detect(const Match &m)
 				log(QString("Downed search: best match %1 in the last minute, below the threshold of %2. "
 					    "If you were downed in that time, the damage-log header on your screen does "
 					    "not match the built-in one (game language or resolution): cut your own on "
-					    "the Detect tab.")
+					    "Settings, Advanced.")
 					    .arg(nearBest_, 0, 'f', 3)
 					    .arg(cfg.threshold, 0, 'f', 2));
 				// three such minutes with every wording in play and none ever matching: the
 				// game is most likely in a language we do not have. Say so, once
+				lastNearBest_ = nearBest_;
 				if (nearBest_ >= 0.62 && ++nearMinutes_ >= 3 && !cfg.langAskShown &&
 				    cfg.gameLang == "auto" && cfg.gameLangFound.empty() &&
 				    cfg.customTemplateWidthFrac <= 0) {
@@ -2905,7 +2951,9 @@ void Engine::detect(const Match &m)
 					log("The damage log never matched the English, Spanish or French wording: is the game "
 					    "in another language? Save a frame while downed and open a ticket in the Kennel.gg "
 					    "Discord.");
+					langBanner_ = true;
 					emit languageUnknown();
+					emit stateChanged();
 				}
 			}
 			nearBest_ = 0;
@@ -2985,7 +3033,7 @@ void Engine::detect(const Match &m)
 		clearNearby();
 		if (applied_) {
 			if (fast || cfg.upDelayMs <= 0)
-				applyNow(false, fast ? "revived (friend's revive seen, damage log gone)"
+				applyNow(false, fast ? "revived (squad mate's revive seen, damage log gone)"
 						     : QString("damage log gone (%1)").arg(m.score, 0, 'f', 3));
 			else
 				upDelay_.start(cfg.upDelayMs);
@@ -3348,7 +3396,7 @@ void Engine::stopReplay(const QString &why)
 QString Engine::chatReplay(const QString &who)
 {
 	if (!cfg.replayChat)
-		return "chat replays are off (Settings, Clips)";
+		return "chat replays are off (Settings, Clips & replays)";
 	QDateTime now = QDateTime::currentDateTime();
 	if (lastChatReplay_.isValid()) {
 		qint64 left = cfg.replayCooldownS - lastChatReplay_.secsTo(now);
@@ -3514,7 +3562,7 @@ void Engine::setEnabled(bool on)
 	detected_ = false;
 	detGame_.holdThreshold = 0;
 	log(on ? "Auto switch on: a squad mate takes over when you are downed."
-	       : "Auto switch off: your own POV stays up. Show friend's POV still works by hand, and clips keep coming.");
+	       : "Auto switch off: your own POV stays up. The squad mate buttons on the dock still work, and clips keep coming.");
 	emit stateChanged();
 }
 

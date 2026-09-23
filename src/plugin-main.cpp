@@ -161,15 +161,13 @@ static void onFrontendEvent(enum obs_frontend_event event, void *)
 	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
 		if (g_engine) {
 			g_engine->start();
-			if (g_engine->needsSetup() && g_dock)
+			// Setup opens by itself only when nobody is live: a window over OBS mid-stream can land
+			// on a captured screen. Otherwise the dock says Setup is not finished, with a button.
+			// (The support note is a dock message now, never a window.)
+			if (g_engine->needsSetup() && g_dock && !g_engine->streamingOrRecording())
 				QTimer::singleShot(1500, g_dock, [] {
-					if (g_dock)
+					if (g_dock && g_engine && !g_engine->streamingOrRecording())
 						g_dock->openWizard();
-				});
-			else if (g_engine->wantsSupportNote() && g_dock)
-				QTimer::singleShot(4000, g_dock, [] {
-					if (g_dock && g_engine && g_engine->wantsSupportNote())
-						g_dock->showSupportNote();
 				});
 		}
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP) {

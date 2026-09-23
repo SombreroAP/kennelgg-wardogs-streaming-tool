@@ -3,6 +3,7 @@
 #include "ui/settings-dialog.h"
 #include "ui/wizard.h"
 #include "ui/squad.h"
+#include "ui/flow-layout.h"
 #include <QVBoxLayout>
 #include <functional>
 #include <QHBoxLayout>
@@ -65,14 +66,19 @@ static void showOnScreen(QWidget *w)
 /// The dock's look: the brand's graphite, olive, amber and bone, scoped to this widget so OBS's own
 /// theme is left alone. Buttons share one height and one edge; the status line is a pill whose
 /// colour is the state; section labels are the condensed face in small caps.
+/// The dock's look: the brand's graphite, olive, amber and bone, scoped to this widget so OBS's own
+/// theme is left alone. Buttons share one height and one edge; the status line is a pill whose
+/// colour is the state; section labels are the condensed face in small caps; the health strip's
+/// dots and the banners take their colour from how bad things are.
 static const char *kDockStyle = R"(
 #kennelDock { background: #1c1f1d; }
 #kennelDock QLabel { color: #e6e2d6; }
 #kennelDock QLabel#eyebrow { color: #c99a3b; font-family: "Saira Condensed"; font-size: 12pt; font-weight: 700;
-	letter-spacing: 2px; padding: 8px 0 2px 0; border-bottom: 1px solid #343835; margin-bottom: 2px; }
+	letter-spacing: 2px; padding: 8px 0 2px 0; }
+#kennelDock QWidget#headRow { border-bottom: 1px solid #343835; margin-bottom: 2px; }
 #kennelDock QLabel#wordmark { color: #ece7db; font-family: "Saira Condensed"; font-size: 17pt; font-weight: 700;
 	letter-spacing: 1px; }
-#kennelDock QLabel#version { color: #7c8076; font-family: "IBM Plex Mono"; font-size: 8pt; }
+#kennelDock QLabel#small { color: #9a9e93; font-size: 8pt; }
 #kennelDock QLabel#statePill { padding: 5px 10px; border-radius: 3px; border: 1px solid #3a3e3b; background: #242725;
 	font-weight: 600; }
 #kennelDock QLabel#statePill[mode="watching"] { border-color: #6f7c45; color: #cbd3a4; }
@@ -82,19 +88,33 @@ static const char *kDockStyle = R"(
 	background: #262927; color: #e6e2d6; }
 #kennelDock QPushButton:hover { background: #2f3330; border-color: #4a4f4b; }
 #kennelDock QPushButton:pressed { background: #202321; }
-#kennelDock QPushButton:checked { border-color: #c99a3b; background: #2e2a1f; }
+#kennelDock QPushButton:checked { border-color: #c99a3b; background: #2e2a1f; color: #f0d9a8; font-weight: 600; }
 #kennelDock QPushButton:disabled { color: #6c7068; border-color: #2e3230; }
-#kennelDock QPushButton#liveChip { border-color: #6f7c45; background: #232a1e; color: #d9e0b6; font-weight: 600; }
-#kennelDock QPushButton#liveChip:checked { border-color: #ce6050; background: #3a2521; color: #f2c9c1; }
-#kennelDock QLabel#lockedChip { min-height: 24px; padding: 2px 10px; border: 1px dashed #3a3e3b; border-radius: 3px;
-	background: #202321; color: #7c8076; }
-#kennelDock QComboBox { min-height: 24px; padding: 1px 6px; border: 1px solid #3a3e3b; border-radius: 3px;
-	background: #262927; color: #e6e2d6; }
-#kennelDock QComboBox:disabled { color: #6c7068; }
-#kennelDock QCheckBox { color: #e6e2d6; spacing: 5px; }
+#kennelDock QPushButton#person[armed="true"] { border: 1px dashed #c99a3b; }
+#kennelDock QPushButton#person[live="true"] { color: #d9e0b6; }
+#kennelDock QPushButton#person:checked { border-color: #ce6050; background: #3a2521; color: #f2c9c1; }
+#kennelDock QPushButton#person[faded="true"] { color: #7c8076; }
+#kennelDock QToolButton { border: 1px solid #3a3e3b; border-radius: 3px; background: #262927; color: #e6e2d6;
+	padding: 2px 6px; min-height: 22px; }
+#kennelDock QToolButton#dot { border: none; background: transparent; color: #c9c5b8; padding: 0px 2px; min-height: 0px;
+	font-family: "IBM Plex Mono"; font-size: 8pt; }
+#kennelDock QToolButton#dot:hover { color: #ece7db; text-decoration: underline; }
+#kennelDock QToolButton#dot[level="0"] { color: #b9c48a; }
+#kennelDock QToolButton#dot[level="1"] { color: #e0b45c; }
+#kennelDock QToolButton#dot[level="2"] { color: #ef8a78; font-weight: 700; }
+#kennelDock QToolButton#dot[level="3"] { color: #6c7068; }
+#kennelDock QFrame#banner { border-radius: 3px; border: 1px solid #3a3e3b; background: #232624; }
+#kennelDock QFrame#banner[level="1"] { border-color: #7a6130; background: #2c2719; }
+#kennelDock QFrame#banner[level="2"] { border-color: #6b3a30; background: #3a2622; }
+#kennelDock QFrame#banner QLabel { color: #e6e2d6; font-size: 8.5pt; }
+#kennelDock QFrame#banner QPushButton { min-height: 20px; padding: 1px 8px; font-size: 8.5pt; }
+#kennelDock QFrame#banner QToolButton { border: none; background: transparent; color: #9a9e93; }
+#kennelDock QCheckBox { color: #c9c5b8; spacing: 4px; font-size: 8.5pt; }
 #kennelDock QListWidget { border: 1px solid #2e3230; border-radius: 3px; background: #202321; color: #c9c5b8;
 	font-family: "IBM Plex Mono"; font-size: 8pt; }
-#kennelDock QToolButton { border: 1px solid #3a3e3b; border-radius: 3px; background: #262927; color: #e6e2d6; padding: 2px 6px; }
+#kennelDock QToolButton#menuBtn { border: none; background: transparent; font-size: 14pt; padding: 0 6px; }
+#kennelDock QProgressBar#voiceBar { border: none; background: #2a2e2b; max-height: 4px; border-radius: 2px; }
+#kennelDock QProgressBar#voiceBar::chunk { background: #8f9c5a; border-radius: 2px; }
 )";
 
 static QLabel *eyebrow(const QString &text, QWidget *parent)
@@ -104,14 +124,38 @@ static QLabel *eyebrow(const QString &text, QWidget *parent)
 	return l;
 }
 
+static void repolish(QWidget *w, const char *prop, const QVariant &v)
+{
+	if (w->property(prop) == v)
+		return;
+	w->setProperty(prop, v);
+	w->style()->unpolish(w);
+	w->style()->polish(w);
+}
+
+/// An eyebrow with a tick box on the right of it: the section heading carries its automatic mode.
+static QWidget *headRow(QLabel *label, QCheckBox *box, QWidget *parent)
+{
+	auto *w = new QWidget(parent);
+	w->setObjectName("headRow");
+	auto *h = new QHBoxLayout(w);
+	h->setContentsMargins(0, 0, 0, 0);
+	h->addWidget(label);
+	h->addStretch(1);
+	if (box)
+		h->addWidget(box, 0, Qt::AlignBottom);
+	return w;
+}
+
 Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 {
 	setObjectName("kennelDock");
 	setStyleSheet(kDockStyle);
 	auto *v = new QVBoxLayout(this);
 	v->setContentsMargins(10, 8, 10, 8);
-	v->setSpacing(6);
-	// header: the hound, the wordmark, the build
+	v->setSpacing(5);
+
+	// ----- header: the hound, the wordmark, and the menu everything occasional lives in
 	{
 		auto *head = new QHBoxLayout();
 		head->setSpacing(8);
@@ -128,216 +172,139 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		wm->setObjectName("wordmark");
 		head->addWidget(wm);
 		head->addStretch(1);
-		auto *ver = new QLabel(QString("v%1").arg(PLUGIN_VERSION), this);
-		ver->setObjectName("version");
-		head->addWidget(ver);
+		menuBtn_ = new QToolButton(this);
+		menuBtn_->setObjectName("menuBtn");
+		menuBtn_->setText(QString::fromUtf8("⋯"));
+		menuBtn_->setToolTip(QString("Squad, Setup, Settings, logs and more  ·  v%1").arg(PLUGIN_VERSION));
+		menuBtn_->setPopupMode(QToolButton::InstantPopup);
+		auto *m = new QMenu(menuBtn_);
+		m->addAction("Squad...", this, [this]() { openSquad(); });
+		m->addAction("Settings...", this, [this]() { openSettings(); });
+		m->addAction("Setup...", this, [this]() { openWizard(); });
+		m->addAction("Logs...", this, [this]() { openLogs(); });
+		m->addAction("Clips: titles and tags...", this, [this]() { openClips(); });
+		m->addSeparator();
+		appAct_ = m->addAction("Start ClipHound", this, [this]() {
+			QString st = e_->appState();
+			if (st == "connected" || st == "starting")
+				e_->stopApp();
+			else
+				e_->launchApp();
+			refresh();
+		});
+		m->addSeparator();
+		compactAct_ = m->addAction("Compact dock");
+		compactAct_->setCheckable(true);
+		compactAct_->setToolTip(
+			"Only what is used mid-match: the people, the clip buttons and anything wrong.");
+		connect(compactAct_, &QAction::toggled, this, [this](bool on) {
+			e_->cfg.dockCompact = on;
+			e_->cfg.save();
+			refresh();
+		});
+		compactLiveAct_ = m->addAction("Compact while streaming or recording");
+		compactLiveAct_->setCheckable(true);
+		connect(compactLiveAct_, &QAction::toggled, this, [this](bool on) {
+			e_->cfg.dockCompactLive = on;
+			e_->cfg.save();
+			refresh();
+		});
+		m->addSeparator();
+		m->addAction("Kennel.gg Discord", this,
+			     [this]() { QDesktopServices::openUrl(QUrl(e_->discordUrl())); });
+		auto *ver = m->addAction(QString("Kennel.gg Wardogs Streaming Tool %1").arg(PLUGIN_VERSION));
+		ver->setEnabled(false);
+		menuBtn_->setMenu(m);
+		head->addWidget(menuBtn_);
 		v->addLayout(head);
 	}
+
 	state_ = new QLabel(this);
 	state_->setObjectName("statePill");
 	state_->setAlignment(Qt::AlignCenter);
 	v->addWidget(state_);
-	v->addWidget(eyebrow("Squad", this));
-	// One button per squad mate who is live with a feed up: press it and their feed takes the main
-	// view, press it again and you are back on your own. Rebuilt on every refresh, so a button is
-	// there exactly as long as its person is streaming.
-	// the two things done most often mid-session, right at the top: add whatever is popped out,
-	// and bring the pop-outs back to reach their controls
-	auto *quick = new QHBoxLayout();
-	auto *addPop = new QPushButton("Add pop-outs - (mute Discord stream before adding)", this);
-	addPop->setToolTip(
-		"Every popped-out Discord stream becomes a squad mate, named by its username. Same as the "
-		"Add on the Squad panel. Right-click each stream in Discord and mute it first: its game sound "
-		"would otherwise play in your headphones and go out on your stream through Desktop Audio.");
-	showPop_ = new QPushButton("Show pop-outs", this);
-	showPop_->setCheckable(true);
-	showPop_->setToolTip(
-		"Bring the tucked pop-outs back on screen to mute or adjust them; press again to tuck them away.");
-	quick->addWidget(addPop);
-	quick->addWidget(showPop_);
-	quick->addStretch(1);
-	v->addLayout(quick);
-	connect(addPop, &QPushButton::clicked, this, [this]() {
-		QStringList added;
-		QString what = e_->addPopouts(&added);
-		last_->setText(what);
-		for (const QString &name : added)
-			for (size_t i = 0; i < e_->cfg.friends.size(); ++i)
-				if (QString::fromStdString(e_->cfg.friends[i].name) == name) {
-					Friend &f = e_->cfg.friends[i];
-					bool ok = false;
-					QString v = QInputDialog::getText(
-						this, "In-game name",
-						"What is " + name +
-							" called in the game? (matched against the NEARBY list)",
-						QLineEdit::Normal, name, &ok);
-					if (ok) {
-						v = v.trimmed();
-						f.gameName = (v.isEmpty() || v == name) ? "" : v.toStdString();
-						e_->cfg.save();
-						e_->pushAppConfig();
-					}
-				}
-	});
-	connect(showPop_, &QPushButton::clicked, this, [this](bool on) { e_->showPopouts(on); });
-	liveRow_ = new QHBoxLayout();
-	liveRow_->setSpacing(4);
-	v->addLayout(liveRow_);
-	// where the live buttons go when the bot cannot fill them in: greyed out, with the way in
-	locked_ = new QLabel(this);
-	locked_->setObjectName("lockedChip");
-	locked_->setTextFormat(Qt::RichText);
-	locked_->setWordWrap(true);
-	locked_->setOpenExternalLinks(false);
-	locked_->hide();
-	v->addWidget(locked_);
-	sceneWarn_ = new QLabel(this);
-	sceneWarn_->setObjectName("lockedChip");
-	sceneWarn_->setWordWrap(true);
-	sceneWarn_->hide();
-	v->addWidget(sceneWarn_);
-	std::function<void()> askUser = [this]() {
-		bool ok = false;
-		QString v = QInputDialog::getText(
-			this, "Your Discord username",
-			"Your Discord username - the lower-case one under your display name. The Kennel.gg bot "
-			"checks it is in the server, and then follows whichever voice channel you are in.",
-			QLineEdit::Normal, QString::fromStdString(e_->cfg.myDiscord), &ok);
-		if (ok)
-			e_->setMyDiscord(v);
-	};
-	// Detect asks the Discord app; when it is not running, the question falls back to typing
-	connect(e_, &Engine::discordUserDetected, this, [askUser](const QString &u, bool byHand) {
-		if (byHand && u.isEmpty())
-			askUser();
-	});
-	connect(locked_, &QLabel::linkActivated, this, [this, askUser](const QString &href) {
-		if (href == "kennel:detect")
-			e_->detectDiscordUser(true);
-		else if (href == "kennel:username") {
-			bool ok = false;
-			QString v = QInputDialog::getText(
-				this, "Your Discord username",
-				"Your Discord username - the lower-case one under your display name. The Kennel.gg bot "
-				"checks it is in the server, and then follows whichever voice channel you are in.",
-				QLineEdit::Normal, QString::fromStdString(e_->cfg.myDiscord), &ok);
-			if (ok)
-				e_->setMyDiscord(v);
-		} else
-			QDesktopServices::openUrl(QUrl(href));
-	});
 
-	detector_ = new QLabel(this);
-	detector_->setTextFormat(Qt::RichText);
-	v->addWidget(detector_);
-
-	update_ = new QLabel(this);
-	update_->setWordWrap(true);
-	update_->setTextFormat(Qt::RichText);
-	update_->setOpenExternalLinks(true);
-	update_->setStyleSheet("color: #c99a3b;");
-	update_->hide();
-	v->addWidget(update_);
-	connect(e_, &Engine::updateChecked, this, &Dock::refresh);
-
-	near_ = new QLabel(this);
-	near_->setWordWrap(true);
+	// ----- the health strip: one dot per part of the setup, green to red, a click fixes it
 	{
-		QFont nf = near_->font();
-		if (nf.pointSizeF() > 0)
-			nf.setPointSizeF(nf.pointSizeF() - 0.5);
-		else if (nf.pixelSize() > 2)
-			nf.setPixelSize(nf.pixelSize() - 1);
-		near_->setFont(nf);
+		auto *strip = new QWidget(this);
+		auto *fl = new FlowLayout(strip, 6);
+		for (const char *k : {"game", "scene", "cliphound", "discord", "replay", "voice"}) {
+			auto *b = new QToolButton(strip);
+			b->setObjectName("dot");
+			b->setCursor(Qt::PointingHandCursor);
+			b->hide();
+			fl->addWidget(b);
+			dots_.insert(k, b);
+			QString key = k;
+			connect(b, &QToolButton::clicked, this, [this, key]() {
+				for (const auto &h : e_->health())
+					if (h.key == key) {
+						if (!h.fixes.isEmpty())
+							runFix(h.fixes.first().first);
+						else if (key == "voice")
+							openSettings("voice");
+						else if (key == "discord")
+							openSquad();
+						else if (key == "cliphound" || key == "replay")
+							openSettings("clips");
+						else
+							openSettings("general");
+					}
+			});
+		}
+		v->addWidget(strip);
 	}
-	near_->hide();
+	banners_ = new QVBoxLayout();
+	banners_->setSpacing(4);
+	v->addLayout(banners_);
+
+	// ----- voice, when it is on: how loud the mic is and what came of the last thing said
+	{
+		voiceRow_ = new QWidget(this);
+		auto *vl = new QVBoxLayout(voiceRow_);
+		vl->setContentsMargins(0, 2, 0, 0);
+		vl->setSpacing(2);
+		voiceBar_ = new QProgressBar(voiceRow_);
+		voiceBar_->setObjectName("voiceBar");
+		voiceBar_->setRange(0, 100);
+		voiceBar_->setTextVisible(false);
+		voiceBar_->setToolTip("Your microphone as voice control hears it.");
+		voiceLbl_ = new QLabel(voiceRow_);
+		voiceLbl_->setObjectName("small");
+		voiceLbl_->setWordWrap(true);
+		vl->addWidget(voiceBar_);
+		vl->addWidget(voiceLbl_);
+		v->addWidget(voiceRow_);
+		connect(e_, &Engine::voiceLevel, this, [this](double db) {
+			voiceBar_->setValue(std::clamp((int)((db + 60.0) * 100.0 / 60.0), 0, 100));
+		});
+	}
+
+	// ----- who is on screen: me, a squad mate, or whoever is closest; auto switch on the heading
+	autoSwitch_ = new QCheckBox("Auto switch", this);
+	autoSwitch_->setToolTip("Switch to the squad mate by itself when you get downed, and back when you are "
+				"revived. Untick to keep your own POV up no matter what; the buttons still work.");
+	connect(autoSwitch_, &QCheckBox::toggled, this, [this](bool on) {
+		if (!filling_ && on != e_->cfg.enabled)
+			e_->setEnabled(on);
+	});
+	v->addWidget(headRow(eyebrow("On screen", this), autoSwitch_, this));
+	povBox_ = new QWidget(this);
+	povFlow_ = new FlowLayout(povBox_, 4);
+	v->addWidget(povBox_);
+	povEmpty_ = new QLabel(this);
+	povEmpty_->setObjectName("small");
+	povEmpty_->setWordWrap(true);
+	v->addWidget(povEmpty_);
+	near_ = new QLabel(this);
+	near_->setObjectName("small");
+	near_->setWordWrap(true);
 	v->addWidget(near_);
 
-	auto *row = new QHBoxLayout();
-	row->addWidget(new QLabel("Squad mate", this));
-	active_ = new QComboBox(this);
-	row->addWidget(active_, 1);
-	autoSwitch_ = new QCheckBox("Auto switch", this);
-	autoSwitch_->setToolTip("Switch to a squad mate by itself when you get downed. Untick to keep your own POV up "
-				"no matter what; Show friend's POV still works by hand, and clips keep coming.");
-	row->addWidget(autoSwitch_);
-	connect(autoSwitch_, &QCheckBox::toggled, this, [this](bool on) {
-		if (filling_ || on == e_->cfg.enabled)
-			return;
-		e_->setEnabled(on);
-	});
-	closest_ = new QCheckBox("Closest", this);
-	closest_->setToolTip(
-		"Show whoever the game's NEARBY list says is closest, instead of the squad mate chosen here.\n"
-		"Needs ClipHound running and each squad mate's in-game name (Settings → Switch).");
-	row->addWidget(closest_);
-	v->addLayout(row);
-	connect(closest_, &QCheckBox::toggled, this, [this](bool on) {
-		if (filling_ || on == e_->cfg.nearEnabled)
-			return;
-		if (on && !e_->appConnected()) {
-			// the NEARBY list is read by ClipHound: without it this tick box does nothing
-			QMessageBox m((QWidget *)obs_frontend_get_main_window());
-			m.setWindowTitle("Kennel.gg Wardogs");
-			m.setIcon(QMessageBox::Information);
-			m.setText("Closest needs ClipHound running.");
-			m.setInformativeText(
-				"ClipHound reads the NEARBY list in the corner of your game and tells the plugin who is nearest. It is not running, so Closest stays off.\n\nStart it now, then tick Closest again once the dock says it is connected. It also starts with OBS when \"Start ClipHound with OBS\" is ticked under Settings → Clips.");
-			auto *start = m.addButton("Start ClipHound", QMessageBox::AcceptRole);
-			m.addButton(QMessageBox::Cancel);
-			m.exec();
-			// either way Closest stays off: it cannot work without ClipHound. Tick it again once
-			// the dock shows ClipHound connected.
-			closest_->blockSignals(true);
-			closest_->setChecked(false);
-			closest_->blockSignals(false);
-			if (m.clickedButton() == start)
-				e_->launchApp();
-			return;
-		}
-		e_->cfg.nearEnabled = on;
-		e_->cfg.save();
-		e_->reloadConfig(); // same as ticking it in Settings: pushes the names and areas to ClipHound
-		e_->log(on ? "Following the closest squad mate (NEARBY list)."
-			   : "Following the squad mate you picked.");
-		refresh();
-	});
-	connect(active_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int i) {
-		if (filling_ || i < 0)
-			return;
-		int f = active_->itemData(i).toInt(); // the list hides squad mates who are not streaming
-		if (f >= 0 && f < (int)e_->cfg.friends.size())
-			e_->setActive(f);
-	});
-
-	auto *btns = new QHBoxLayout();
-	show_ = new QPushButton("Show friend's POV", this);
-	back_ = new QPushButton("Back to me", this);
-	btns->addWidget(show_);
-	btns->addWidget(back_);
-	v->addLayout(btns);
-	connect(show_, &QPushButton::clicked, this, [this]() { e_->applyNow(true, "button"); });
-	connect(back_, &QPushButton::clicked, this, [this]() { e_->applyNow(false, "button"); });
-
-	// Dual POV is its own thing: its own person, its own button, nothing to do with the drop-down
-	// above, which is who the full-screen swap shows.
-	v->addWidget(eyebrow("Dual POV", this));
-	auto *dualRow = new QHBoxLayout();
-	dualPick_ = new QComboBox(this);
-	dualPick_->setToolTip("Who goes in the small Dual POV window. Separate from the squad mate above.");
-	dualRow->addWidget(dualPick_, 1);
-	dual_ = new QPushButton("Force Dual POV", this);
-	dual_->setCheckable(true);
-	dual_->setToolTip("Put the person picked here in the small window, now, and keep them there until you press "
-			  "this again. The vehicle detector (Dual POV tab) still opens and closes the window by "
-			  "itself when this is off.");
-	dualRow->addWidget(dual_);
-	dualAuto_ = new QCheckBox("Auto", this);
-	dualAuto_->setToolTip("Let the vehicle detector open the window by itself when you get in a tank or "
-			      "chopper and close it when you get out (needs ClipHound). Untick before a match to "
-			      "keep it from happening at all.");
-	dualRow->addWidget(dualAuto_);
-	v->addLayout(dualRow);
+	// ----- Dual POV: off or a squad mate in the small window; the vehicle mode on the heading
+	dualAuto_ = new QCheckBox("Auto in vehicles", this);
+	dualAuto_->setToolTip("Open the Dual POV window by itself when you get in a tank or chopper and close it "
+			      "when you get out (needs ClipHound). Untick before a match to keep it from happening.");
 	connect(dualAuto_, &QCheckBox::toggled, this, [this](bool on) {
 		if (filling_ || on == e_->cfg.dualAuto)
 			return;
@@ -345,448 +312,498 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		e_->cfg.save();
 		e_->pushAppConfig(); // ClipHound only watches the vehicle corner while this is on
 		e_->log(on ? "Dual POV: auto on - the window opens and closes with the vehicle."
-			   : "Dual POV: auto off - only the Force button opens the window.");
+			   : "Dual POV: auto off - only the buttons open the window.");
 	});
-	connect(dualPick_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int i) {
-		if (filling_ || i < 0)
-			return;
-		int f = dualPick_->itemData(i).toInt();
-		if (f < 0 || f >= (int)e_->cfg.friends.size())
-			return;
-		if (e_->dualOn())
-			e_->showInDual(f, "dock"); // the window is up: swap the person inside it
-		else {
-			e_->cfg.dualFriend = f;
-			e_->cfg.save();
-		}
-	});
-	connect(dual_, &QPushButton::clicked, this, [this](bool on) {
-		int f = dualPick_->currentIndex() >= 0 ? dualPick_->currentData().toInt() : -1;
-		if (on && f >= 0 && f < (int)e_->cfg.friends.size())
-			e_->showInDual(f, "dock");
-		else
-			e_->setDual(on, "dock");
-	});
-	auto *btns2 = new QHBoxLayout();
-	auto *squad = new QPushButton("Squad", this);
-	squad->setToolTip("Turn popped-out Discord streams into squad mates, and manage them mid-broadcast.");
-	auto *settings = new QPushButton("Settings...", this);
-	auto *wiz = new QPushButton("Setup", this);
-	auto *logs = new QPushButton("Logs", this);
-	auto *disc = new QPushButton("Discord", this);
-	disc->setToolTip("Join the Kennel.gg Discord. Squad automation runs through the Kennel Ops bot there and is "
-			 "for its members.");
-	btns2->addWidget(squad);
-	btns2->addWidget(wiz);
-	btns2->addWidget(settings);
-	btns2->addWidget(logs);
-	btns2->addWidget(disc);
-	connect(disc, &QPushButton::clicked, this, [this]() { QDesktopServices::openUrl(QUrl(e_->discordUrl())); });
-	connect(logs, &QPushButton::clicked, this, &Dock::openLogs);
-	connect(squad, &QPushButton::clicked, this, &Dock::openSquad);
-	connect(wiz, &QPushButton::clicked, this, &Dock::openWizard);
-	v->addLayout(btns2);
-	connect(settings, &QPushButton::clicked, this, &Dock::openSettings);
+	dualHead_ = eyebrow("Dual POV", this);
+	v->addWidget(headRow(dualHead_, dualAuto_, this));
+	dualBox_ = new QWidget(this);
+	dualFlow_ = new FlowLayout(dualBox_, 4);
+	v->addWidget(dualBox_);
 
-	app_ = new QLabel(this);
-	clip_ = new QLabel(this);
-	for (auto *l : {app_, clip_}) {
-		l->setWordWrap(true);
-		{
-			QFont f = l->font();
-			if (f.pointSizeF() > 0)
-				f.setPointSizeF(f.pointSizeF() - 0.5);
-			else if (f.pixelSize() > 2)
-				f.setPixelSize(f.pixelSize() - 1);
-			l->setFont(f);
-		}
+	// ----- clips
+	v->addWidget(headRow(eyebrow("Clips", this), nullptr, this));
+	{
+		auto *row = new QHBoxLayout();
+		row->setSpacing(4);
+		saveBtn_ = new QToolButton(this);
+		saveBtn_->setText("Save clip");
+		saveBtn_->setToolTip("Save a clip now. The arrow tags it, or adds a note.");
+		saveBtn_->setPopupMode(QToolButton::MenuButtonPopup);
+		saveBtn_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+		auto *saveMenu = new QMenu(saveBtn_);
+		saveMenu->addAction("Save clip now", this, [this]() { e_->clipNow("manual", {"manual"}, "dock"); });
+		saveMenu->addAction("Save clip tagged 'highlight'", this,
+				    [this]() { e_->clipNow("highlight", {"highlight", "manual"}, "dock"); });
+		saveMenu->addAction("Save clip tagged 'funny'", this,
+				    [this]() { e_->clipNow("funny", {"funny", "manual"}, "dock"); });
+		saveMenu->addAction("Save clip tagged 'fail'", this,
+				    [this]() { e_->clipNow("fail", {"fail", "manual"}, "dock"); });
+		saveMenu->addSeparator();
+		saveMenu->addAction("Save clip and add a note...", this, [this]() {
+			noteNext_ = true; // the clip is saved now; the note comes when the file has landed
+			e_->clipNow("manual", {"manual"}, "dock");
+		});
+		saveMenu->addAction("Clips: titles and tags...", this, [this]() { openClips(); });
+		saveBtn_->setMenu(saveMenu);
+		connect(saveBtn_, &QToolButton::clicked, this, [this]() { e_->clipNow("manual", {"manual"}, "dock"); });
+		connect(&e_->clips, &Clips::saved, this, [this](const Clips::Entry &e) {
+			refresh();
+			if (!noteNext_ || !e.tags.contains("manual"))
+				return;
+			noteNext_ = false;
+			auto *d = new ClipNoteDialog(e_, e.path, (QWidget *)obs_frontend_get_main_window());
+			d->show();
+			d->raise();
+			d->activateWindow();
+		});
+		replay_ = new QPushButton("Instant replay", this);
+		replay_->setToolTip("Play the last highlight on the stream, cut to the action. Press again to stop.");
+		highlights_ = new QPushButton("Highlights", this);
+		highlights_->setToolTip(
+			"Play this session's highlights compilation, full screen, under your camera "
+			"and alerts. Built first when there is nothing newer than your last clip. Press "
+			"again to stop.");
+		connect(replay_, &QPushButton::clicked, this, [this]() {
+			if (e_->replaying())
+				e_->stopReplay("dock");
+			else
+				e_->playReplay("dock");
+		});
+		connect(highlights_, &QPushButton::clicked, this, [this]() {
+			if (e_->replaying())
+				e_->stopReplay("dock");
+			else
+				e_->playCompilation("dock");
+		});
+		row->addWidget(saveBtn_, 1);
+		row->addWidget(replay_, 1);
+		row->addWidget(highlights_, 1);
+		v->addLayout(row);
 	}
-	// ClipHound control, styled like OBS's replay-buffer control: [Start/Stop ClipHound] [Save clip ▾]
-	v->addWidget(eyebrow("Clips", this));
-	// the last highlight back on the stream, cut to the action; and the session's compilation
-	auto *replayRow = new QHBoxLayout();
-	replay_ = new QPushButton("Instant replay", this);
-	replay_->setToolTip("Play the last highlight on the stream, cut to the action: a few seconds before the first "
-			    "kill to a few seconds after the last (Settings, Clips). Press again to stop.");
-	highlights_ = new QPushButton("Play highlights", this);
-	highlights_->setToolTip("Play the newest highlights compilation, full screen, under your camera and alerts. "
-				"Press again to stop.");
-	replayRow->addWidget(replay_);
-	replayRow->addWidget(highlights_);
-	v->addLayout(replayRow);
-	connect(replay_, &QPushButton::clicked, this, [this]() {
-		if (e_->replaying())
-			e_->stopReplay("dock");
-		else
+	clip_ = new QLabel(this);
+	clip_->setObjectName("small");
+	clip_->setWordWrap(true);
+	clip_->setTextFormat(Qt::RichText);
+	connect(clip_, &QLabel::linkActivated, this, [this](const QString &href) {
+		QString path = e_->clips.lastPath();
+		if (href == "kennel:rename")
+			openClips(path);
+		else if (href == "kennel:replay")
 			e_->playReplay("dock");
 	});
-	connect(highlights_, &QPushButton::clicked, this, [this]() {
-		if (e_->replaying())
-			e_->stopReplay("dock");
-		else
-			e_->playCompilation("dock");
-	});
-	auto *appRow = new QHBoxLayout();
-	appBtn_ = new QPushButton("Start ClipHound", this);
-	appRow->addWidget(appBtn_, 1);
-	saveBtn_ = new QToolButton(this);
-	saveBtn_->setText("Save clip");
-	saveBtn_->setToolTip("Save a clip now");
-	saveBtn_->setPopupMode(QToolButton::MenuButtonPopup);
-	auto *saveMenu = new QMenu(saveBtn_);
-	saveMenu->addAction("Save clip now", this, [this]() { e_->clipNow("manual", {"manual"}, "dock"); });
-	saveMenu->addAction("Save clip tagged 'highlight'", this,
-			    [this]() { e_->clipNow("highlight", {"highlight", "manual"}, "dock"); });
-	saveMenu->addAction("Save clip tagged 'funny'", this,
-			    [this]() { e_->clipNow("funny", {"funny", "manual"}, "dock"); });
-	saveMenu->addAction("Save clip tagged 'fail'", this,
-			    [this]() { e_->clipNow("fail", {"fail", "manual"}, "dock"); });
-	saveMenu->addSeparator();
-	saveMenu->addAction("Save clip and add a note...", this, [this]() {
-		noteNext_ = true; // the clip is saved now; the note comes when the file has landed
-		e_->clipNow("manual", {"manual"}, "dock");
-	});
-	saveMenu->addAction("Clips: titles and tags...", this, [this]() { openClips(); });
-	saveBtn_->setMenu(saveMenu);
-	connect(&e_->clips, &Clips::saved, this, [this](const Clips::Entry &e) {
-		if (!noteNext_ || !e.tags.contains("manual"))
-			return;
-		noteNext_ = false;
-		auto *d = new ClipNoteDialog(e_, e.path, (QWidget *)obs_frontend_get_main_window());
-		d->show();
-		d->raise();
-		d->activateWindow();
-	});
-	connect(saveBtn_, &QToolButton::clicked, this, [this]() { e_->clipNow("manual", {"manual"}, "dock"); });
-	appRow->addWidget(saveBtn_);
-	v->addLayout(appRow);
-	connect(appBtn_, &QPushButton::clicked, this, [this]() {
-		QString st = e_->appState();
-		if (st == "connected" || st == "starting")
-			e_->stopApp();
-		else
-			e_->launchApp();
-		refresh();
-	});
-	clipNow_ = nullptr;
 	v->addWidget(clip_);
-	v->addWidget(app_);
-	v->addWidget(eyebrow("Events", this));
+
+	// ----- squad: the thing done most often mid-session, then the panel
+	{
+		squadRow_ = new QWidget(this);
+		auto *row = new QHBoxLayout(squadRow_);
+		row->setContentsMargins(0, 4, 0, 0);
+		row->setSpacing(4);
+		addPop_ = new QPushButton("Add pop-outs", squadRow_);
+		addPop_->setToolTip("Every popped-out Discord stream becomes a squad mate, named by its Discord "
+				    "username. Mute each stream in Discord too: the dock reminds you.");
+		showPop_ = new QPushButton("Show pop-outs", squadRow_);
+		showPop_->setCheckable(true);
+		showPop_->setToolTip("Bring the tucked pop-outs back on screen to mute or adjust them; press again "
+				     "to tuck them away.");
+		auto *sq = new QPushButton("Squad...", squadRow_);
+		sq->setToolTip("Squad mates, their in-game names, and how pop-outs are kept drawing.");
+		row->addWidget(addPop_, 1);
+		row->addWidget(showPop_);
+		row->addWidget(sq);
+		v->addWidget(squadRow_);
+		connect(addPop_, &QPushButton::clicked, this, &Dock::addPopouts);
+		connect(showPop_, &QPushButton::clicked, this, [this](bool on) { e_->showPopouts(on); });
+		connect(sq, &QPushButton::clicked, this, &Dock::openSquad);
+	}
+
+	// ----- what happened
+	eventsHead_ = headRow(eyebrow("Events", this), nullptr, this);
+	v->addWidget(eventsHead_);
 	events_ = new QListWidget(this);
 	events_->setMaximumHeight(120);
 	events_->setSelectionMode(QAbstractItemView::NoSelection);
 	events_->setFocusPolicy(Qt::NoFocus);
 	v->addWidget(events_);
 	last_ = new QLabel(this);
+	last_->setObjectName("small");
 	last_->setWordWrap(true);
-
 	v->addWidget(last_);
 	v->addStretch(1);
 
 	connect(e_, &Engine::stateChanged, this, &Dock::refresh);
-	connect(e_, &Engine::languageUnknown, this, &Dock::showLanguageNote, Qt::QueuedConnection);
 	connect(&e_->roster, &Roster::changed, this, &Dock::refresh);
 	connect(&e_->roster, &Roster::polled, this, &Dock::refresh);
+	connect(e_, &Engine::updateChecked, this, &Dock::refresh);
+	connect(e_, &Engine::discordUserDetected, this, [this](const QString &u, bool byHand) {
+		if (byHand && u.isEmpty())
+			runFix("discord:type"); // Discord is not running here: type it instead
+	});
 	connect(e_, &Engine::frameUpdated, this, [this]() {
-		Match m = e_->lastGame();
-		bool down = m.score >= e_->cfg.threshold;
-		detector_->setText(QString("Downed state detector: <b style=\"color:%1\">%2</b>")
-					   .arg(down ? "#ce6050" : "#8f9c5a", m.score < 0 ? "no template"
-									      : down      ? "Downed"
-											  : "Alive"));
 		if (e_->revivingRecent())
 			state_->setText(QString::fromStdString(e_->stateText()) +
 					QString(" (%1%)").arg((int)(std::max(0.0, e_->reviveProgress()) * 100)));
 	});
 	connect(e_, &Engine::logged, this, [this](const QString &s) { last_->setText(s); });
+	// the health strip has time in it (a mic silent for two minutes, a scene switched in OBS)
+	tick_.setInterval(2000);
+	connect(&tick_, &QTimer::timeout, this, [this]() {
+		refreshHealth();
+		rebuildBanners();
+	});
+	tick_.start();
 	refresh();
+}
+
+bool Dock::compact() const
+{
+	return e_->cfg.dockCompact || (e_->cfg.dockCompactLive && e_->streamingOrRecording());
+}
+
+void Dock::runFix(const QString &id)
+{
+	if (e_->runAction(id))
+		return;
+	if (id.startsWith("settings:"))
+		openSettings(id.mid(9));
+	else if (id == "wizard")
+		openWizard();
+	else if (id == "logs")
+		openLogs();
+	else if (id == "squad")
+		openSquad();
+	else if (id == "discord:type") {
+		bool ok = false;
+		QString v = QInputDialog::getText(
+			this, "Your Discord username",
+			"Your Discord username - the lower-case one under your display name. The Kennel.gg bot checks it "
+			"is in the server, and then follows whichever voice channel you are in.",
+			QLineEdit::Normal, QString::fromStdString(e_->cfg.myDiscord), &ok);
+		if (ok)
+			e_->setMyDiscord(v);
+	}
+}
+
+void Dock::addPopouts()
+{
+	QStringList added;
+	QString what = e_->addPopouts(&added);
+	last_->setText(what);
+	// no questions now: the dock says to mute them, and to check in-game names when Closest needs them
+	e_->noteAddedPopouts(added);
+}
+
+void Dock::refreshHealth()
+{
+	bool small = compact();
+	QSet<QString> seen;
+	for (const auto &h : e_->health()) {
+		QToolButton *b = dots_.value(h.key);
+		if (!b)
+			continue;
+		seen.insert(h.key);
+		b->setText(QString::fromUtf8("● ") + (small ? QString() : h.label));
+		QString tip = "<b>" + h.label.toHtmlEscaped() + "</b>: " + h.why.toHtmlEscaped();
+		if (!h.fixes.isEmpty())
+			tip += "<br>Click: " + h.fixes.first().second.toHtmlEscaped();
+		b->setToolTip(tip);
+		repolish(b, "level", h.level);
+		b->show();
+	}
+	for (auto it = dots_.begin(); it != dots_.end(); ++it)
+		if (!seen.contains(it.key()))
+			it.value()->hide();
+}
+
+void Dock::rebuildBanners()
+{
+	QList<Engine::Banner> list = e_->banners();
+	// compact: only what is actually broken
+	if (compact()) {
+		QList<Engine::Banner> keep;
+		for (const auto &b : list)
+			if (b.level >= 2)
+				keep << b;
+		list = keep;
+	}
+	while (list.size() > 3)
+		list.removeLast(); // the worst three; the rest wait their turn
+	QStringList keys;
+	for (const auto &b : list)
+		keys << b.id + "|" + b.text;
+	if (keys == bannerKeys_)
+		return;
+	bannerKeys_ = keys;
+	while (QLayoutItem *it = banners_->takeAt(0)) {
+		if (it->widget())
+			it->widget()->deleteLater();
+		delete it;
+	}
+	for (const auto &b : list) {
+		auto *f = new QFrame(this);
+		f->setObjectName("banner");
+		f->setProperty("level", b.level);
+		auto *bl = new QVBoxLayout(f);
+		bl->setContentsMargins(8, 5, 5, 6);
+		bl->setSpacing(4);
+		auto *top = new QHBoxLayout();
+		auto *txt = new QLabel(b.text, f);
+		txt->setTextFormat(Qt::RichText);
+		txt->setWordWrap(true);
+		top->addWidget(txt, 1);
+		if (b.dismissable) {
+			auto *x = new QToolButton(f);
+			x->setText(QString::fromUtf8("✕"));
+			x->setToolTip("Dismiss");
+			QString id = b.id;
+			connect(x, &QToolButton::clicked, this, [this, id]() { e_->dismissBanner(id); });
+			top->addWidget(x, 0, Qt::AlignTop);
+		}
+		bl->addLayout(top);
+		if (!b.actions.isEmpty()) {
+			auto *row = new QHBoxLayout();
+			row->setSpacing(4);
+			for (const auto &a : b.actions) {
+				auto *btn = new QPushButton(a.second, f);
+				QString id = a.first;
+				connect(btn, &QPushButton::clicked, this, [this, id]() { runFix(id); });
+				row->addWidget(btn);
+			}
+			row->addStretch(1);
+			bl->addLayout(row);
+		}
+		banners_->addWidget(f);
+	}
+}
+
+/// The squad mates the two rows offer: in a Kennel.gg voice channel, the people live in it;
+/// anywhere else everyone but those known not to be streaming.
+void Dock::rebuildPeople()
+{
+	bool rosterLive = e_->rosterLive();
+	QList<int> idx;
+	QStringList names;
+	for (size_t i = 0; i < e_->cfg.friends.size(); ++i) {
+		const Friend &f = e_->cfg.friends[i];
+		Engine::Feed st = e_->feedState(f);
+		if (rosterLive ? st != Engine::Feed::Live : st == Engine::Feed::Off)
+			continue;
+		idx << (int)i;
+		names << QString::fromStdString(f.name);
+	}
+	QString key = names.join("\n") + (rosterLive ? "|r" : "|");
+	for (int i : idx)
+		key += QString::number(i) + ",";
+	if (key == peopleKey_)
+		return;
+	peopleKey_ = key;
+	peopleIdx_ = idx;
+	auto clear = [](FlowLayout *fl, QList<QPushButton *> &list) {
+		while (QLayoutItem *it = fl->takeAt(0)) {
+			if (it->widget())
+				it->widget()->deleteLater();
+			delete it;
+		}
+		list.clear();
+	};
+	clear(povFlow_, povBtns_);
+	clear(dualFlow_, dualBtns_);
+	auto make = [this](const QString &text, QWidget *parent) {
+		auto *b = new QPushButton(text, parent);
+		b->setObjectName("person");
+		b->setCheckable(true);
+		return b;
+	};
+	// main view: Me, each squad mate, Closest
+	meBtn_ = make("Me", povBox_);
+	meBtn_->setToolTip("Your own POV on stream.");
+	connect(meBtn_, &QPushButton::clicked, this, [this]() {
+		if (e_->applied())
+			e_->applyNow(false, "button");
+		refresh();
+	});
+	povFlow_->addWidget(meBtn_);
+	for (int k = 0; k < idx.size(); k++) {
+		auto *b = make(names[k], povBox_);
+		int f = idx[k];
+		connect(b, &QPushButton::clicked, this, [this, f]() {
+			if (f < 0 || f >= (int)e_->cfg.friends.size())
+				return;
+			if (e_->cfg.nearEnabled) {
+				// picking someone by hand means not following the closest one
+				e_->cfg.nearEnabled = false;
+				e_->cfg.save();
+				e_->reloadConfig();
+				e_->log("Following the squad mate you picked (Closest off).");
+			}
+			if (e_->applied() && e_->cfg.activeFriend == f)
+				e_->applyNow(false, "button");
+			else {
+				e_->setActive(f); // switches on the spot when already showing someone
+				if (!e_->applied())
+					e_->applyNow(true, "button");
+			}
+			refresh();
+		});
+		povFlow_->addWidget(b);
+		povBtns_ << b;
+	}
+	closestBtn_ = make("Closest", povBox_);
+	connect(closestBtn_, &QPushButton::clicked, this, [this](bool on) {
+		if (on && !e_->appConnected()) {
+			// the NEARBY list is read by ClipHound: without it this does nothing, so say so
+			e_->noteClosestNeedsApp();
+			refresh();
+			return;
+		}
+		e_->cfg.nearEnabled = on;
+		e_->cfg.save();
+		e_->reloadConfig(); // pushes the names and areas to ClipHound
+		e_->log(on ? "Following the closest squad mate (NEARBY list)."
+			   : "Following the squad mate you picked.");
+		refresh();
+	});
+	povFlow_->addWidget(closestBtn_);
+	// Dual POV: Off, each squad mate
+	dualOffBtn_ = make("Off", dualBox_);
+	dualOffBtn_->setToolTip("No Dual POV window.");
+	connect(dualOffBtn_, &QPushButton::clicked, this, [this]() {
+		if (e_->dualOn())
+			e_->setDual(false, "dock");
+		refresh();
+	});
+	dualFlow_->addWidget(dualOffBtn_);
+	for (int k = 0; k < idx.size(); k++) {
+		auto *b = make(names[k], dualBox_);
+		int f = idx[k];
+		b->setToolTip(names[k] + " in the small Dual POV window, until you press Off.");
+		connect(b, &QPushButton::clicked, this, [this, f]() {
+			if (f < 0 || f >= (int)e_->cfg.friends.size())
+				return;
+			if (e_->dualOn() && e_->cfg.dualFriend == f)
+				e_->setDual(false, "dock");
+			else
+				e_->showInDual(f, "dock");
+			refresh();
+		});
+		dualFlow_->addWidget(b);
+		dualBtns_ << b;
+	}
 }
 
 void Dock::refresh()
 {
-	// the live buttons at the top: rebuilt only when the set of live squad mates changes
-	{
-		QStringList liveNames;
-		QList<int> liveIdx;
-		for (size_t i = 0; i < e_->cfg.friends.size(); ++i)
-			if (e_->feedState(e_->cfg.friends[i]) == Engine::Feed::Live &&
-			    e_->feedUsable(e_->cfg.friends[i])) {
-				liveNames << QString::fromStdString(e_->cfg.friends[i].name);
-				liveIdx << (int)i;
-			}
-		if (liveNames != liveShown_) {
-			while (QLayoutItem *it = liveRow_->takeAt(0)) {
-				delete it->widget();
-				delete it;
-			}
-			liveButtons_.clear();
-			liveNames_.clear();
-			for (int k = 0; k < liveNames.size(); k++) {
-				auto *b = new QPushButton(liveNames[k], this);
-				b->setObjectName("liveChip");
-				b->setCheckable(true);
-				b->setToolTip("Force " + liveNames[k] +
-					      "'s feed into the main view. Press again to come back to yours.");
-				int f = liveIdx[k];
-				connect(b, &QPushButton::clicked, this, [this, f]() {
-					if (f < 0 || f >= (int)e_->cfg.friends.size())
-						return;
-					if (e_->applied() && e_->cfg.activeFriend == f)
-						e_->applyNow(false, "button");
-					else {
-						e_->setActive(f); // switches on the spot when already showing someone
-						if (!e_->applied())
-							e_->applyNow(true, "button");
-					}
-				});
-				liveRow_->addWidget(b);
-				liveButtons_ << b;
-				liveNames_ << liveNames[k];
-			}
-			liveRow_->addStretch(1);
-			liveShown_ = liveNames;
-			liveIdx_ = liveIdx;
-		}
-		for (int k = 0; k < liveButtons_.size(); k++) {
-			bool on = e_->applied() && k < liveIdx_.size() && e_->cfg.activeFriend == liveIdx_[k];
-			liveButtons_[k]->blockSignals(true);
-			liveButtons_[k]->setChecked(on);
-			liveButtons_[k]->blockSignals(false);
-			liveButtons_[k]->setToolTip(on ? liveNames_[k] +
-								    " is on screen. Press to come back to your own POV."
-						       : "Force " + liveNames_[k] + "'s feed into the main view.");
-		}
-	}
-	// With the Kennel.gg roster open, the two drop-downs list only the people live in your voice
-	// channel right now; everyone else is managed from the Squad panel. Without the roster, only
-	// slots known to have no picture are left out.
-	bool live = e_->rosterLive();
-	QStringList names;
-	QList<int> idx;
-	for (size_t i = 0; i < e_->cfg.friends.size(); ++i) {
-		const Friend &f = e_->cfg.friends[i];
-		// in a Kennel.gg voice channel: the people live in it. Anywhere else: the whole squad,
-		// with a dot on the ones known to be streaming; an offline one is simply not dotted
-		if (live && e_->feedState(f) != Engine::Feed::Live)
-			continue;
-		QString label = QString::fromStdString(f.name);
-		if (!live && e_->feedState(f) == Engine::Feed::Live)
-			label += "  \u25cf"; // a dot for the ones known to be streaming (all of them, when live-only)
-		names << label;
-		idx << (int)i;
-	}
-	auto fill = [&](QComboBox *box, int want) {
-		QStringList shown;
-		for (int i = 0; i < box->count(); i++)
-			shown << box->itemText(i);
-		if (shown != names) { // rebuilding while the user has the list open would close it
-			box->clear();
-			for (int i = 0; i < names.size(); i++)
-				box->addItem(names[i], idx[i]);
-		}
-		int row = idx.indexOf(want);
-		box->setCurrentIndex(row); // -1 when the one chosen is not streaming: nothing selected
-		box->setEnabled(!names.isEmpty());
-		box->setPlaceholderText(e_->cfg.friends.empty() ? "no squad mates yet"
-					: live                  ? "nobody live in your channel"
-								: "nobody streaming");
-	};
 	filling_ = true;
-	fill(active_, e_->cfg.activeFriend);
-	if (dualAuto_) {
-		dualAuto_->blockSignals(true);
-		dualAuto_->setChecked(e_->cfg.dualAuto);
-		dualAuto_->blockSignals(false);
+	bool small = compact();
+	if (compactAct_) {
+		compactAct_->blockSignals(true);
+		compactAct_->setChecked(e_->cfg.dockCompact);
+		compactAct_->blockSignals(false);
+		compactLiveAct_->blockSignals(true);
+		compactLiveAct_->setChecked(e_->cfg.dockCompactLive);
+		compactLiveAct_->blockSignals(false);
 	}
-	if (dualPick_)
-		fill(dualPick_, e_->cfg.dualFriend);
-	filling_ = false;
+	// ----- the pill
 	state_->setText(QString::fromStdString(e_->stateText()));
+	repolish(state_, "mode", e_->applied() ? "showing" : !e_->cfg.enabled ? "off" : "watching");
+
+	refreshHealth();
+	rebuildBanners();
+
+	// ----- voice
+	voiceRow_->setVisible(e_->cfg.voiceEnabled);
+	if (e_->cfg.voiceEnabled) {
+		QString t;
+		if (e_->voiceHeardKind() == 0)
+			t = "Voice: say \"hey kennel\" and a command.";
+		else
+			t = e_->voiceHeardAt().toString("HH:mm") + "  " + e_->voiceHeard();
+		voiceLbl_->setText(t);
+		voiceLbl_->setStyleSheet(e_->voiceHeardKind() == 2 ? "color: #e0b45c;" : "");
+	}
+
+	// ----- the people
+	rebuildPeople();
+	autoSwitch_->setChecked(e_->cfg.enabled);
+	meBtn_->setChecked(!e_->applied());
+	for (int k = 0; k < povBtns_.size() && k < peopleIdx_.size(); k++) {
+		int f = peopleIdx_[k];
+		bool showing = e_->applied() && e_->cfg.activeFriend == f;
+		bool armed = !e_->applied() && e_->cfg.activeFriend == f;
+		const Friend &fr = e_->cfg.friends[f];
+		bool live = e_->feedState(fr) == Engine::Feed::Live;
+		povBtns_[k]->setChecked(showing);
+		repolish(povBtns_[k], "armed", armed);
+		repolish(povBtns_[k], "live", live);
+		QString n = QString::fromStdString(fr.name);
+		povBtns_[k]->setToolTip(
+			showing ? n + " is on stream. Press to come back to your own POV."
+			: armed ? n + " is who goes on stream when you are downed" +
+					  (e_->cfg.nearEnabled ? QString(" (unless someone is closer)") : "") +
+					  ". Press to show them now."
+				: "Show " + n + " now, and when you are downed.");
+	}
+	closestBtn_->setChecked(e_->cfg.nearEnabled);
+	repolish(closestBtn_, "faded", !e_->appConnected());
+	closestBtn_->setToolTip(
+		e_->appConnected()
+			? "When you go down, show whoever the game's NEARBY list says is closest. Needs each squad mate's "
+			  "in-game name (Squad...)."
+			: "Closest needs ClipHound running: it reads the NEARBY list in the corner of your game.");
+	povEmpty_->setVisible(povBtns_.isEmpty());
+	povEmpty_->setText(e_->cfg.friends.empty() ? "No squad mates yet: pop their streams out in Discord and press "
+						     "Add pop-outs."
+			   : e_->rosterLive()      ? "Nobody is live in your voice channel right now."
+						   : "Nobody is streaming right now.");
+	near_->setVisible(e_->cfg.nearEnabled && !small);
+	near_->setText("Nearby: " + e_->nearbyStatus());
+	// dual
+	dualAuto_->setChecked(e_->cfg.dualAuto);
+	dualOffBtn_->setChecked(!e_->dualOn());
+	for (int k = 0; k < dualBtns_.size() && k < peopleIdx_.size(); k++)
+		dualBtns_[k]->setChecked(e_->dualOn() && e_->cfg.dualFriend == peopleIdx_[k]);
+	dualHead_->setText(e_->dualForced() ? "DUAL POV  ·  ON UNTIL OFF"
+			   : e_->dualOn()   ? "DUAL POV  ·  VEHICLE"
+					    : "DUAL POV");
+
+	// ----- clips
 	{
-		const char *mode = e_->applied() ? "showing" : !e_->cfg.enabled ? "off" : "watching";
-		if (state_->property("mode").toString() != mode) {
-			state_->setProperty("mode", mode);
-			state_->style()->unpolish(state_);
-			state_->style()->polish(state_);
+		bool on = e_->replaying();
+		replay_->setText(on ? "Stop replay" : "Instant replay");
+		highlights_->setText(on ? "Stop" : e_->highlightsBuilding() ? "Building..." : "Highlights");
+		replay_->setChecked(false);
+		replay_->setStyleSheet(on ? "QPushButton { border-left: 4px solid #ce6050; }" : "");
+		QString lp = e_->clips.lastPath();
+		const auto &h = e_->clips.history();
+		if (lp.isEmpty() || h.empty())
+			clip_->setText("No clips yet this session.");
+		else {
+			const Clips::Entry &last = h.back();
+			QString title = last.title.isEmpty() ? QFileInfo(lp).completeBaseName() : last.title;
+			clip_->setText("Saved " + last.when.toString("HH:mm") + ": <b>" + title.toHtmlEscaped() +
+				       "</b>  ·  <a style=\"color:#c99a3b\" href=\"kennel:rename\">Rename</a>  ·  "
+				       "<a style=\"color:#c99a3b\" href=\"kennel:replay\">Replay</a>");
 		}
 	}
-	if (autoSwitch_) {
-		autoSwitch_->blockSignals(true);
-		autoSwitch_->setChecked(e_->cfg.enabled);
-		autoSwitch_->blockSignals(false);
-	}
-	if (showPop_) {
-		showPop_->blockSignals(true);
-		showPop_->setChecked(e_->popoutsShown());
-		showPop_->setText(e_->popoutsShown() ? "Tuck pop-outs" : "Show pop-outs");
-		showPop_->setVisible(e_->cfg.popoutTuck && e_->cfg.popoutMonitor < 0);
-		showPop_->blockSignals(false);
-	}
-	QString st = e_->appState();
-	if (st == "connected") {
-		appBtn_->setText("Stop ClipHound");
-		appBtn_->setStyleSheet("QPushButton { border-left: 4px solid #8f9c5a; }");
-		app_->setText("ClipHound: " + (e_->appStatus().isEmpty() ? QString("connected") : e_->appStatus()));
-	} else if (st == "starting") {
-		appBtn_->setText("Stop ClipHound");
-		appBtn_->setStyleSheet("QPushButton { border-left: 4px solid #c99a3b; }");
-		app_->setText("ClipHound: starting...");
-	} else if (st == "crashed") {
-		appBtn_->setText("Start ClipHound");
-		appBtn_->setStyleSheet("QPushButton { border-left: 4px solid #ce6050; }");
-		app_->setText("ClipHound: exited right after starting - Settings → Logs");
-	} else {
-		appBtn_->setText("Start ClipHound");
-		appBtn_->setStyleSheet("");
-		app_->setText(e_->cfg.bridgeEnabled ? "ClipHound: not running" : "ClipHound: bridge off");
-	}
+
+	// ----- squad row, events, menu
+	showPop_->blockSignals(true);
+	showPop_->setChecked(e_->popoutsShown());
+	showPop_->setText(e_->popoutsShown() ? "Tuck pop-outs" : "Show pop-outs");
+	showPop_->setVisible(e_->cfg.popoutTuck && e_->cfg.popoutMonitor < 0 && !small);
+	showPop_->blockSignals(false);
+	eventsHead_->setVisible(!small);
+	events_->setVisible(!small);
+	last_->setVisible(!small);
 	events_->clear();
 	QStringList ev = e_->recentEvents();
 	for (int i = ev.size() - 1; i >= 0 && ev.size() - i <= 8; i--)
 		events_->addItem(ev[i]);
 	if (events_->count() == 0)
 		events_->addItem("events from the kill feed and the POV swap appear here");
-	if (near_) {
-		near_->setVisible(e_->cfg.nearEnabled);
-		near_->setText("Nearby: " + e_->nearbyStatus());
-		near_->setStyleSheet(e_->cfg.nearEnabled && !e_->appConnected() ? "color: #ce6050;" : "");
-	}
-	if (closest_) {
-		closest_->setChecked(e_->cfg.nearEnabled);
-		active_->setEnabled(!e_->cfg.nearEnabled);
-		active_->setToolTip(e_->cfg.nearEnabled
-					    ? "Set automatically to whoever is closest; untick Closest to choose."
-					    : "");
-	}
-	if (update_) {
-		bool has = e_->updateAvailable();
-		update_->setVisible(has);
-		if (has) {
-			QString t = "Version " + e_->newVersion().toHtmlEscaped() + " is out (you have " +
-				    QString(PLUGIN_VERSION) + ")";
-			if (!e_->newVersionUrl().isEmpty())
-				t += "  <a style=\"color:#c99a3b\" href=\"" + e_->newVersionUrl().toHtmlEscaped() +
-				     "\">download</a>";
-			update_->setText(t);
-			update_->setToolTip(e_->newVersionNotes());
-		}
-	}
-	QString lp = e_->clips.lastPath();
-	QString rb = (e_->cfg.clipUseReplay && !obs_frontend_replay_buffer_active())
-			     ? "REPLAY BUFFER OFF (OBS Settings → Output)  ·  "
-			     : "";
-	clip_->setText(rb + (lp.isEmpty() ? "no clips yet" : "last: " + QFileInfo(lp).fileName()));
-	if (dual_) {
-		dual_->blockSignals(true);
-		dual_->setChecked(e_->dualOn());
-		dual_->blockSignals(false);
-		dual_->setText(e_->dualForced() ? "FORCED Dual POV"
-			       : e_->dualOn()   ? "Dual POV (auto)"
-						: "Force Dual POV");
-		dual_->setStyleSheet(e_->dualForced() ? "QPushButton { border-left: 4px solid #c99a3b; }"
-				     : e_->dualOn()   ? "QPushButton { border-left: 4px solid #8f9c5a; }"
-						      : "");
-	}
-	show_->setEnabled(!e_->applied());
-	back_->setEnabled(e_->applied());
-	if (replay_) {
-		bool on = e_->replaying();
-		replay_->setText(on ? "Stop replay" : "Instant replay");
-		highlights_->setText(on ? "Stop" : e_->highlightsBuilding() ? "Building..." : "Play highlights");
-		replay_->setStyleSheet(on ? "QPushButton { border-left: 4px solid #ce6050; }" : "");
-	}
-	if (sceneWarn_) {
-		QString live = e_->sceneMismatch();
-		sceneWarn_->setVisible(!live.isEmpty());
-		if (!live.isEmpty())
-			sceneWarn_->setText(
-				"Live scene is '" + live.toHtmlEscaped() + "', but the plugin works in '" +
-				QString::fromStdString(e_->cfg.sceneName).toHtmlEscaped() +
-				"': nothing it shows is on stream. Switch to that scene, or change it under "
-				"Settings, Switch.");
-	}
-	if (locked_) {
-		Engine::Access a = e_->rosterAccess();
-		QString url = e_->discordUrl().toHtmlEscaped();
-		bool show = !e_->cfg.rosterEnabled || a == Engine::Access::NotMember || a == Engine::Access::NoUsername;
-		bool unreadable = e_->cfg.rosterEnabled && e_->roster.running() && !e_->roster.healthy();
-		locked_->setVisible(show || unreadable);
-		if (unreadable && !show) {
-			locked_->setText("Discord voice: " + e_->roster.status().toHtmlEscaped() +
-					 ". Until it can be read, the squad shows as it would without the roster.");
-		} else if (!e_->cfg.rosterEnabled || a == Engine::Access::NoUsername)
-			locked_->setText(
-				"<a style=\"color:#c99a3b\" href=\"" + url +
-				"\">Join Kennel.gg Discord for more automation</a>: live squad mates appear "
-				"here. Already in? <a style=\"color:#c99a3b\" href=\"kennel:detect\">Detect my "
-				"Discord username</a> (or <a style=\"color:#c99a3b\" href=\"kennel:username\">type it</a>).");
-		else
-			locked_->setText(
-				"<a style=\"color:#c99a3b\" href=\"" + url +
-				"\">Join Kennel.gg Discord for more automation</a>: \"" +
-				QString::fromStdString(e_->cfg.myDiscord).toHtmlEscaped() +
-				"\" is not in the server. <a style=\"color:#c99a3b\" href=\"kennel:detect\">Detect</a> or "
-				"<a style=\"color:#c99a3b\" href=\"kennel:username\">change</a> the username.");
-	}
-}
-
-void Dock::showSupportNote()
-{
-	QMessageBox m((QWidget *)obs_frontend_get_main_window());
-	m.setWindowTitle("Kennel.gg Wardogs Streaming Tool");
-	m.setIcon(QMessageBox::NoIcon);
-	m.setTextFormat(Qt::RichText);
-	m.setText("<b>Enjoying the plugin?</b>");
-	m.setInformativeText("If you are enjoying the plugin and would like to support development, please consider "
-			     "supporting us. It is free and always will be; this keeps it moving.<br><br>"
-			     "<a href=\"" +
-			     QString(Config::supportUrl()) + "\">" + QString(Config::supportUrl()) + "</a>");
-	auto *support = m.addButton("Support development", QMessageBox::AcceptRole);
-	m.addButton("Maybe later", QMessageBox::RejectRole);
-	m.exec();
-	if (m.clickedButton() == support)
-		QDesktopServices::openUrl(QUrl(Config::supportUrl()));
-	e_->supportNoteShown(); // once, whichever button
-}
-
-void Dock::openClips(const QString &focusPath)
-{
-	auto *d = new ClipsDialog(e_, (QWidget *)obs_frontend_get_main_window());
-	d->show();
-	if (!focusPath.isEmpty())
-		d->focusClip(focusPath);
-}
-
-void Dock::showLanguageNote()
-{
-	QMessageBox m((QWidget *)obs_frontend_get_main_window());
-	m.setWindowTitle("Kennel.gg Wardogs Streaming Tool");
-	m.setIcon(QMessageBox::NoIcon);
-	m.setTextFormat(Qt::RichText);
-	m.setText("<b>Game language not supported yet?</b>");
-	m.setInformativeText(
-		"The plugin finds you are downed by the damage-log header on your screen, and it knows the "
-		"wording in <b>English, Spanish and French</b>. Something header-like has been on your screen "
-		"several times without matching any of them, so your game may be in another language.<br><br>"
-		"To add it: while you are downed, press <b>Save a frame</b> (Settings, Detect tab, or the button "
-		"below if you are downed right now) and open a ticket in the Kennel.gg Discord with the picture. "
-		"Your language goes into the next build.<br><br>"
-		"Game already in English, Spanish or French? Then this is a resolution or HUD-scale difference: "
-		"cut your own header on the Detect tab instead.");
-	auto *save = m.addButton("Save a frame now", QMessageBox::ActionRole);
-	auto *discord = m.addButton("Open the Kennel.gg Discord", QMessageBox::AcceptRole);
-	m.addButton("Close", QMessageBox::RejectRole);
-	m.exec();
-	if (m.clickedButton() == save) {
-		QString r = e_->saveFrame();
-		QMessageBox::information((QWidget *)obs_frontend_get_main_window(), "Kennel.gg Wardogs Streaming Tool",
-					 r.startsWith("Could not")
-						 ? r
-						 : "Saved: " + r +
-							   "\n\nAttach this to a ticket in the Kennel.gg Discord.");
-	} else if (m.clickedButton() == discord)
-		QDesktopServices::openUrl(QUrl(Config::kennelDiscordUrl()));
-	e_->languageNoteShown();
+	QString st = e_->appState();
+	appAct_->setText(st == "connected" || st == "starting" ? "Stop ClipHound" : "Start ClipHound");
+	filling_ = false;
 }
 
 void Dock::openWizard()
@@ -798,6 +815,7 @@ void Dock::openWizard()
 	}
 	auto *w = new SetupWizard(e_, (QWidget *)obs_frontend_get_main_window());
 	w->setAttribute(Qt::WA_DeleteOnClose);
+	connect(w, &SetupWizard::openSettingsPage, this, [this](const QString &page) { openSettings(page); });
 	wizard_ = w;
 	showOnScreen(w);
 }
@@ -878,15 +896,17 @@ void Dock::openSquad()
 	showOnScreen(dlg);
 }
 
-void Dock::openSettings()
+void Dock::openSettings(const QString &page)
 {
-	if (settings_) {
+	if (!settings_) {
+		auto *dlg = new SettingsDialog(e_, (QWidget *)obs_frontend_get_main_window());
+		dlg->setAttribute(Qt::WA_DeleteOnClose);
+		settings_ = dlg;
+		showOnScreen(dlg);
+	} else {
 		settings_->raise();
 		settings_->activateWindow();
-		return;
 	}
-	auto *dlg = new SettingsDialog(e_, (QWidget *)obs_frontend_get_main_window());
-	dlg->setAttribute(Qt::WA_DeleteOnClose);
-	settings_ = dlg;
-	showOnScreen(dlg);
+	if (!page.isEmpty())
+		static_cast<SettingsDialog *>(settings_.data())->showPage(page);
 }

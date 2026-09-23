@@ -6,12 +6,18 @@
 #include <QPushButton>
 #include <QSysInfo>
 #include <QFileInfo>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QInputDialog>
 #include <obs-module.h>
+#include <algorithm>
 
 static QLabel *note(const QString &t, QWidget *p)
 {
 	auto *l = new QLabel(t, p);
 	l->setWordWrap(true);
+	l->setTextFormat(Qt::RichText);
+	l->setOpenExternalLinks(true);
 	{
 		QFont f = l->font();
 		if (f.pointSizeF() > 0)
@@ -23,54 +29,61 @@ static QLabel *note(const QString &t, QWidget *p)
 	return l;
 }
 
+enum { PageYou, PageGame, PageSquad, PageClips, PageCheck };
+
 SetupWizard::SetupWizard(Engine *engine, QWidget *parent) : QWizard(parent), e_(engine)
 {
-	setWindowTitle("Kennel.gg Wardogs Streaming Tool - setup");
+	setWindowTitle("Kennel.gg Wardogs - setup");
 	setWizardStyle(QWizard::ModernStyle);
 	setOption(QWizard::NoBackButtonOnStartPage, true);
 	setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::WindowCloseButtonHint | Qt::WindowMinMaxButtonsHint);
 	setMinimumSize(560, 420);
-	resize(720, 540);
-	addPage(pageWelcome());
-	addPage(pageGame());
-	addPage(pageSquad());
-	addPage(pageClips());
-	addPage(pageDone());
+	resize(720, 560);
+	setPage(PageYou, pageYou());
+	setPage(PageGame, pageGame());
+	setPage(PageSquad, pageSquad());
+	setPage(PageClips, pageClips());
+	setPage(PageCheck, pageCheck());
 	connect(this, &QWizard::currentIdChanged, this, [this](int id) {
-		if (id == 1)
+		if (id == PageGame)
 			fillGame();
-		if (id == 2)
+		if (id == PageSquad)
 			fillSquad();
-		if (id == 4) {
-			QString g = game_->currentText();
-			int n = (int)e_->cfg.friends.size();
-			summary_->setText(
-				QString("<p><b>Name:</b> %1<br><b>Game source:</b> %2<br><b>Squad mates:</b> %3<br><b>Clips:</b> replay buffer on%4</p>"
-					"<p>Press Finish, then <b>get downed once</b> with WARDOGS on screen. The dock (View → Docks → Kennel.gg Wardogs) turns red "
-					"and your stream shows the squad mate; it comes back the instant you are revived.</p>"
-					"<p>Everything here can be changed under Tools → Kennel.gg Wardogs Streaming Tool...</p>")
-					.arg(name_->text().trimmed().isEmpty() ? QSysInfo::machineHostName()
-									       : name_->text().trimmed(),
-					     g.isEmpty() ? "(none yet)" : g)
-					.arg(n == 0 ? "none yet - add one from the dock later" : QString::number(n))
-					.arg(launchApp_->isChecked() ? ", ClipHound starts with OBS" : ""));
-		}
+		if (id == PageCheck) {
+			commit(); // the check is of what was just set, not of what was there before
+			fillChecks();
+			checkTick_.start();
+		} else
+			checkTick_.stop();
 	});
+	checkTick_.setInterval(1500);
+	connect(&checkTick_, &QTimer::timeout, this, &SetupWizard::fillChecks);
 }
 
-QWizardPage *SetupWizard::pageWelcome()
+QWizardPage *SetupWizard::pageYou()
 {
 	auto *p = new QWizardPage(this);
-	p->setTitle("Welcome");
-	p->setSubTitle(
-		"Downed in WARDOGS? Your stream will show a squad mate's POV until you are back up. Your mic is never touched.");
+	p->setTitle("You");
+	p->setSubTitle("Downed in WARDOGS? Your stream shows a squad mate's POV until you are back up. Your mic is "
+		       "never touched.");
 	auto *f = new QFormLayout(p);
-	name_ = new QLineEdit(QString::fromStdString(e_->cfg.playerName), p);
-	name_->setPlaceholderText(QSysInfo::machineHostName());
-	f->addRow("Your name", name_);
-	f->addRow(note(
-		"Shown to squad mates on the same network and on the POV name tag. Leave blank to use this PC's name.",
-		p));
+	gameName_ = new QLineEdit(QString::fromStdString(e_->cfg.appPlayerName), p);
+	gameName_->setPlaceholderText("exactly as the kill feed shows it");
+	f->addRow("Your name in WARDOGS", gameName_);
+	f->addRow(note("Kill-feed clips need it: without it ClipHound cannot tell your kills from anyone else's. "
+		       "It also goes on your highlights title card.",
+		       p));
+	lang_ = new QComboBox(p);
+	lang_->addItem("Auto (found from the downed screen)", "auto");
+	lang_->addItem("English", "en");
+	lang_->addItem("Español", "es");
+	lang_->addItem("Français", "fr");
+	int li = lang_->findData(QString::fromStdString(e_->cfg.gameLang));
+	lang_->setCurrentIndex(li < 0 ? 0 : li);
+	f->addRow("Game language", lang_);
+	f->addRow(note("The plugin reads the words on the downed screen. English, Spanish and French so far; for "
+		       "another language, open a ticket in the Kennel.gg Discord.",
+		       p));
 	lookName_ = new QCheckBox("Show a \"POV · NAME\" tag over the squad mate's feed", p);
 	lookName_->setChecked(e_->cfg.lookName);
 	f->addRow(lookName_);
@@ -102,7 +115,7 @@ QWizardPage *SetupWizard::pageGame()
 	scene_ = new QComboBox(p);
 	v->addWidget(scene_);
 	v->addWidget(note("Pick the scene that is live while you play. If you use several, pick the main gameplay "
-			  "one; it can be changed later under Settings, Switch.",
+			  "one; it can be changed later under Settings, General.",
 			  p));
 	v->addStretch(1);
 	connect(mk, &QPushButton::clicked, this, [this]() {
@@ -160,26 +173,29 @@ void SetupWizard::fillGame()
 QWizardPage *SetupWizard::pageSquad()
 {
 	auto *p = new QWizardPage(this);
-	p->setTitle("Your squad, from Discord");
-	p->setSubTitle("Whose POV viewers see while you are down. Squad mates come from the Discord call you are in.");
+	p->setTitle("Your squad");
+	p->setSubTitle("Whose POV viewers see while you are down: the squad mates streaming in your Discord call.");
 	auto *v = new QVBoxLayout(p);
-	v->addWidget(note(
-		"<b>Every session:</b> join your squad's voice channel, watch a squad mate's stream and pop it out "
-		"(right-click their stream, <b>Pop Out</b>). Then right-click the stream again and <b>mute it</b>: its game sound would otherwise play in your headphones and go out on your stream through Desktop Audio the whole time. Then press <b>Add pop-outs</b> on the dock. Their slot is made, "
-		"named after them, and their window is tucked to the edge of your screen where Discord keeps drawing it. "
-		"Pop out everyone whose POV you might show.<br><br>"
-		"<b>Do not minimise a pop-out.</b> A minimised window stops drawing and its feed freezes. Tucked away is "
-		"fine; minimised is not. Show pop-outs on the dock brings them back when you need their volume control.",
-		p));
+	v->addWidget(
+		note("<b>Each session, for each squad mate:</b>"
+		     "<ol style=\"margin-top:2px\">"
+		     "<li>In Discord, right-click their stream and choose <b>Pop Out</b>.</li>"
+		     "<li>Right-click it again and <b>Mute</b> it, or their game sound goes out on your stream.</li>"
+		     "<li>Press <b>Add pop-outs</b> on the dock.</li>"
+		     "</ol>"
+		     "Keep pop-outs open but never minimised: a minimised window stops drawing and their "
+		     "picture freezes. The dock warns you if one is.",
+		     p));
 	auto *form = new QFormLayout();
 	me_ = new QLineEdit(QString::fromStdString(e_->cfg.myDiscord), p);
-	me_->setPlaceholderText("filled in from the Discord app when it is running, or type the lower-case one");
+	me_->setPlaceholderText("the lower-case one under your display name");
 	auto *meRow = new QHBoxLayout();
 	meRow->addWidget(me_, 1);
 	auto *detect = new QPushButton("Detect", p);
 	detect->setToolTip("Ask the Discord app on this PC who it is logged in as.");
 	meRow->addWidget(detect);
 	form->addRow("Your Discord username", meRow);
+	v->addLayout(form);
 	connect(detect, &QPushButton::clicked, this, [this]() { e_->detectDiscordUser(true); });
 	connect(e_, &Engine::discordUserDetected, this, [this](const QString &u, bool byHand) {
 		if (!u.isEmpty() && (byHand || me_->text().trimmed().isEmpty()))
@@ -187,46 +203,23 @@ QWizardPage *SetupWizard::pageSquad()
 	});
 	if (me_->text().trimmed().isEmpty())
 		e_->detectDiscordUser(false);
-	v->addLayout(form);
-	rosterOn_ = new QCheckBox("See who is in my channel and who is live, by itself (recommended)", p);
+	rosterOn_ = new QCheckBox("Add squad mates by themselves when they go live in my voice channel", p);
 	rosterOn_->setChecked(true);
 	rosterOn_->setToolTip(
-		"The Kennel Ops Discord bot publishes who is in voice and who is streaming. With this on, "
-		"the plugin knows which channel is yours, shows only people who are live, and drops "
-		"anyone who leaves.");
+		"The Kennel Ops bot in the Kennel.gg Discord publishes who is in voice and who is "
+		"streaming. With this on the plugin follows your channel, shows only people who are live, "
+		"and drops anyone who leaves.");
 	v->addWidget(rosterOn_);
-	bot_ = new QLabel(p);
-	bot_->setWordWrap(true);
-	bot_->setOpenExternalLinks(true);
-	v->addWidget(bot_);
-	auto refreshBot = [this]() {
-		QStringList gs = e_->roster.guilds();
-		QString inv = e_->roster.inviteUrl().isEmpty() ? Config::botInviteUrl() : e_->roster.inviteUrl();
-		bot_->setText(
-			"<b>Squad automation is for members of the Kennel.gg Discord.</b> The Kennel Ops bot checks the "
-			"username above against the server, then follows whichever voice channel you are sitting in: "
-			"nothing to name. Not in yet? <a href=\"" +
-			e_->discordUrl() +
-			"\">Join here</a>.<br><br>"
-			"<b>For the best experience the Kennel Ops bot needs to be in the Discord server you play "
-			"on.</b> It only asks to view channels. Servers it can see now: " +
-			(gs.isEmpty() ? QString("(checking...)") : gs.join(", ")) +
-			". Playing somewhere else? Its admin adds the bot with <a href=\"" + inv +
-			"\">this link</a>, and that server appears in the Squad panel.");
-	};
-	refreshBot();
-	connect(&e_->roster, &Roster::polled, this, refreshBot);
-	connect(&e_->roster, &Roster::changed, this, refreshBot);
-	if (!e_->roster.running())
-		e_->roster.configure(QString::fromStdString(e_->cfg.rosterUrl), e_->cfg.rosterPollS, QString(),
-				     QString());
-	v->addWidget(
-		note("Squad mates on Twitch, Kick, YouTube or VDO.Ninja are added under Settings, Squad, Add.", p));
+	v->addWidget(note("Squad automation is for members of the <b>Kennel.gg Discord</b>: the Kennel Ops bot "
+			  "checks your username there, then follows whichever of its voice channels you are in. "
+			  "Not a member yet? <a href=\"" +
+				  e_->discordUrl() +
+				  "\">Join here</a>. Without it, Add pop-outs still works in any Discord server.",
+			  p));
+	v->addWidget(note("Squad mates on Twitch, Kick, YouTube or VDO.Ninja: Settings, Squad &amp; POV, Add.", p));
 	squad_ = new QListWidget(p);
 	squad_->setMaximumHeight(90);
 	v->addWidget(squad_);
-	twitch_ = new QLineEdit(p); // kept for the by-hand Twitch add, off the page
-	twitch_->hide();
 	v->addStretch(1);
 	connect(e_, &Engine::stateChanged, this, [this]() { fillSquad(); });
 	return p;
@@ -243,73 +236,172 @@ void SetupWizard::fillSquad()
 			       : f.kind == FriendKind::VdoNinja ? "VDO.Ninja"
 			       : f.kind == FriendKind::Discord  ? "Discord"
 								: "OBS source";
-		squad_->addItem(QString::fromStdString(f.name) + "  ·  " + kind +
-				((int)i == e_->cfg.activeFriend ? "  ·  active" : ""));
+		squad_->addItem(QString::fromStdString(f.name) + "  ·  " + kind);
 	}
 	if (squad_->count() == 0)
-		squad_->addItem("(nobody yet)");
-}
-
-void SetupWizard::addTwitch()
-{
-	QString ch = twitch_->text().trimmed().toLower().remove('@');
-	if (ch.isEmpty())
-		return;
-	Friend f;
-	f.name = ch.toStdString();
-	f.kind = FriendKind::Twitch;
-	f.channel = ch.toStdString();
-	e_->cfg.friends.push_back(f);
-	if (e_->cfg.friends.size() == 1)
-		e_->cfg.activeFriend = 0;
-	e_->cfg.save();
-	twitch_->clear();
-	fillSquad();
+		squad_->addItem("(nobody yet: that is normal, they come from pop-outs as you play)");
 }
 
 QWizardPage *SetupWizard::pageClips()
 {
 	auto *p = new QWizardPage(this);
 	p->setTitle("Clips");
-	p->setSubTitle("OBS's replay buffer is started for you. Clips are saved and named with tags.");
-	auto *v = new QVBoxLayout(p);
+	p->setSubTitle("Clips come out of OBS's replay buffer, which is started for you.");
+	auto *f = new QFormLayout(p);
+	replaySecs_ = new QSpinBox(p);
+	replaySecs_->setRange(5, 300);
+	replaySecs_->setSuffix(" s");
+	replaySecs_->setValue(e_->cfg.replaySeconds);
+	f->addRow("Each clip reaches back", replaySecs_);
+	f->addRow(note("This is OBS's own replay-buffer length. 45 s is plenty for a fight.", p));
 	clipDowned_ = new QCheckBox("Save a clip whenever I get downed", p);
 	clipDowned_->setChecked(e_->cfg.clipOnDowned);
-	v->addWidget(clipDowned_);
+	f->addRow(clipDowned_);
 	bool appInstalled = QFileInfo::exists("C:/ProgramData/Kennel.gg/ClipHound/ClipHound.exe") ||
 			    !e_->cfg.appPath.empty();
-	launchApp_ = new QCheckBox("Start ClipHound with OBS (reads the kill feed and clips notable kills)", p);
+	launchApp_ = new QCheckBox("Start ClipHound with OBS", p);
 	launchApp_->setChecked(appInstalled && (e_->cfg.launchApp || e_->cfg.appPath.empty()));
 	launchApp_->setEnabled(appInstalled);
-	v->addWidget(launchApp_);
-	v->addWidget(note(
-		appInstalled
-			? "ClipHound runs silently in the background. Your in-game name, clip folder and the Twitch login are on the ClipHound tab in Settings."
-			: "ClipHound was not installed. Run the installer again and tick it if you want kill-feed clips.",
+	f->addRow(launchApp_);
+	f->addRow(note(
+		appInstalled ? "ClipHound runs in the background: it clips your notable kills from the kill feed, "
+			       "reads the NEARBY list for Closest, and listens for voice commands if you turn them on."
+			     : "ClipHound was not installed. Run the installer again and tick it for kill-feed "
+			       "clips, Closest and voice.",
 		p));
-	v->addWidget(note(
-		"Hotkey \"Kennel.gg Wardogs: save a clip now\" and the dock's Clip now button save one by hand. Replay length is OBS's Settings → Output → Replay Buffer.",
-		p));
-	v->addStretch(1);
+	f->addRow(note("The dock's <b>Save clip</b> button and the hotkey \"Kennel.gg Wardogs: save a clip now\" "
+		       "save one by hand.",
+		       p));
 	return p;
 }
 
-QWizardPage *SetupWizard::pageDone()
+QWizardPage *SetupWizard::pageCheck()
 {
 	auto *p = new QWizardPage(this);
-	p->setTitle("Ready");
+	p->setTitle("Check");
+	p->setSubTitle("What the plugin sees right now. Anything red has a button that fixes it.");
 	auto *v = new QVBoxLayout(p);
-	summary_ = new QLabel(p);
-	summary_->setWordWrap(true);
-	v->addWidget(summary_);
+	auto *box = new QWidget(p);
+	checks_ = new QGridLayout(box);
+	checks_->setContentsMargins(0, 0, 0, 0);
+	checks_->setHorizontalSpacing(10);
+	checks_->setColumnStretch(1, 1);
+	v->addWidget(box);
+	checkSummary_ = note("", p);
+	v->addWidget(checkSummary_);
+
+	auto *extras = new QLabel("<b>Optional extras</b>", p);
+	v->addSpacing(8);
+	v->addWidget(extras);
+	auto *eg = new QGridLayout();
+	eg->setColumnStretch(0, 1);
+	auto extra = [&](int row, const QString &text, QPushButton *btn) {
+		eg->addWidget(note(text, p), row, 0);
+		eg->addWidget(btn, row, 1, Qt::AlignTop);
+	};
+	voiceBtn_ = new QPushButton(p);
+	extra(0,
+	      "<b>Voice control</b> (beta, English): say \"hey kennel, clip that\", \"instant replay\", \"show "
+	      "gazreyn\". Listens to your OBS mic through ClipHound; nothing is recorded.",
+	      voiceBtn_);
+	auto *vert = new QPushButton("Set it up...", p);
+	extra(1,
+	      "<b>Vertical canvas</b> (beta): the swap and the instant replay on a portrait canvas as well (Aitum "
+	      "Stream Suite).",
+	      vert);
+	auto *deck = new QPushButton("Get it...", p);
+	extra(2, "<b>Stream Deck plugin</b>: keys for each squad mate, cycle, clip, replay, voice and Dual POV.", deck);
+	v->addLayout(eg);
 	v->addStretch(1);
+	auto showVoice = [this]() {
+		voiceBtn_->setText(e_->cfg.voiceEnabled ? "On - turn off" : "Turn on");
+	};
+	showVoice();
+	connect(voiceBtn_, &QPushButton::clicked, this, [this, showVoice]() {
+		e_->cfg.voiceEnabled = !e_->cfg.voiceEnabled;
+		e_->cfg.save();
+		e_->applyVoice();
+		e_->log(e_->cfg.voiceEnabled ? "Voice control on (from Setup)." : "Voice control off (from Setup).");
+		showVoice();
+		fillChecks();
+	});
+	connect(vert, &QPushButton::clicked, this, [this]() { emit openSettingsPage("vertical"); });
+	connect(deck, &QPushButton::clicked, this,
+		[]() { QDesktopServices::openUrl(QUrl("https://kennel.gg/obs/#streamdeck")); });
 	return p;
 }
 
-void SetupWizard::accept()
+void SetupWizard::fillChecks()
+{
+	if (!checks_)
+		return;
+	// rebuilt only when something changed, so a button is never pulled from under the mouse
+	QString key;
+	for (const auto &h : e_->health())
+		key += h.key + QString::number(h.level) + h.why + "\n";
+	QWidget *holder = checks_->parentWidget();
+	if (holder->property("key").toString() == key)
+		return;
+	holder->setProperty("key", key);
+	while (QLayoutItem *it = checks_->takeAt(0)) {
+		if (it->widget())
+			it->widget()->deleteLater();
+		delete it;
+	}
+	static const char *colour[] = {"#8f9c5a", "#c99a3b", "#ce6050", "#7c8076"};
+	int row = 0, bad = 0;
+	for (const auto &h : e_->health()) {
+		int lvl = std::clamp(h.level, 0, 3);
+		auto *dot =
+			new QLabel(QString("<span style=\"color:%1; font-size:14pt\">\u25cf</span>").arg(colour[lvl]));
+		auto *txt = new QLabel("<b>" + h.label.toHtmlEscaped() + "</b>  " + h.why.toHtmlEscaped());
+		txt->setWordWrap(true);
+		checks_->addWidget(dot, row, 0, Qt::AlignTop);
+		checks_->addWidget(txt, row, 1);
+		if (!h.fixes.isEmpty() && lvl != 0) {
+			auto *b = new QPushButton(h.fixes.first().second);
+			QString id = h.fixes.first().first;
+			connect(b, &QPushButton::clicked, this, [this, id]() { runFix(id); });
+			checks_->addWidget(b, row, 2, Qt::AlignTop);
+		}
+		if (lvl == 2)
+			bad++;
+		row++;
+	}
+	checkSummary_->setText(
+		bad ? "Fix what is red, then press Finish. You can also finish now and use the dock: the same dots "
+		      "and buttons are there."
+		    : "All set. Press Finish, then <b>get downed once</b> with WARDOGS on screen: the dock's pill "
+		      "turns red and your stream shows the squad mate until you are revived.");
+}
+
+void SetupWizard::runFix(const QString &id)
+{
+	if (e_->runAction(id)) {
+		fillChecks();
+		return;
+	}
+	if (id.startsWith("settings:"))
+		emit openSettingsPage(id.mid(9));
+	else if (id == "logs")
+		emit openSettingsPage("logs");
+	else if (id == "discord:type" || id == "squad")
+		setCurrentId(PageSquad);
+	else if (id == "wizard")
+		restart();
+}
+
+void SetupWizard::commit()
 {
 	Config &c = e_->cfg;
-	c.playerName = name_->text().trimmed().toStdString();
+	c.appPlayerName = gameName_->text().trimmed().toStdString();
+	if (c.playerName.empty())
+		c.playerName = c.appPlayerName; // the name shown to others, unless set otherwise in Settings
+	std::string lang = lang_->currentData().toString().toStdString();
+	bool langChanged = lang != c.gameLang;
+	c.gameLang = lang;
+	if (langChanged)
+		c.gameLangFound.clear();
 	c.lookName = lookName_->isChecked();
 	if (game_->currentIndex() >= 0)
 		c.gameSource = game_->currentText().toStdString();
@@ -317,15 +409,29 @@ void SetupWizard::accept()
 		c.sceneName = scene_->currentText().toStdString();
 	c.myDiscord = me_->text().trimmed().toLower().remove('@').toStdString();
 	c.rosterEnabled = rosterOn_->isChecked();
-	c.setupDone = true;
 	c.clipOnDowned = clipDowned_->isChecked();
 	c.launchApp = launchApp_->isChecked();
 	if (c.launchApp && c.appPath.empty())
 		c.appPath = "C:/ProgramData/Kennel.gg/ClipHound/ClipHound.exe";
 	c.save();
+	if (langChanged)
+		e_->loadTemplates();
+	if (replaySecs_->value() != c.replaySeconds)
+		e_->setReplaySecondsByUser(replaySecs_->value());
 	e_->reloadConfig();
-	if (c.launchApp)
+	e_->pushAppConfig();
+	if (c.launchApp && e_->appState() == "stopped")
 		e_->launchApp();
+	if (c.clipUseReplay && c.autoStartReplay && !obs_frontend_replay_buffer_active())
+		obs_frontend_replay_buffer_start();
+}
+
+void SetupWizard::accept()
+{
+	commit();
+	e_->cfg.setupDone = true;
+	e_->cfg.save();
 	e_->log("Setup done. Get downed once to see it work.");
+	emit e_->stateChanged();
 	QWizard::accept();
 }

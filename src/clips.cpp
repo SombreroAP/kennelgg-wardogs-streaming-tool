@@ -690,7 +690,7 @@ QString Clips::request(const QString &title, const QStringList &tags, const QStr
 				    .arg(title.isEmpty() ? "(untitled)" : title));
 	if (!useReplay)
 		return hotkeys.isEmpty()
-			       ? "no clip method: turn on the replay buffer or pick a hotkey (Settings → Clips)"
+			       ? "no clip method: turn on the replay buffer or pick a hotkey (Settings, Clips & replays)"
 			       : "";
 	if (!obs_frontend_replay_buffer_active()) {
 		if (!autoStartReplay)

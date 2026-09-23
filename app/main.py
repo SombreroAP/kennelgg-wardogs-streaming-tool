@@ -127,11 +127,11 @@ def main():
             from twitch import Twitch
             tw = Twitch(cfg["twitch"], lambda _sec: save_config(cfg))
         except Exception as e:
-            print(f"[twitch] not ready ({e}); log in from the OBS plugin (ClipHound tab)")
+            print(f"[twitch] not ready ({e}); log in from the OBS plugin (Settings, Clips & replays, Twitch clips)")
             if bridge is not None:
                 bridge.send({"type": "twitch_status", "state": "error",
                              "error": f"{e}  -  no Twitch clips will be made until you log in again "
-                                      f"(ClipHound tab -> Log in to Twitch)."})
+                                      f"(Settings, Clips & replays, Twitch clips: Log in with Twitch)."})
     if not DRY and cfg["obs"]["enabled"] and cfg["obs"].get("mode") == "bridge":
         from bridge import BridgeOBS
         ob = BridgeOBS(cfg["obs"], bridge)
@@ -171,7 +171,7 @@ def main():
             if bridge is not None:
                 bridge.send({"type": "twitch_status", "state": "error",
                              "error": f"{e}  -  no Twitch clips will be made until you log in again "
-                                      f"(ClipHound tab -> Log in to Twitch)."})
+                                      f"(Settings, Clips & replays, Twitch clips: Log in with Twitch)."})
             state["tw"] = None
     chat = {"c": None}
 

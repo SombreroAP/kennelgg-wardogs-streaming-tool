@@ -311,6 +311,13 @@ class Voice:
             print(f"[voice] wake check: {e}")
             return True
 
+    def _tell(self, msg: dict):
+        """A note for the plugin's dock; never allowed to break the listener."""
+        try:
+            self.b.send(msg)
+        except Exception as e:
+            print(f"[voice] could not tell the plugin: {e}")
+
     def _play_chime(self, kind: str = "wake"):
         """Sounds for the streamer: "wake" (a soft two-note chime: listening), "ok" (a rising pair:
         the command was taken), "fail" (a low falling pair: the words made no command). Through
@@ -477,6 +484,7 @@ class Voice:
                     self._chimed_at = now
                     self._armed_until = now + 6.0
                     self._play_chime()
+                    self._tell({"type": "voice_wake"})   # the dock shows it is listening for the command
                 return False
         cmd, name, score = self.intent(after)
         if not cmd and not partial and after in ("switch", "change", "swap", "next", "swap to", "switch to", "change to"):
@@ -487,6 +495,7 @@ class Voice:
                 print(f"[voice] not understood: {after!r}")
                 self._armed_until = 0.0
                 self._play_chime("fail")
+                self._tell({"type": "voice_miss", "heard": after})   # the dock shows what it made of it
             return False
         if not cmd and not partial and after in ("show", "switch to", "change to", "clip that", "clip"):
             cmd, name, score = ("clip", "", 1.0) if after.startswith("clip") else ("change", "", 1.0)

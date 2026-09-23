@@ -29,7 +29,7 @@ class Twitch:
         r = requests.post("https://id.twitch.tv/oauth2/token", data=data, timeout=10)
         if r.status_code == 400:
             # the stored refresh token has been used already or revoked - only a fresh login fixes it
-            raise RuntimeError("Twitch refused the saved login (400). Open the plugin's ClipHound tab "
+            raise RuntimeError("Twitch refused the saved login (400). Open the plugin's Settings, Clips & replays, Twitch clips "
                                "and press Log in to Twitch again - no clips can be made until you do.")
         r.raise_for_status()
         tok = r.json()
