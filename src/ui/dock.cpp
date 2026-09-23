@@ -806,6 +806,14 @@ void Dock::refresh()
 	filling_ = false;
 }
 
+void Dock::openClips(const QString &focusPath)
+{
+	auto *d = new ClipsDialog(e_, (QWidget *)obs_frontend_get_main_window());
+	d->show();
+	if (!focusPath.isEmpty())
+		d->focusClip(focusPath);
+}
+
 void Dock::openWizard()
 {
 	if (wizard_) {
