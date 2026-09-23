@@ -11,6 +11,7 @@ import numpy as np
 
 from ocr import read_rows, ocr_rows, sig_iou, prof_corr, vote_distance, name_matches
 from colors import relation
+import weapons as W
 
 
 @dataclass
@@ -23,6 +24,8 @@ class FeedEvent:
     killer_rel: str      # me | squad | team | enemy | neutral | unknown
     victim_rel: str
     ts: float
+    weapon: str = ""     # the game's name for what made the kill ("Galil", "RPG-7"), when known
+    weapon_from: str = ""  # "hud" (your own kill, read off your screen) | "icon" (a learned kill-feed icon)
 
     @property
     def killer_me(self): return self.killer_rel == "me"
@@ -44,9 +47,9 @@ class Trigger:
         ds = [f"{e.distance_m}m" for e in self.events if e.distance_m]
         if ds and not any(p.endswith("m") for p in parts[0].split()):
             parts.append(" ".join(ds))
-        weapons = [i for e in self.events for i in e.icons if i not in ("skull", "explosion")]
+        weapons = self.weapon_names()
         if weapons:
-            parts.append(sorted(set(weapons))[0])
+            parts.append(weapons[0])
         if any("skull" in e.icons for e in self.events) and "headshot" not in self.title.lower():
             parts.append("headshot")
         if any(e.victim_me for e in self.events):
@@ -63,7 +66,7 @@ class Trigger:
         low = t.lower()
         died = any(e.victim_me for e in self.events)
         ds = [f"{e.distance_m}m" for e in self.events if e.distance_m]
-        weapons = sorted({i for e in self.events for i in e.icons if i not in ("skull", "explosion")})
+        weapons = self.weapon_names()
         head = any("skull" in e.icons for e in self.events)
         bits = []
         if died and not low.startswith(("died", "killed", "downed", "crashed")):
@@ -74,18 +77,33 @@ class Trigger:
                 bits[0] += ", headshot"
         if ds and not any(ch.isdigit() for ch in t):
             bits.append("at " + (ds[0] if len(ds) == 1 else ", ".join(ds[:-1]) + " and " + ds[-1]))
-        if weapons and weapons[0] not in low:
-            bits.append("with a " + weapons[0].replace("_", " "))
+        if weapons and weapons[0].lower() not in low:
+            w = weapons[0]
+            bits.append(("with the " if any(e.weapon for e in self.events) else "with a ") + w)
         n = len(self.events)
         if n > 1 and "kill" in low and not any(ch.isdigit() for ch in t):
             bits.append(f"({n} kills)")
         return " ".join(bits)[:100]
+
+    def weapon_names(self) -> list[str]:
+        """What made the kills, most-used first: the game's own names where known, the generic
+        kill-feed class ("rifle", "rpg") where not."""
+        exact = Counter(e.weapon for e in self.events if e.weapon)
+        if exact:
+            return [n for n, _ in exact.most_common()]
+        generic = Counter(i for e in self.events for i in e.icons if i not in ("skull", "explosion"))
+        return [n.replace("_", " ") for n, _ in generic.most_common()]
 
     @staticmethod
     def build(kind, title, events, extra=()):
         tags = {kind, *extra}
         for ev in events:
             tags.update(ev.icons)
+            for w in (ev.weapon.split(" or ") if ev.weapon else []):
+                tags.add(W.slug(w))
+                cat = W.category_of(w)
+                if cat:
+                    tags.add(cat.replace(" ", "-").lower())
             if "skull" in ev.icons:
                 tags.add("headshot")
             if ev.victim_rel in ("squad", "team"):
@@ -248,11 +266,14 @@ class KillDetector:
         if any(x[1] == key and prof_corr(x[2], row.vprof) >= 0.8 for x in self._decided):
             return None                                # same kill re-acquired after a shift / dropped frame
         self._decided.append((row.first, key, row.vprof))
+        weapon, weapon_from = self._weapon(row, killer_rel == "me", icons)
         ev = FeedEvent(killer=Counter(names).most_common(1)[0][0], victim=Counter(victims).most_common(1)[0][0],
                        distance_m=dist, dist_conf=conf, icons=icons,
-                       killer_rel=killer_rel, victim_rel=victim_rel, ts=row.first)
+                       killer_rel=killer_rel, victim_rel=victim_rel, ts=row.first,
+                       weapon=weapon, weapon_from=weapon_from)
         print(f"[feed] {killer_rel}({kcol}) {ev.killer!r} -> {victim_rel}({vcol}) {ev.victim!r}  "
-              f"{dist} m (x{conf}) icons={icons} reads={sum((r.dists for r in row.reads), [])}")
+              f"{dist} m (x{conf}) icons={icons}" + (f" weapon={weapon} ({weapon_from})" if weapon else "") +
+              f" reads={sum((r.dists for r in row.reads), [])}")
         if self.dump_rows is not None and row.crop is not None:
             os.makedirs(self.dump_rows, exist_ok=True)
             self._n += 1
@@ -260,12 +281,46 @@ class KillDetector:
         if self.harvest_dir and row.crop is not None and self._harvested < 600 and (killer_rel == "me" or victim_rel == "me"):
             try:
                 tag = "-".join(icons) if icons else "none"
+                if weapon:
+                    tag += "~" + W.slug(weapon)       # the exact weapon, for curating templates later
                 name = f"{time.strftime('%Y%m%d-%H%M%S')}_{tag}_{dist}m_{row.crop.shape[1]}x{row.crop.shape[0]}.png"
                 cv2.imwrite(os.path.join(self.harvest_dir, name), row.crop)
                 self._harvested += 1
             except Exception:
                 pass
         return ev
+
+    # the generic kill-feed classes a gun can never be: if the HUD says Galil and the icon is a
+    # chopper or C4, the kill was not the gun in your hands (you switched, or were in a vehicle)
+    NOT_A_GUN = {"heli", "tank", "car", "c4", "rpg", "grenade", "mortar", "artillery", "hammer"}
+
+    def _weapon(self, row, my_kill: bool, icons: list[str]) -> tuple[str, str]:
+        """The game's name for what made this kill, and where it came from.
+
+        Your own kill: the HUD's item plate at the moment the row appeared, cross-checked against
+        the icon's class, and the icon is learned under that name. Anyone else's: the learned icon
+        most reads agree on."""
+        reader = getattr(self, "weapons", None)
+        if reader is None:
+            return "", ""
+        # the read whose silhouette is largest is the cleanest cut of it
+        with_icon = [r for r in row.reads if getattr(r, "weapon_icon", None) is not None]
+        icon = max(with_icon, key=lambda r: r.weapon_icon.size).weapon_icon if with_icon else None
+        generic = [i for i in icons if i not in ("skull", "explosion")]
+        if my_kill:
+            held = reader.held_at(row.first)
+            if held:
+                cls = W.class_of(held)
+                clash = generic and generic[0] in self.NOT_A_GUN and generic[0] != cls
+                if not clash:
+                    reader.learn(held, icon)
+                    return held, "hud"
+        exact = Counter(r.exact for r in row.reads if getattr(r, "exact", ""))
+        if exact:
+            name, votes = exact.most_common(1)[0]
+            if votes * 2 >= len(with_icon or row.reads):
+                return name, "icon"
+        return "", ""
 
     # ---- events -> triggers ----------------------------------------------------------
     def _apply_rules(self, events: list[FeedEvent], now) -> list[Trigger]:

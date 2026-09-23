@@ -90,6 +90,7 @@ void Config::load()
 	DEFB(audioDefaults2);
 	DEFB(audioDefaults3);
 	DEFB(discordShared1);
+	DEFB(playingV1);
 	DEFB(discordAudio1);
 	DEFB(nearMax99);
 	DEFB(audioDefaults4);
@@ -259,6 +260,7 @@ void Config::load()
 	GETB(audioDefaults2);
 	GETB(audioDefaults3);
 	GETB(discordShared1);
+	GETB(playingV1);
 	GETB(discordAudio1);
 	GETB(nearMax99);
 	GETB(audioDefaults4);
@@ -442,6 +444,8 @@ void Config::load()
 			obs_data_set_default_bool(it, "trim", true);
 			f.trim = obs_data_get_bool(it, "trim");
 			f.fromRoster = obs_data_get_bool(it, "fromRoster");
+			obs_data_set_default_bool(it, "playing", true);
+			f.playing = obs_data_get_bool(it, "playing");
 			f.handle = obs_data_get_string(it, "handle");
 			f.popout = obs_data_get_string(it, "popout");
 			f.baseSource = obs_data_get_string(it, "baseSource");
@@ -458,6 +462,15 @@ void Config::load()
 	}
 	if (activeFriend >= (int)friends.size())
 		activeFriend = 0;
+	if (!playingV1) {
+		// every squad mate ever added used to be offered on the dock. From now on only the ones you
+		// are playing with are: Discord ones start unticked and tick themselves when their pop-out
+		// is open; Twitch, Kick, YouTube and VDO.Ninja slots are set up on purpose, so stay ticked
+		for (auto &f : friends)
+			if (f.kind == FriendKind::Discord && !f.fromRoster)
+				f.playing = false;
+		playingV1 = true;
+	}
 	if (lookLabel.empty())
 		lookLabel = "POV";
 	// older configs carried the slower first defaults; move them to the responsive ones once
@@ -602,6 +615,7 @@ void Config::save() const
 	SETB(audioDefaults2);
 	SETB(audioDefaults3);
 	SETB(discordShared1);
+	SETB(playingV1);
 	SETB(discordAudio1);
 	SETB(nearMax99);
 	SETB(audioDefaults4);
@@ -775,6 +789,7 @@ void Config::save() const
 		obs_data_set_string(it, "gameName", f.gameName.c_str());
 		obs_data_set_bool(it, "trim", f.trim);
 		obs_data_set_bool(it, "fromRoster", f.fromRoster);
+		obs_data_set_bool(it, "playing", f.playing);
 		obs_data_set_string(it, "handle", f.handle.c_str());
 		obs_data_set_string(it, "popout", f.popout.c_str());
 		obs_data_set_string(it, "baseSource", f.baseSource.c_str());

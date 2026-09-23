@@ -118,6 +118,14 @@ def main():
     det = KillDetector(cfg["detection"], dump_rows="debug/rows" if cfg["capture"].get("debug_dump") else None,
                        harvest_dir=os.path.join("icons", "harvest"))
     det.set_rate(cfg["capture"]["fps"])
+    # the game's own weapon names: read off your HUD on your kills, learned from the kill-feed
+    # icon they leave, and used to name everyone else's kills with that icon
+    import weapons
+    reader = weapons.WeaponReader(base_dir="icons")
+    det.weapons = reader
+    ocr.WEAPON_READER = reader
+    if bridge is not None:
+        bridge.on_hud = reader.on_hud
     print(f"[capture] ROI {cap.box} @ {cfg['capture']['fps']} fps, deciding a row on {det.votes} reads "
           f"({det.min_reads} if it goes away early)   dry-run={DRY}")
 
@@ -246,11 +254,13 @@ def main():
                     "distance_m": ev.distance_m if ev else 0,
                     "killer": ev.killer if ev else "", "victim": ev.victim if ev else "",
                     "icons": ev.icons if ev else [], "kills": len(trig.events),
+                    "weapon": (trig.weapon_names() or [""])[0],
                     # when each kill-feed row first appeared (epoch seconds): the plugin turns these
                     # into "seconds before the end of the file", so an edit can land on the kill
                     "moments": [e.ts for e in trig.events if e.ts],
                     "events": [{"ts": e.ts, "killer": e.killer, "victim": e.victim, "distance_m": e.distance_m,
-                                "icons": list(e.icons), "killer_rel": e.killer_rel, "victim_rel": e.victim_rel}
+                                "icons": list(e.icons), "weapon": e.weapon, "weapon_from": e.weapon_from,
+                                "killer_rel": e.killer_rel, "victim_rel": e.victim_rel}
                                for e in trig.events]}
             threading.Timer(cfg["obs"]["replay_delay_s"], lambda: _safe(ob.trigger, trig.headline(), trig.tags, info)).start()
 
@@ -301,6 +311,8 @@ def main():
             for ev in det.last_new_events:
                 try:
                     who = f"{ev.killer} > {ev.victim}" + (f" {ev.distance_m}m" if getattr(ev, "distance_m", 0) else "")
+                    if getattr(ev, "weapon", ""):
+                        who += f" ({ev.weapon})"
                     bridge.event(who, "kill")
                 except Exception:
                     pass

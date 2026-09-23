@@ -46,6 +46,7 @@ ICON_MATCH = 0.60             # normalised cross-correlation threshold for an ic
 KILLTYPE_ICONS = ("skull", "explosion")
 NAME_MATCH = 0.55             # threshold for templates/name_*.png (your own feed name)
 COLOR_BANDS = None            # set from config by main/calibrate; None = colors.DEFAULT_BANDS
+WEAPON_READER = None          # weapons.WeaponReader, set by main: names a row's icon from the learned ones
 
 
 @dataclass
@@ -66,6 +67,8 @@ class RowRead:
     victim_is_me: bool = False   # own-name template matched right of the icons
     dists: list = field(default_factory=list)   # distance reads this frame (voting in the detector)
     icons: list = field(default_factory=list)
+    weapon_icon: np.ndarray | None = None   # the weapon's white silhouette on its own (learning, naming)
+    exact: str = ""                         # the game's name for it, when a learned icon matches
 
     def ocr(self):
         """Read this row on its own. The detector uses ocr_rows() instead, which reads every
@@ -102,7 +105,9 @@ class RowRead:
         self.victim_color = classify(measure(self._hsv[:, vsel], self._mask[:, vsel]), COLOR_BANDS)
         # icons are pure white; match on a white-pixel mask, which stays clean on busy backgrounds
         white = ((self._hsv[:, :, 2] > 150) & (self._hsv[:, :, 1] < 70)).astype(np.uint8) * 255
-        self.icons = match_icons(white[:, int(M * ICON_COL[0]):int(M * ICON_COL[1])])
+        self.icons, self.weapon_icon = match_icons_ex(white[:, int(M * ICON_COL[0]):int(M * ICON_COL[1])])
+        if WEAPON_READER is not None and self.weapon_icon is not None:
+            self.exact = WEAPON_READER.identify(self.weapon_icon)[0] or ""
         # own-name template: robust where OCR fails (rock, sky, wood backgrounds)
         self.name_is_me = match_name(white[:, :int(M * NAME_COL[1])])
         self.victim_is_me = match_name(white[:, int(M * 0.45):])
@@ -261,7 +266,12 @@ def read_rows(roi_bgr: np.ndarray) -> list[RowRead]:
         h = SIG_H_PX * SCALE
         S0 = int(max(0, min(H - h, cy - h / 2)))
         sig = cv2.resize(mask[S0:S0 + h], SIG_SHAPE, interpolation=cv2.INTER_AREA) > 64
-        out.append(RowRead(y=y0, sig=sig, prof=name_profile(mask[Y0:Y1]), vprof=name_profile(mask[Y0:Y1], (0.5, 1.0)), _inv=inv[Y0:Y1], _mask=mask[Y0:Y1], _bgr=roi_bgr[y0:y1],
+        # y0/y1 are in the 1080p-sized units the mask was cut in; the colour crop is in the feed's
+        # own pixels, so a 1440p feed needs them scaled (without this every row but the top one
+        # was saved as a strip of background)
+        k = _frame_h / REF_FRAME_H
+        b0, b1 = int(y0 * k), int(np.ceil(y1 * k))
+        out.append(RowRead(y=y0, sig=sig, prof=name_profile(mask[Y0:Y1]), vprof=name_profile(mask[Y0:Y1], (0.5, 1.0)), _inv=inv[Y0:Y1], _mask=mask[Y0:Y1], _bgr=roi_bgr[b0:b1].copy(),
                            _hsv=hsv[Y0:Y1]))
     return out
 
@@ -393,6 +403,10 @@ def _size_sim(tw: int, th: int, bw: int, bh: int) -> float:
 
 
 def match_icons(mask_band: np.ndarray) -> list[str]:
+    return match_icons_ex(mask_band)[0]
+
+
+def match_icons_ex(mask_band: np.ndarray) -> tuple[list[str], np.ndarray | None]:
     """The icons in this band: at most one weapon, plus skull / explosion if drawn beside it.
 
     Each icon is found as a blob cluster and scored against every template on its own, with the
@@ -401,7 +415,8 @@ def match_icons(mask_band: np.ndarray) -> list[str]:
     read off the body of a rifle, or a thin grenade-launcher tube off a sniper's barrel."""
     tm = load_templates()
     names = [n for n in tm if not n.startswith("name_")]
-    hits, weapons = [], {}
+    hits, weapons, crops = [], {}, {}
+    unknown = None   # a gun-shaped icon no generic template knows
     for x0, y0, x1, y1 in _clusters(mask_band):
         bw, bh = x1 - x0, y1 - y0
         if bh < 8 or bw < 8:
@@ -425,15 +440,30 @@ def match_icons(mask_band: np.ndarray) -> list[str]:
             if v > best_v:
                 best_base, best_v = _base(n), v
         if best_base is None or best_v < ICON_MATCH:
+            # no generic template fits: keep it if it is shaped like a gun (wide, one to four
+            # pieces; a word of name text breaks into a piece per letter), so the learned icons
+            # can still name it and your own kills can still teach it
+            box = mask_band[y0:y1, x0:x1]
+            np_, _, pst, _ = cv2.connectedComponentsWithStats((box > 0).astype(np.uint8), connectivity=8)
+            pieces = np_ - 1
+            widest = int(pst[1:, cv2.CC_STAT_WIDTH].max()) if pieces else 0
+            # a gun is one body most of the icon's width long; "[KNL" is four letters side by side
+            if 60 <= bw <= 220 and 12 <= bh <= 60 and bw >= 1.6 * bh and pieces <= 4 and widest >= 0.55 * bw:
+                if unknown is None or bw > unknown.shape[1]:
+                    unknown = box.copy()
             continue
         if best_base in KILLTYPE_ICONS:
             if best_base not in hits:
                 hits.append(best_base)
         else:
-            weapons[best_base] = max(weapons.get(best_base, 0.0), best_v)
+            if best_v > weapons.get(best_base, 0.0):
+                weapons[best_base] = best_v
+                crops[best_base] = mask_band[y0:y1, x0:x1].copy()   # tight: the silhouette alone
     if weapons:
-        hits.append(max(weapons, key=weapons.get))
-    return hits
+        w = max(weapons, key=weapons.get)
+        hits.append(w)
+        return hits, crops[w]
+    return hits, unknown
 
 
 def match_name(mask_band: np.ndarray) -> bool:

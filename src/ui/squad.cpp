@@ -20,8 +20,9 @@ SquadPanel::SquadPanel(Engine *engine, QWidget *parent) : QDialog(parent), e_(en
 	auto *how = new QLabel(
 		"In Discord, right-click a squad mate's stream and choose <b>Pop Out</b>, then right-click it again and "
 		"<b>Mute</b> it. Press Add pop-outs: every popped-out stream becomes a squad mate, named by their "
-		"Discord username. Type each one's <b>in-game name</b> in the table; Closest matches the NEARBY list "
-		"against it.",
+		"Discord username. <b>Tick who you are playing with</b>: outside a Kennel.gg voice channel the dock "
+		"offers only them (inside one it offers whoever is live there, by itself). Type each one's "
+		"<b>in-game name</b> in the table; Closest matches the NEARBY list against it.",
 		this);
 	how->setWordWrap(true);
 	v->addWidget(how);
@@ -46,8 +47,8 @@ SquadPanel::SquadPanel(Engine *engine, QWidget *parent) : QDialog(parent), e_(en
 	result_->setStyleSheet("color: palette(mid);");
 	v->addWidget(result_);
 
-	list_ = new QTableWidget(0, 4, this);
-	list_->setHorizontalHeaderLabels({"Squad mate", "In-game name", "Feed", "Now"});
+	list_ = new QTableWidget(0, 5, this);
+	list_->setHorizontalHeaderLabels({"Playing", "Squad mate", "In-game name", "Feed", "Now"});
 	list_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	list_->horizontalHeader()->setStretchLastSection(true);
 	list_->verticalHeader()->hide();
@@ -59,12 +60,25 @@ SquadPanel::SquadPanel(Engine *engine, QWidget *parent) : QDialog(parent), e_(en
 	v->addWidget(list_, 1);
 	// the in-game name, typed straight into the table: what the NEARBY list is matched against
 	connect(list_, &QTableWidget::itemChanged, this, [this](QTableWidgetItem *it) {
-		if (filling_ || it->column() != 1)
+		if (filling_)
 			return;
 		int r = it->row();
 		if (r < 0 || r >= (int)e_->cfg.friends.size())
 			return;
 		Friend &f = e_->cfg.friends[r];
+		if (it->column() == 0) {
+			bool on = it->checkState() == Qt::Checked;
+			if (on != f.playing) {
+				f.playing = on;
+				e_->cfg.save();
+				e_->log("Squad: " + QString::fromStdString(f.name) +
+					(on ? " is playing this session." : " is not playing this session."));
+				emit e_->stateChanged();
+			}
+			return;
+		}
+		if (it->column() != 2)
+			return;
 		QString v = it->text().trimmed();
 		std::string want = (v.isEmpty() || v == QString::fromStdString(f.name)) ? "" : v.toStdString();
 		if (want == f.gameName)
@@ -81,6 +95,21 @@ SquadPanel::SquadPanel(Engine *engine, QWidget *parent) : QDialog(parent), e_(en
 	dual_->setToolTip("Their feed in the small Dual POV window, now, and it stays up until you turn it off.");
 	active_->setToolTip("Who goes on stream when you are downed.");
 	remove_ = new QPushButton("Remove", this);
+	auto *tickLive = new QPushButton("Playing: whoever is live", this);
+	tickLive->setToolTip("Tick everyone streaming right now and untick the rest.");
+	auto *untickAll = new QPushButton("New session", this);
+	untickAll->setToolTip("Untick everyone. Pop-outs you open tick their squad mate again by themselves.");
+	auto setAll = [this](bool liveOnly) {
+		for (auto &f : e_->cfg.friends)
+			f.playing = liveOnly && e_->feedState(f) == Engine::Feed::Live;
+		e_->cfg.save();
+		e_->log(liveOnly ? "Squad: playing with whoever is live now." : "Squad: new session, nobody ticked.");
+		emit e_->stateChanged();
+	};
+	connect(tickLive, &QPushButton::clicked, this, [setAll]() { setAll(true); });
+	connect(untickAll, &QPushButton::clicked, this, [setAll]() { setAll(false); });
+	row->addWidget(tickLive);
+	row->addWidget(untickAll);
 	row->addWidget(active_);
 	row->addWidget(dual_);
 	row->addWidget(remove_);
@@ -188,16 +217,21 @@ void SquadPanel::refresh()
 		const Friend &f = e_->cfg.friends[i];
 		int r = list_->rowCount();
 		list_->insertRow(r);
+		auto *play = new QTableWidgetItem();
+		play->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+		play->setCheckState(f.playing ? Qt::Checked : Qt::Unchecked);
+		play->setToolTip("Playing with them this session: the dock offers them.");
+		list_->setItem(r, 0, play);
 		QString name = QString::fromStdString(f.name);
 		if ((int)i == e_->cfg.activeFriend)
 			name += "  (active)";
-		list_->setItem(r, 0, cell(name));
+		list_->setItem(r, 1, cell(name));
 		auto *game = cell(QString::fromStdString(f.gameName.empty() ? f.name : f.gameName), true);
 		if (f.gameName.empty())
 			game->setForeground(QColor("#8a8e84")); // their Discord name, a guess until confirmed
 		game->setToolTip(f.gameName.empty() ? "Their Discord name, used until you type their in-game name."
 						    : "Their in-game name, as the NEARBY list shows it.");
-		list_->setItem(r, 1, game);
+		list_->setItem(r, 2, game);
 		QString where;
 		switch (f.kind) {
 		case FriendKind::Discord:
@@ -226,13 +260,13 @@ void SquadPanel::refresh()
 		if (f.kind == FriendKind::Discord && !f.handle.empty() &&
 		    QString::fromStdString(f.handle).compare(QString::fromStdString(f.name), Qt::CaseInsensitive) != 0)
 			where += " (" + QString::fromStdString(f.handle) + "'s stream!)";
-		list_->setItem(r, 2, cell(where));
+		list_->setItem(r, 3, cell(where));
 		QString now = e_->feedStateText(f);
 		if (e_->applied() && (int)i == e_->cfg.activeFriend)
 			now = "on stream";
 		else if ((int)i == e_->cfg.dualFriend && e_->dualOn())
 			now = "in Dual POV";
-		list_->setItem(r, 3, cell(now));
+		list_->setItem(r, 4, cell(now));
 	}
 	if (sel >= 0 && sel < list_->rowCount())
 		list_->selectRow(sel);

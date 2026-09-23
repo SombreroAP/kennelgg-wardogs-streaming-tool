@@ -31,6 +31,10 @@ struct Friend {
 	/// somebody goes live in the call and takes them away again when they stop, so a slot is never
 	/// left behind. Slots you made yourself are never touched.
 	bool fromRoster = false;
+	/// Ticked in the Squad window: someone you are playing with this session. Outside a Kennel.gg voice
+	/// channel the dock offers only these; inside one, only whoever is live in it. A pop-out appearing
+	/// for them ticks it by itself.
+	bool playing = true;
 	/// Their Discord username (the handle), when the roster gave it. A popped-out share is titled
 	/// with this, not the display name, so it is what the pop-out watcher matches on.
 	std::string handle;
@@ -80,6 +84,7 @@ struct Config {
 	bool friendAudio = true;     // the squad mate on screen is the one feed with sound on your stream
 	bool audioDefaults2 = false; // one-time move to "nothing of yours is muted by default"
 	bool audioDefaults3 = false; // ...and once more: nothing muted, and no sound taken from their feed
+	bool playingV1 = false;      // one-time: Discord squad mates with no pop-out start unticked
 	bool discordShared1 = false; // one-time move to one shared capture of the Discord window
 	bool discordAudio1 = false;  // one-time: the Discord audio captures deleted (0.10.3)
 	bool nearMax99 = false;      // one-time: the swap-over range moved to 99 m (0.10.6)

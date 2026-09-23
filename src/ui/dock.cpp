@@ -178,7 +178,7 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		menuBtn_->setToolTip(QString("Squad, Setup, Settings, logs and more  ·  v%1").arg(PLUGIN_VERSION));
 		menuBtn_->setPopupMode(QToolButton::InstantPopup);
 		auto *m = new QMenu(menuBtn_);
-		m->addAction("Squad...", this, [this]() { openSquad(); });
+		m->addAction("Squad: who I am playing with...", this, [this]() { openSquad(); });
 		m->addAction("Settings...", this, [this]() { openSettings(); });
 		m->addAction("Setup...", this, [this]() { openWizard(); });
 		m->addAction("Logs...", this, [this]() { openLogs(); });
@@ -295,6 +295,8 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 	povEmpty_ = new QLabel(this);
 	povEmpty_->setObjectName("small");
 	povEmpty_->setWordWrap(true);
+	povEmpty_->setTextFormat(Qt::RichText);
+	connect(povEmpty_, &QLabel::linkActivated, this, [this](const QString &) { openSquad(); });
 	v->addWidget(povEmpty_);
 	near_ = new QLabel(this);
 	near_->setObjectName("small");
@@ -577,7 +579,7 @@ void Dock::rebuildBanners()
 }
 
 /// The squad mates the two rows offer: in a Kennel.gg voice channel, the people live in it;
-/// anywhere else everyone but those known not to be streaming.
+/// anywhere else the ones ticked as playing in the Squad window (unless known not to be streaming).
 void Dock::rebuildPeople()
 {
 	bool rosterLive = e_->rosterLive();
@@ -585,8 +587,7 @@ void Dock::rebuildPeople()
 	QStringList names;
 	for (size_t i = 0; i < e_->cfg.friends.size(); ++i) {
 		const Friend &f = e_->cfg.friends[i];
-		Engine::Feed st = e_->feedState(f);
-		if (rosterLive ? st != Engine::Feed::Live : st == Engine::Feed::Off)
+		if (!e_->inSquadNow(f))
 			continue;
 		idx << (int)i;
 		names << QString::fromStdString(f.name);
@@ -751,10 +752,20 @@ void Dock::refresh()
 			  "in-game name (Squad...)."
 			: "Closest needs ClipHound running: it reads the NEARBY list in the corner of your game.");
 	povEmpty_->setVisible(povBtns_.isEmpty());
-	povEmpty_->setText(e_->cfg.friends.empty() ? "No squad mates yet: pop their streams out in Discord and press "
-						     "Add pop-outs."
-			   : e_->rosterLive()      ? "Nobody is live in your voice channel right now."
-						   : "Nobody is streaming right now.");
+	{
+		bool anyTicked = false;
+		for (const auto &f : e_->cfg.friends)
+			anyTicked = anyTicked || f.playing;
+		povEmpty_->setText(
+			e_->cfg.friends.empty()
+				? "No squad mates yet: pop their streams out in Discord and press Add pop-outs."
+			: e_->rosterLive() ? "Nobody is live in your voice channel right now."
+			: !anyTicked
+				? "Who are you playing with? <a style=\"color:#c99a3b\" href=\"kennel:squad\">Pick "
+				  "them in Squad</a>, or pop their streams out in Discord."
+				: "Nobody you are playing with is streaming right now. <a style=\"color:#c99a3b\" "
+				  "href=\"kennel:squad\">Change who</a>.");
+	}
 	near_->setVisible(e_->cfg.nearEnabled && !small);
 	near_->setText("Nearby: " + e_->nearbyStatus());
 	// dual

@@ -1511,6 +1511,13 @@ void Engine::watchPopouts()
 		if (hit >= 0) {
 			taken[hit] = true;
 			f.popoutMissingMs = 0;
+			if (!f.playing) {
+				// their pop-out is open: you are watching them, so they are in this session's squad
+				f.playing = true;
+				changed = true;
+				log("Squad: " + QString::fromStdString(f.name) +
+				    " is playing (their pop-out is open).");
+			}
 			if (!f.onPopout()) {
 				std::string e = sw.bindPopout(cfg, f, wins[hit]);
 				if (!e.empty()) {
@@ -2003,7 +2010,7 @@ void Engine::onControl(const QJsonObject &o)
 		int next = cfg.activeFriend;
 		for (int k = 1; k <= n; k++) {
 			int i = (cfg.activeFriend + k) % n;
-			if (feedState(cfg.friends[i]) != Feed::Off) {
+			if (inSquadNow(cfg.friends[i])) {
 				next = i;
 				break;
 			}
@@ -2159,7 +2166,7 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 		if (cfg.active())
 			applyNow(true, "voice: closest squad mate");
 	} else if (cmd == "change" && cfg.voiceCmdChange && name.isEmpty()) {
-		// no name said: the next squad mate with a picture
+		// no name said: the next squad mate on offer
 		int n = (int)cfg.friends.size();
 		if (n < 2) {
 			log("Voice: only one squad mate to choose from.");
@@ -2168,7 +2175,7 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 		int next = cfg.activeFriend;
 		for (int k = 1; k <= n; k++) {
 			int i = (cfg.activeFriend + k) % n;
-			if (feedState(cfg.friends[i]) != Feed::Off) {
+			if (inSquadNow(cfg.friends[i])) {
 				next = i;
 				break;
 			}
@@ -2387,6 +2394,14 @@ QString Engine::feedStateText(const Friend &f) const
 	default:
 		return "";
 	}
+}
+
+bool Engine::inSquadNow(const Friend &f) const
+{
+	Feed st = feedState(f);
+	if (rosterLive())
+		return st == Feed::Live; // in a Kennel.gg voice channel: whoever is live in it
+	return f.playing && st != Feed::Off;
 }
 
 int Engine::anyLiveFriend() const

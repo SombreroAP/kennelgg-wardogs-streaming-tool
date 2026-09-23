@@ -12,6 +12,7 @@ Sombrero; sibling apps live next door (HotkeyBridge, InputOverlayBridge, povbrid
 | `capture_obs.py` / `capture.py` | frame source: OBS `GetSourceScreenshot` (default) or a monitor via mss |
 | `ocr.py` | tophat mask, row segmentation, per-column OCR, distance regex + voting, icon + own-name templates, colour |
 | `colors.py` | team icon / squad text colour → red, blue, green, orange; emblem detection |
+| `weapons.py` | the game's exact weapon names (wardogs.zone/MetaForge, build CL501228); reads the HUD item plate (stream id 4, bottom right, 2 fps) at your kills, learns each weapon's kill-feed icon under that name in `icons/learned/<slug>/`, names others' kills from it (0.85+), and records guns that share one icon in `shared.json` (named "A or B"). Never names from generic shapes or renders |
 | `detector.py` | row tracking across frames, votes, dedupe, rule engine (`config.yaml` rules), multi-kill |
 | `twitch.py` / `obs.py` | Helix create clip (title logged, API can't set titles); replay save + rename |
 | `vod_test.py`, `calibrate.py` | offline test on a video slice; ROI / colour / source checks |

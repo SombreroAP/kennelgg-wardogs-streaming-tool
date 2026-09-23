@@ -58,6 +58,7 @@ class Bridge:
         self._feed = None             # latest kill-feed crop (BGR), at the reading rate
         self._feed_ts = 0.0
         self._inv = {}                # stream id -> (crop, ts): the inventory screen's two tell-tales
+        self.on_hud = None            # callable(crop, ts): the HUD's item plate, for weapon names (weapons.py)
         self.feed_roi = _roi_list(cfg.get("roi")) or [0.0, 0.5, 0.25, 0.25]   # fractions of the frame
         self._lock = threading.Lock()
         self._pending = {}            # clip id -> callback(path)
@@ -160,8 +161,12 @@ class Bridge:
                             self._feed, self._feed_ts = frame, ts / 1000.0
                         elif sid in (2, 3):
                             self._inv[sid] = (frame, ts / 1000.0)   # the inventory reader's two crops
+                        elif sid == 4:
+                            pass                                     # handed on below, outside the lock
                         else:
                             self._frame, self._frame_ts = frame, ts / 1000.0
+                    if sid == 4 and self.on_hud:
+                        self.on_hud(frame, ts / 1000.0)
                 return
             if len(msg) < 16 or msg[:4] != b"KWF1":
                 return
@@ -307,8 +312,12 @@ class Bridge:
         vehicle list. The whole frame at the reading rate was fourteen megabytes ten times a
         second, rendered, read back, JPEG-encoded and decoded: most of the CPU the app used."""
         r = self.feed_roi
+        import weapons
         streams = [{"id": 0, "fps": self.fps, "roi": [r[0], r[1], r[2], r[3]], "width": 0},
-                   {"id": 1, "fps": 1.0, "roi": [0, 0, 1, 1], "width": 0}]
+                   {"id": 1, "fps": 1.0, "roi": [0, 0, 1, 1], "width": 0},
+                   # the HUD's item plate, bottom right: what you are holding, so your kills get
+                   # the weapon's real name (a strip a few hundred pixels wide, twice a second)
+                   {"id": 4, "fps": weapons.HUD_FPS, "roi": list(weapons.HUD_ROI), "width": 0}]
         if self.inventory_cfg.get("enabled"):
             # two tiny crops, three times a second: the "COMBINE AMMO" hint and the INVENTORY tab, so
             # the screen closing is seen within a second

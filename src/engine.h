@@ -306,6 +306,9 @@ public:
 	/// the roster does not know) - treated as live, as before.
 	enum class Feed { Live, Unknown, Off };
 	Feed feedState(const Friend &f) const;
+	/// Offered on the dock (and cycled through) right now: in a Kennel.gg voice channel, whoever is live
+	/// in it; anywhere else, the squad mates ticked as playing, unless known not to be streaming.
+	bool inSquadNow(const Friend &f) const;
 	QString feedStateText(const Friend &f) const; // "live" / "not streaming" / ""
 	/// The best squad mate to show when nothing nearer is known: the active one if not Off, else
 	/// any Live one, else -1 when everyone is known to be off.

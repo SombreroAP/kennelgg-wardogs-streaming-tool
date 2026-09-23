@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.1
+- **Pick who you are playing with.** The dock used to offer every squad mate you had ever added. The Squad window now has a **Playing** tick for each: outside a Kennel.gg voice channel the dock offers only the ticked ones, and inside one it offers whoever is live in it, by itself. A squad mate whose pop-out is open is ticked for you. Two buttons: "Playing: whoever is live" and "New session" (untick everyone). Stream Deck cycling and "hey kennel, change" go through the same people. On this update, Discord squad mates start unticked and tick themselves as their pop-outs open.
+- **Kills named by the game's own weapon names.** ClipHound now reads the item plate in the bottom-right of your HUD (a small crop, twice a second) and names your kills with what you were holding: "Double kill at 68m and 61m with the Galil", tags "galil" and "assault-rifle". Each of those kills also teaches it that weapon's kill-feed icon, so the same icon on someone else's row (the kill that downed you, a squad mate's kill) is named too. Nothing is named from a generic shape: until a weapon has been seen in your hands, its kills keep the class ("rifle"). Where two guns turn out to draw the same icon, the title says both ("A-91 or T-21"). The name list is the Early Access one from the game files, 34 guns plus grenades, explosives, tools, emplacements and vehicle weapons.
+- Fixed: on a 1440p feed, the kill-feed rows ClipHound keeps for learning were cut from the wrong height and held only background.
+- Fixed: the Squad window's monitor choice could save the wrong monitor.
+
 ## 0.19.0
 A new dock, Setup and Settings, built around what streamers actually ran into this month.
 
