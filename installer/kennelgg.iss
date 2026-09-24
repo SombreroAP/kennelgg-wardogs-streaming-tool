@@ -131,3 +131,115 @@ begin
     end;
   end;
 end;
+
+// ----- uninstall: keep the settings (the default) or remove them for a fresh start -----
+var
+  RemoveSettings: Boolean;
+
+function InitializeUninstall(): Boolean;
+var
+  Form: TSetupForm;
+  Info, Detail: TNewStaticText;
+  Box: TNewCheckBox;
+  OkBtn, CancelBtn: TNewButton;
+begin
+  Result := True;
+  RemoveSettings := False;
+  while IsOBSRunning() do
+  begin
+    if MsgBox('OBS Studio is running. Close it, then press Retry.', mbError, MB_RETRYCANCEL) = IDCANCEL then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  // a silent uninstall (scripts, a reinstall) never takes anyone's settings
+  if UninstallSilent() then
+    Exit;
+
+  Form := CreateCustomForm();
+  try
+    Form.Caption := 'Uninstall Kennel.gg Wardogs Streaming Tool';
+    Form.ClientWidth := ScaleX(460);
+    Form.ClientHeight := ScaleY(250);
+    Form.Position := poScreenCenter;
+
+    Info := TNewStaticText.Create(Form);
+    Info.Parent := Form;
+    Info.Left := ScaleX(16);
+    Info.Top := ScaleY(16);
+    Info.Width := Form.ClientWidth - ScaleX(32);
+    Info.AutoSize := False;
+    Info.WordWrap := True;
+    Info.Height := ScaleY(46);
+    Info.Caption := 'This removes the OBS plugin and the ClipHound app. Your settings are kept, so ' +
+                    'installing again later picks up where you left off.';
+
+    Box := TNewCheckBox.Create(Form);
+    Box.Parent := Form;
+    Box.Left := ScaleX(16);
+    Box.Top := Info.Top + Info.Height + ScaleY(8);
+    Box.Width := Form.ClientWidth - ScaleX(32);
+    Box.Height := ScaleY(20);
+    Box.Caption := 'Also remove all my settings (start fresh)';
+    Box.Checked := False;
+
+    Detail := TNewStaticText.Create(Form);
+    Detail.Parent := Form;
+    Detail.Left := ScaleX(34);
+    Detail.Top := Box.Top + Box.Height + ScaleY(4);
+    Detail.Width := Form.ClientWidth - ScaleX(50);
+    Detail.AutoSize := False;
+    Detail.WordWrap := True;
+    Detail.Height := ScaleY(96);
+    Detail.Caption := 'Squad list, hotkeys, dock and setup answers, the clip list, ClipHound''s settings ' +
+                      'and Twitch login, its logs, learned weapon icons and language packs. Your recorded ' +
+                      'clips are not touched. Sources the plugin added to your OBS scenes (named ' +
+                      '"Kennel.gg ...") stay in OBS: delete them there if you want them gone too.';
+
+    OkBtn := TNewButton.Create(Form);
+    OkBtn.Parent := Form;
+    OkBtn.Caption := 'Uninstall';
+    OkBtn.Width := ScaleX(90);
+    OkBtn.Height := ScaleY(26);
+    OkBtn.Left := Form.ClientWidth - ScaleX(16) - 2 * OkBtn.Width - ScaleX(8);
+    OkBtn.Top := Form.ClientHeight - ScaleY(16) - OkBtn.Height;
+    OkBtn.ModalResult := mrOk;
+    OkBtn.Default := True;
+
+    CancelBtn := TNewButton.Create(Form);
+    CancelBtn.Parent := Form;
+    CancelBtn.Caption := 'Cancel';
+    CancelBtn.Width := OkBtn.Width;
+    CancelBtn.Height := OkBtn.Height;
+    CancelBtn.Left := Form.ClientWidth - ScaleX(16) - CancelBtn.Width;
+    CancelBtn.Top := OkBtn.Top;
+    CancelBtn.ModalResult := mrCancel;
+    CancelBtn.Cancel := True;
+
+    Form.ActiveControl := OkBtn;
+    if Form.ShowModal() <> mrOk then
+      Result := False
+    else
+      RemoveSettings := Box.Checked;
+  finally
+    Form.Free();
+  end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ResultCode: Integer;
+begin
+  // ClipHound runs from the folder being removed, and can outlive OBS
+  if CurUninstallStep = usUninstall then
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM ClipHound.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if (CurUninstallStep = usPostUninstall) and RemoveSettings then
+  begin
+    DelTree(ExpandConstant('{userappdata}\obs-studio\plugin_config\kennelgg'), True, True, True);
+    DelTree(ExpandConstant('{userappdata}\obs-studio\plugin_config\kennel-wardogs'), True, True, True);
+    DelTree(ExpandConstant('{commonappdata}\Kennel.gg'), True, True, True);
+    DelTree(ExpandConstant('{commonappdata}\Kennel WARDOGS'), True, True, True);
+    DelTree(ExpandConstant('{app}'), True, True, True);
+  end;
+end;

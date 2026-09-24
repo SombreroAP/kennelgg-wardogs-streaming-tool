@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.8
+- **Uninstall can start you fresh.** Uninstalling from Windows (Settings, Apps) now asks whether to keep your settings. They are kept unless you tick **Also remove all my settings (start fresh)**. Ticked, it also removes the squad list, hotkeys, dock and setup answers, the clip list, ClipHound's settings and Twitch login, its logs, learned weapon icons and language packs. Your recorded clips and highlight reels are never touched. Sources the plugin added to your OBS scenes (named "Kennel.gg ...") stay in OBS; delete them there if you want them gone too.
+- The uninstaller waits for OBS to be closed, and closes ClipHound itself, so no file is left behind because it was in use.
+
 ## 0.19.7
 - **A squad mate's feed goes on stream only when it has a game picture in it.** Somebody in the Discord call who is not streaming, a Discord window sitting on the call screen or a text channel, or a stream that has just ended no longer ends up on your stream. Every Discord capture that is running is looked at every second or two (under the hide filter, so it is checked before it is ever shown): the call grid, channels and "stream ended" cards are flat panels with text and small avatars, and a game is picture from edge to edge, which is what it looks for. A capture with no game picture takes that squad mate off the dock and out of Closest, downed and mag-packing swaps until a picture is there again. If one goes blank while it is on stream, another squad mate with a picture takes over within two seconds, or your own POV comes back; if you are still down when the picture returns, the swap goes back on.
   - The dock says so when it is Discord that is showing nothing ("click Watch Stream on a squad mate in Discord, or pop their stream out"), and the Squad window's Now column reads "no game picture".
