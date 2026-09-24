@@ -2,6 +2,15 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.6
+- **Every kill is written down with what made it and exactly when.** Each kill ClipHound logs now carries the weapon, its type (gun, grenade, explosive, launcher, mortar, artillery, bow, melee, vehicle, vehicle weapon), the vehicle when there was one, a headshot flag, and its time to the millisecond.
+  - **Guns** are named by the game's name only when something named them (your HUD at your kill, or a learned kill-feed icon); otherwise the weapon is left blank rather than guessed.
+  - **Grenades, C4, rockets and mortar rounds** are named after the explosive, or "Grenade", "C4", "Rocket", "Mortar" - never a gun.
+  - **Vehicle kills** are named after the mounted gun when you were on one ("M249 Machine Gun", with the Humvee as the vehicle), otherwise after the vehicle if your HUD named it, otherwise "Helicopter", "Tank", "Vehicle" or "Artillery" - never the gun you last held on foot. Someone else's vehicle or explosive kill is never given a gun's name either.
+- **The files.** In the library folder, index.csv gains the weapons, weapon types, vehicles, and every kill's time (as seconds before the end of the clip and as an exact clock time); a new kills.csv has one row per kill with all of it. The plugin's clips.csv gains the same weapons and per-kill times, and the .json next to each clip gives every kill its seconds-before-the-end. An older index.csv is brought up to the new columns in place, nothing lost. Titles with commas no longer split clips.csv into extra columns.
+- **Kennel Cut 1.6.8** reads the per-kill weapons for the highlight montage: each kill's name, type and vehicle come from ClipHound's live log, and its own reading of the video fills in only gun kills nothing named. A clip with a grenade in it no longer loses the gun names of its other kills.
+- Titles name every weapon of a multi-kill in order: "with the Galil and a grenade".
+
 ## 0.19.5
 - **Grenade kills are no longer named after the gun in your hands.** A grenade goes off after you have switched back to your rifle, so the HUD shows the rifle by the time it kills. When the kill feed shows a grenade, C4, a rocket or a mortar round (or a bare explosion), the kill is named after the explosive the HUD showed in your hands in the 15 seconds before ("with the M67 Frag Grenade"), and never after the gun held now; with none, it keeps the kill-feed type ("with a grenade"). Clip titles, tags and the highlights reel follow, so a grenade kill no longer scores or reads as a rifle kill.
 - The other way round too: a gun kill made just as you pull a grenade is named after the gun you were holding a moment before.

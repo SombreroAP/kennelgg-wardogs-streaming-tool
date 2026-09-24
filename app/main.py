@@ -262,12 +262,18 @@ def main():
                     "killer": ev.killer if ev else "", "victim": ev.victim if ev else "",
                     "icons": ev.icons if ev else [], "kills": len(trig.events),
                     "weapon": (trig.weapon_names() or [""])[0],
+                    "weapons": [e.weapon for e in trig.events],
                     # when each kill-feed row first appeared (epoch seconds): the plugin turns these
                     # into "seconds before the end of the file", so an edit can land on the kill
                     "moments": [e.ts for e in trig.events if e.ts],
-                    "events": [{"ts": e.ts, "killer": e.killer, "victim": e.victim, "distance_m": e.distance_m,
-                                "icons": list(e.icons), "weapon": e.weapon, "weapon_from": e.weapon_from,
-                                "killer_rel": e.killer_rel, "victim_rel": e.victim_rel}
+                    # one entry per kill: ts = the moment its kill-feed row appeared (epoch seconds,
+                    # this PC's clock, the same one the plugin stamps the file's end with)
+                    "events": [{"ts": e.ts, "time": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(e.ts)) +
+                                f".{int((e.ts % 1) * 1000):03d}",
+                                "killer": e.killer, "victim": e.victim, "distance_m": e.distance_m,
+                                "icons": list(e.icons), "headshot": "skull" in e.icons,
+                                "weapon": e.weapon, "weapon_from": e.weapon_from, "weapon_type": e.weapon_type,
+                                "vehicle": e.vehicle, "killer_rel": e.killer_rel, "victim_rel": e.victim_rel}
                                for e in trig.events]}
             threading.Timer(cfg["obs"]["replay_delay_s"], lambda: _safe(ob.trigger, trig.headline(), trig.tags, info)).start()
 

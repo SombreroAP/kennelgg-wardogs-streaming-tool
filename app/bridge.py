@@ -475,6 +475,8 @@ class BridgeOBS:
                 from obs import _update_library_index
                 rec = dict(info)
                 rec.update({"created": time.strftime("%Y-%m-%dT%H:%M:%S"), "file": path, "title": title, "tags": tags})
+                if _o.get("end_epoch"):
+                    rec["end_epoch"] = float(_o["end_epoch"])   # when the plugin asked for the save: the file's end
                 try:
                     _update_library_index(lib, rec)
                 except Exception as e:

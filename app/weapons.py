@@ -227,6 +227,40 @@ ALIASES: dict[str, list[str]] = {
                     "Громкоговоритель", "Гучномовець", "拡声器", "확성 스피커", "广播喇叭", "喇叭"],
 }
 
+# Vehicles by their game names (wardogs.zone / MetaForge, build CL501228), with the kill-feed icon
+# class they show as. If the HUD plate ever names one, a kill the feed shows as that vehicle's is
+# named after it; otherwise it keeps the class ("Helicopter", "Tank", "Vehicle").
+VEHICLES: list[tuple[str, str]] = [
+    ("MH-6", "heli"), ("AH-6M [Miniguns]", "heli"), ("AH-6R [Rockets]", "heli"), ("Havoc", "heli"),
+    ("Z20 Lakota", "heli"), ("Z20 Lakota [Miniguns]", "heli"),
+    ("L2A6", "tank"), ("Flakpanzer Gepard", "tank"), ("M113 APC SV", "tank"), ("SPH-2", "artillery"),
+    ("Bobcat", "car"), ("Dune Buggy", "car"), ("Humvee", "car"), ("Humvee [M249]", "car"), ("Humvee [Minigun]", "car"),
+    ("Kodiak", "car"), ("Kodiak [M249]", "car"), ("Kodiak [Pickup]", "car"), ("URAL", "car"),
+    ("Ural Defender", "car"), ("Ural Defender [M249]", "car"),
+]
+VEHICLE_CLASS = {n: c for n, c in VEHICLES}
+
+# What a kill-feed icon class is called when nothing names the exact weapon or vehicle, and what
+# kind of thing made the kill. Guns without a name stay blank: a gun is never guessed.
+CLASS_LABEL = {"grenade": "Grenade", "c4": "C4", "rpg": "Rocket", "mortar": "Mortar", "artillery": "Artillery",
+               "heli": "Helicopter", "tank": "Tank", "car": "Vehicle", "hammer": "Hammer", "explosion": "Explosion"}
+CLASS_TYPE = {"rifle": "gun", "lmg": "gun", "shotgun": "gun", "sniper": "gun", "boltgun": "gun", "hunting": "gun",
+              "pistol": "gun", "grenade": "grenade", "c4": "explosive", "rpg": "launcher", "mortar": "mortar",
+              "artillery": "artillery", "heli": "vehicle", "tank": "vehicle", "car": "vehicle", "hammer": "melee",
+              "explosion": "explosive"}
+CATEGORY_TYPE = {"assault rifle": "gun", "SMG": "gun", "shotgun": "gun", "LMG": "gun", "marksman rifle": "gun",
+                 "sniper rifle": "gun", "pistol": "gun", "bow": "bow", "launcher": "launcher", "grenade": "grenade",
+                 "explosive": "explosive", "melee": "melee", "tool": "melee", "emplacement": "emplacement",
+                 "vehicle weapon": "vehicle weapon"}
+
+
+def weapon_type(name: str) -> str:
+    """gun | grenade | explosive | launcher | mortar | bow | melee | emplacement | vehicle weapon | vehicle"""
+    if name in VEHICLE_CLASS:
+        return "vehicle"
+    return CATEGORY_TYPE.get(category_of(name), "")
+
+
 # what can be learned from a kill-feed icon: things you hold (and the mortar you fire)
 LEARNABLE = {"assault rifle", "SMG", "shotgun", "LMG", "marksman rifle", "sniper rifle", "pistol", "launcher",
              "bow", "grenade", "explosive", "melee", "tool", "emplacement"}
@@ -303,7 +337,7 @@ def match_item(text: str) -> tuple[str | None, bool]:
     the fit has to be clearly better than any other name."""
     words = [p for w in re.split(r"\s+", text.strip()) if w for p in _split_calibre(w)]
     weapons = set(_weapon_names())
-    pool = [(n, n) for n in _weapon_names()] + [(n, n) for n in NOT_WEAPONS] + \
+    pool = [(n, n) for n in _weapon_names()] + [(n, n) for n in NOT_WEAPONS] + [(n, n) for n, _ in VEHICLES] + \
            [(a, n) for n, al in ALIASES.items() for a in al]
     best = (0.0, None)
     for i in range(len(words)):
@@ -509,7 +543,8 @@ class WeaponReader:
         for line in lines:
             name, weapon = match_item(line)
             if name:
-                self._note(ts, name if weapon else "")   # a medkit or a tool: the gun is put away
+                # a medkit or a tool: the gun is put away (""); a vehicle is kept by name
+                self._note(ts, name if weapon or name in VEHICLE_CLASS else "")
                 return
         # blank or unreadable says nothing about what is in your hands: keep the last reading
 
@@ -533,7 +568,23 @@ class WeaponReader:
             if t <= cutoff:
                 name = n
                 break
+        if name in VEHICLE_CLASS:
+            return None          # in a vehicle: no gun in your hands
         return name or None
+
+    def vehicle_at(self, ts: float, within: float = 180.0) -> str | None:
+        """The vehicle the plate last named, if you have not been seen on foot with a gun since."""
+        cutoff = ts + 0.2
+        for t, n in reversed(self.timeline):
+            if t > cutoff:
+                continue
+            if ts - t > within:
+                return None
+            if n in VEHICLE_CLASS:
+                return n
+            if n and weapon_type(n) not in ("vehicle weapon", ""):
+                return None      # a gun in your hands after it: out of the vehicle
+        return None
 
     def recent(self, ts: float, pred, within: float) -> str | None:
         """The most recent weapon the plate showed in the `within` seconds up to `ts` that `pred`

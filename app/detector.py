@@ -24,8 +24,16 @@ class FeedEvent:
     killer_rel: str      # me | squad | team | enemy | neutral | unknown
     victim_rel: str
     ts: float
-    weapon: str = ""     # the game's name for what made the kill ("Galil", "RPG-7"), when known
-    weapon_from: str = ""  # "hud" (your own kill, read off your screen) | "icon" (a learned kill-feed icon)
+    weapon: str = ""       # what made the kill: the game's name ("Galil", "M67 Frag Grenade", "Havoc"), or
+                           # the feed's class for what nothing names ("Grenade", "Helicopter"); "" = an unnamed gun
+    weapon_from: str = ""  # "hud" (read off your screen) | "learned" (a learned kill-feed icon) | "feed" (the class)
+    weapon_type: str = ""  # gun | grenade | explosive | launcher | mortar | artillery | bow | melee | emplacement |
+                           # vehicle | vehicle weapon
+    vehicle: str = ""      # the vehicle the kill came from (its name, or its class), when it did
+
+    @property
+    def weapon_exact(self) -> bool:
+        return self.weapon_from in ("hud", "learned")
 
     @property
     def killer_me(self): return self.killer_rel == "me"
@@ -78,11 +86,17 @@ class Trigger:
         if ds and not any(ch.isdigit() for ch in t):
             bits.append("at " + (ds[0] if len(ds) == 1 else ", ".join(ds[:-1]) + " and " + ds[-1]))
         if weapons and weapons[0].lower() not in low:
-            if any(e.weapon for e in self.events):
-                ws = weapons[:3]
-                bits.append("with the " + (ws[0] if len(ws) == 1 else ", the ".join(ws[:-1]) + " and the " + ws[-1]))
-            else:
-                bits.append("with a " + weapons[0])
+            # the game's names as "the Galil", the feed's classes as "a grenade", in kill order
+            said, seen = [], set()
+            for e in self.events:
+                if not e.weapon or e.weapon.lower() in seen:
+                    continue
+                seen.add(e.weapon.lower())
+                said.append(("the " + e.weapon) if e.weapon_exact else ("a " + e.weapon.lower()))
+            if not said:
+                said = ["a " + weapons[0]]
+            said = said[:3]
+            bits.append("with " + (said[0] if len(said) == 1 else ", ".join(said[:-1]) + " and " + said[-1]))
         n = len(self.events)
         if n > 1 and "kill" in low and not any(ch.isdigit() for ch in t):
             bits.append(f"({n} kills)")
@@ -91,9 +105,12 @@ class Trigger:
     def weapon_names(self) -> list[str]:
         """What made the kills, most-used first: the game's own names where known, the generic
         kill-feed class ("rifle", "rpg") where not."""
-        exact = Counter(e.weapon for e in self.events if e.weapon)
+        exact = Counter(e.weapon for e in self.events if e.weapon and e.weapon_exact)
         if exact:
             return [n for n, _ in exact.most_common()]
+        named = Counter(e.weapon.lower() for e in self.events if e.weapon)
+        if named:
+            return [n for n, _ in named.most_common()]
         generic = Counter(i for e in self.events for i in e.icons if i not in ("skull", "explosion"))
         return [n.replace("_", " ") for n, _ in generic.most_common()]
 
@@ -102,7 +119,9 @@ class Trigger:
         tags = {kind, *extra}
         for ev in events:
             tags.update(ev.icons)
-            for w in (ev.weapon.split(" or ") if ev.weapon else []):
+            if ev.weapon_type:
+                tags.add(ev.weapon_type.replace(" ", "-"))
+            for w in (ev.weapon.split(" or ") if ev.weapon and ev.weapon_exact else []):
                 tags.add(W.slug(w))
                 cat = W.category_of(w)
                 if cat:
@@ -269,11 +288,11 @@ class KillDetector:
         if any(x[1] == key and prof_corr(x[2], row.vprof) >= 0.8 for x in self._decided):
             return None                                # same kill re-acquired after a shift / dropped frame
         self._decided.append((row.first, key, row.vprof))
-        weapon, weapon_from = self._weapon(row, killer_rel == "me", icons)
+        weapon, weapon_from, weapon_kind, vehicle = self._weapon(row, killer_rel == "me", icons)
         ev = FeedEvent(killer=Counter(names).most_common(1)[0][0], victim=Counter(victims).most_common(1)[0][0],
                        distance_m=dist, dist_conf=conf, icons=icons,
                        killer_rel=killer_rel, victim_rel=victim_rel, ts=row.first,
-                       weapon=weapon, weapon_from=weapon_from)
+                       weapon=weapon, weapon_from=weapon_from, weapon_type=weapon_kind, vehicle=vehicle)
         print(f"[feed] {killer_rel}({kcol}) {ev.killer!r} -> {victim_rel}({vcol}) {ev.victim!r}  "
               f"{dist} m (x{conf}) icons={icons}" + (f" weapon={weapon} ({weapon_from})" if weapon else "") +
               f" reads={sum((r.dists for r in row.reads), [])}")
@@ -303,50 +322,69 @@ class KillDetector:
     DELAYED = {"grenade", "c4", "rpg", "mortar"}
     DELAYED_WINDOW_S = 15.0
 
-    def _weapon(self, row, my_kill: bool, icons: list[str]) -> tuple[str, str]:
-        """The game's name for what made this kill, and where it came from.
+    def _weapon(self, row, my_kill: bool, icons: list[str]) -> tuple[str, str, str, str]:
+        """(weapon, source, type, vehicle) for a kill: what made it, by the game's own name.
 
-        Your own kill: the HUD's item plate at the moment the row appeared, cross-checked against
-        the icon's class, and the icon is learned under that name. Anyone else's: the learned icon
-        most reads agree on."""
+        source: "hud" (read off your screen at your kill), "learned" (a kill-feed icon learned from
+        your kills), "feed" (the kill-feed icon's class only: Grenade, Helicopter...), "" (a gun the
+        feed shows but nothing names - a gun is never guessed). type: gun, grenade, explosive,
+        launcher, mortar, artillery, bow, melee, emplacement, vehicle, vehicle weapon.
+
+        What the feed shows decides which source may answer:
+          - a vehicle (chopper, tank, car, artillery): the mounted gun if you were on one, else the
+            vehicle by name, else its class - never the gun you last held;
+          - a grenade, C4, rocket or mortar round (or a bare explosion): the explosive your screen
+            showed in the seconds before - never the gun that is back in your hands;
+          - a gun: the gun in your hands (your kill) or a learned icon (anyone's)."""
         reader = getattr(self, "weapons", None)
-        if reader is None:
-            return "", ""
-        # the read whose silhouette is largest is the cleanest cut of it
         with_icon = [r for r in row.reads if getattr(r, "weapon_icon", None) is not None]
         icon = max(with_icon, key=lambda r: r.weapon_icon.size).weapon_icon if with_icon else None
         generic = [i for i in icons if i not in ("skull", "explosion")]
-        if my_kill:
-            killtype = [i for i in icons if i == "explosion"]
-            delayed = generic[0] if generic and generic[0] in self.DELAYED else ("explosion" if killtype and not generic else "")
-            if delayed:
-                # the feed says grenade / C4 / rocket / mortar (or a bare explosion): name it after
-                # the explosive the plate showed in the last few seconds, never the gun held now
-                classes = {"grenade", "c4", "rpg", "mortar"} if delayed == "explosion" else {delayed}
+        g = generic[0] if generic else ("explosion" if "explosion" in icons else "")
+        label, gtype = W.CLASS_LABEL.get(g, ""), W.CLASS_TYPE.get(g, "")
+        feed = (label, "feed", gtype, "") if label else ("", "", gtype, "")
+
+        # ---- vehicles
+        if g in self.VEHICLES:
+            if my_kill and reader is not None:
+                latest = reader.recent(row.first, lambda n: True, 30.0)
+                veh = reader.vehicle_at(row.first)
+                if latest and W.weapon_type(latest) == "vehicle weapon":
+                    return latest, "hud", "vehicle weapon", veh or label
+                if veh:
+                    return veh, "hud", "vehicle", veh
+            return label, "feed", "vehicle", label
+
+        # ---- explosives that land after they have left your hands
+        if g in self.DELAYED or g == "explosion":
+            if my_kill and reader is not None:
+                classes = {"grenade", "c4", "rpg", "mortar"} if g == "explosion" else {g}
                 thrown = reader.recent(row.first, lambda n: W.class_of(n) in classes, self.DELAYED_WINDOW_S)
-                return (thrown, "hud") if thrown else ("", "")
+                if thrown:
+                    return thrown, "hud", W.weapon_type(thrown), ""
+            return feed
+
+        # ---- a gun, or no icon at all
+        if my_kill and reader is not None:
             held = reader.held_at(row.first)
-            if held and W.class_of(held) in self.DELAYED and generic and generic[0] not in self.NOT_A_GUN:
-                # the plate already shows the grenade you are pulling, but the feed says a gun made
-                # the kill: the gun held just before it
+            if held and W.class_of(held) in self.DELAYED and g and g not in self.NOT_A_GUN:
+                # the plate already shows the grenade you are pulling, but a gun made the kill
                 held = reader.recent(row.first, lambda n: W.class_of(n) not in self.DELAYED and
-                                     W.category_of(n) not in ("tool", "melee"), self.DELAYED_WINDOW_S)
+                                     W.weapon_type(n) in ("gun", "bow", "melee"), self.DELAYED_WINDOW_S)
+            if held and W.weapon_type(held) == "vehicle weapon" and g:
+                held = None            # the feed shows a hand-held gun: not the mounted one
             if held:
-                cls = W.class_of(held)
-                # the HUD names the weapon; the one thing it cannot know is that the kill was made
-                # by a vehicle you are in (the gun you last held is still "held"), which the feed shows
-                if generic and generic[0] in self.VEHICLES and W.category_of(held) != "vehicle weapon":
-                    return "", ""
-                # learn the icon only when it cannot be something else entirely
-                if not (generic and generic[0] in self.NOT_A_GUN and generic[0] != cls):
+                if not (g and g in self.NOT_A_GUN and g != W.class_of(held)):
                     reader.learn(held, icon)
-                return held, "hud"
+                return held, "hud", W.weapon_type(held), ""
+            return feed
         exact = Counter(r.exact for r in row.reads if getattr(r, "exact", ""))
         if exact:
             name, votes = exact.most_common(1)[0]
-            if votes * 2 >= len(with_icon or row.reads):
-                return name, "icon"
-        return "", ""
+            first = name.split(" or ")[0]
+            if votes * 2 >= len(with_icon or row.reads) and W.weapon_type(first) in ("gun", "bow", "launcher", ""):
+                return name, "learned", W.weapon_type(first) or "gun", ""
+        return feed
 
     # ---- events -> triggers ----------------------------------------------------------
     def _apply_rules(self, events: list[FeedEvent], now) -> list[Trigger]:

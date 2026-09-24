@@ -360,14 +360,41 @@ std::vector<Clips::Entry> Clips::allClips(int max) const
 	return out;
 }
 
+/// A CSV field: quoted when it holds a comma, a quote or a line break (titles like "Triple kill at
+/// 68m, 12m and 20m" used to split into extra columns).
+static QString csvField(const QString &s)
+{
+	if (!s.contains(',') && !s.contains('"') && !s.contains('\n') && !s.contains('\r'))
+		return s;
+	QString q = s;
+	q.replace("\"", "\"\"");
+	return "\"" + q + "\"";
+}
+
 void Clips::logEntry(const Entry &e)
 {
 	QFile f(logFile());
+	bool fresh = !f.exists() || f.size() == 0;
 	if (f.open(QIODevice::Append | QIODevice::Text)) {
 		QTextStream ts(&f);
-		ts << e.when.toString(Qt::ISODate) << "," << safe(e.title) << "," << e.tags.join("|") << "," << e.path
-		   << "," << (e.momentS < 0 ? QString() : QString::number(e.momentS, 'f', 1)) << ","
-		   << (e.firstS < 0 ? QString() : QString::number(e.firstS, 'f', 1)) << "," << e.kills << "\n";
+		if (fresh)
+			ts << "when,title,tags,path,moment_s_from_end,first_s_from_end,kills,weapons,kill_s_from_end\n";
+		// per kill, in order: what made it (the game's name, or the feed's class: Grenade,
+		// Helicopter; blank = a gun nothing named) and how far before the end of the file
+		QStringList weapons, offs;
+		double end = (double)e.when.toMSecsSinceEpoch() / 1000.0;
+		for (const QJsonValue &v : e.info.value("events").toArray()) {
+			QJsonObject ev = v.toObject();
+			weapons << safe(ev.value("weapon").toString());
+			double t = ev.value("ts").toDouble(0);
+			offs << (t > 0 && t <= end ? QString::number(std::round((end - t) * 10) / 10, 'f', 1)
+						   : QString());
+		}
+		ts << e.when.toString(Qt::ISODate) << "," << csvField(safe(e.title)) << ","
+		   << csvField(e.tags.join("|")) << "," << csvField(e.path) << ","
+		   << (e.momentS < 0 ? QString() : QString::number(e.momentS, 'f', 1)) << ","
+		   << (e.firstS < 0 ? QString() : QString::number(e.firstS, 'f', 1)) << "," << e.kills << ","
+		   << csvField(weapons.join("|")) << "," << offs.join("|") << "\n";
 	}
 	writeSidecar(e);
 }
@@ -391,6 +418,20 @@ void Clips::writeSidecar(const Entry &e)
 		o["first_s_from_end"] = e.firstS;
 	if (e.kills > 0)
 		o["kills"] = e.kills;
+	// every kill: how far before the end of the file it happened, to a tenth of a second, next to
+	// what made it (ClipHound's weapon, type and vehicle, already in the event)
+	if (o.contains("events")) {
+		double end = (double)e.when.toMSecsSinceEpoch() / 1000.0;
+		QJsonArray evs = o.value("events").toArray(), out;
+		for (const QJsonValue &v : evs) {
+			QJsonObject ev = v.toObject();
+			double ts = ev.value("ts").toDouble(0);
+			if (ts > 0 && ts <= end)
+				ev["s_from_end"] = std::round((end - ts) * 10) / 10;
+			out.append(ev);
+		}
+		o["events"] = out;
+	}
 	if (!e.pathV.isEmpty())
 		o["vertical"] = QFileInfo(e.pathV).fileName();
 	QFile f(fi.dir().filePath(fi.completeBaseName() + ".json"));

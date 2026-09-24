@@ -136,6 +136,9 @@ Engine::Engine(QObject *parent) : QObject(parent)
 		QJsonObject o;
 		o["type"] = "clip_saved";
 		o["path"] = e.path;
+		// when the save was asked for: the file ends there. ClipHound turns each kill's moment into
+		// "seconds before the end" with it, for its library's kills.csv
+		o["end_epoch"] = (double)e.when.toMSecsSinceEpoch() / 1000.0;
 		o["title"] = e.title;
 		o["tags"] = QJsonArray::fromStringList(e.tags);
 		bridge.sendJson(o);

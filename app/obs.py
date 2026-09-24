@@ -1,5 +1,6 @@
 """OBS on the streaming PC via obs-websocket v5 (TCP 4455 on the network).
 Saves the replay buffer (backtrack) or runs a timed recording. Reconnects if the link drops."""
+import csv
 import json
 import os
 import re
@@ -8,18 +9,68 @@ import time
 import obsws_python as obs
 
 
-def _update_library_index(lib: str, rec: dict):
-    """index.csv (everything) and resolve_metadata.csv (DaVinci Resolve import format:
-    File Name, Description, Keywords, Comments) in the library root."""
+INDEX_COLS = ["created", "file", "title", "tags", "kind", "distance_m", "killer", "victim", "icons",
+              "weapons", "weapon_types", "vehicles", "kills", "kill_times_s_from_end", "kill_epochs", "end_epoch"]
+KILL_COLS = ["file", "created", "kill", "epoch", "time", "s_from_end", "killer", "victim", "killer_rel",
+             "victim_rel", "distance_m", "headshot", "weapon", "weapon_type", "weapon_source", "vehicle"]
+
+
+def _csv_with_header(path: str, cols: list[str]):
+    """Open `path` for appending rows of `cols`. A file with an older, shorter header is brought up to
+    date first (its rows padded), so the columns never shift under a reader."""
     import csv
-    idx = os.path.join(lib, "index.csv")
-    new = not os.path.exists(idx)
-    with open(idx, "a", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        if new:
-            w.writerow(["created", "file", "title", "tags", "kind", "distance_m", "killer", "victim", "icons"])
+    if os.path.exists(path):
+        with open(path, newline="", encoding="utf-8") as f:
+            rows = list(csv.reader(f))
+        if rows and rows[0] != cols and all(c in cols for c in rows[0]):
+            old = rows[0]
+            tmp = path + ".tmp"
+            with open(tmp, "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)
+                w.writerow(cols)
+                for r in rows[1:]:
+                    d = dict(zip(old, r))
+                    w.writerow([d.get(c, "") for c in cols])
+            os.replace(tmp, path)
+        new = not rows
+    else:
+        new = True
+    f = open(path, "a", newline="", encoding="utf-8")
+    w = csv.writer(f)
+    if new:
+        w.writerow(cols)
+    return f, w
+
+
+def _update_library_index(lib: str, rec: dict):
+    """In the library root: index.csv (a row per clip, the weapons and every kill's time in it),
+    kills.csv (a row per kill: when, how far into the clip, who, and what made it) and
+    resolve_metadata.csv (DaVinci Resolve import format: File Name, Description, Keywords, Comments).
+
+    Times: every kill's epoch (the moment its kill-feed row appeared) and, when the plugin says when
+    the file ends, its offset before that end, to a tenth of a second - so an editor can land on it.
+    Weapons are the game's names where something named them (your HUD, a learned icon); an
+    explosive or a vehicle kill is never given the name of a gun."""
+    evs = rec.get("events") or []
+    end = rec.get("end_epoch")
+    offs = [round(end - e["ts"], 1) if end and e.get("ts") else "" for e in evs]
+    f, w = _csv_with_header(os.path.join(lib, "index.csv"), INDEX_COLS)
+    with f:
         w.writerow([rec.get("created"), rec.get("file"), rec.get("title"), " ".join(rec.get("tags", [])),
-                    rec.get("kind"), rec.get("distance_m"), rec.get("killer"), rec.get("victim"), " ".join(rec.get("icons", []))])
+                    rec.get("kind"), rec.get("distance_m"), rec.get("killer"), rec.get("victim"),
+                    " ".join(rec.get("icons", [])),
+                    "|".join(e.get("weapon", "") for e in evs), "|".join(e.get("weapon_type", "") for e in evs),
+                    "|".join(e.get("vehicle", "") for e in evs), len(evs) or rec.get("kills", ""),
+                    "|".join(str(o) for o in offs), "|".join(f"{e['ts']:.3f}" for e in evs if e.get("ts")),
+                    f"{end:.3f}" if end else ""])
+    if evs:
+        f, w = _csv_with_header(os.path.join(lib, "kills.csv"), KILL_COLS)
+        with f:
+            for k, (e, o) in enumerate(zip(evs, offs), 1):
+                w.writerow([rec.get("file"), rec.get("created"), k, f"{e['ts']:.3f}" if e.get("ts") else "",
+                            e.get("time", ""), o, e.get("killer", ""), e.get("victim", ""), e.get("killer_rel", ""),
+                            e.get("victim_rel", ""), e.get("distance_m", ""), "yes" if e.get("headshot") else "",
+                            e.get("weapon", ""), e.get("weapon_type", ""), e.get("weapon_from", ""), e.get("vehicle", "")])
     rm = os.path.join(lib, "resolve_metadata.csv")
     new = not os.path.exists(rm)
     with open(rm, "a", newline="", encoding="utf-8") as f:
