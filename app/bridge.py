@@ -188,6 +188,8 @@ class Bridge:
             c = self.cfg
             if "player_name" in v:
                 c["detection"]["player_name"] = v["player_name"]
+            if "game_lang" in v:
+                c["detection"]["game_lang"] = v["game_lang"] or ""   # "" = not known yet (auto, no match so far)
             if "library" in v:
                 c.setdefault("obs", {})["library"] = v["library"]
             if "broadcaster" in v:

@@ -228,6 +228,10 @@ public:
 	void loadTemplates();
 	void applySearchWidth();
 	static QString langName(const std::string &lang); // "es" -> "Spanish"
+	/// The game's 14 interface languages (code, name in that language), in the setting's order.
+	static const std::vector<std::pair<std::string, QString>> &gameLanguages();
+	/// Is there a built-in downed-screen wording for this language.
+	static bool hasDownedTemplate(const std::string &lang);
 	/// PNG of the game source as the plugin sees it. Returns the path, or a message starting with a capital.
 	QString saveFrame();
 	/// The game source at its own resolution, for saving or for learning the HUD.

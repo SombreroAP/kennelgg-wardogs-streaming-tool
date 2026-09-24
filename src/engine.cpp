@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <fstream>
 #include <thread>
 #include <QBuffer>
@@ -355,7 +356,9 @@ void Engine::loadTemplates()
 		// and keeps the other languages searching alongside until one of them matches
 		static const char *kLangs[] = {"en", "es", "fr"};
 		std::string want = cfg.gameLang;
-		bool fixed = want != "auto" && !want.empty();
+		// a language the downed screen has no wording for yet is searched like auto: every wording
+		// we have, until one fits (the HUD's weapon names are still read in the chosen language)
+		bool fixed = want != "auto" && !want.empty() && hasDownedTemplate(want);
 		if (!fixed)
 			want = cfg.gameLangFound.empty() ? "en" : cfg.gameLangFound;
 		if (!loadLangTemplate(detGame_, want)) {
@@ -412,13 +415,49 @@ bool Engine::loadLangTemplate(Detector &d, const std::string &lang)
 
 QString Engine::langName(const std::string &lang)
 {
-	if (lang == "es")
-		return "Spanish";
-	if (lang == "fr")
-		return "French";
-	if (lang == "en")
-		return "English";
-	return QString::fromStdString(lang);
+	static const std::map<std::string, const char *> names = {{"en", "English"},
+								  {"de", "German"},
+								  {"fr", "French"},
+								  {"es", "Spanish"},
+								  {"it", "Italian"},
+								  {"pt", "Portuguese"},
+								  {"pl", "Polish"},
+								  {"tr", "Turkish"},
+								  {"ru", "Russian"},
+								  {"uk", "Ukrainian"},
+								  {"ja", "Japanese"},
+								  {"ko", "Korean"},
+								  {"zh", "Simplified Chinese"},
+								  {"zh-tw", "Traditional Chinese"}};
+	auto it = names.find(lang);
+	return it != names.end() ? QString(it->second) : QString::fromStdString(lang);
+}
+
+const std::vector<std::pair<std::string, QString>> &Engine::gameLanguages()
+{
+	// the Steam store's interface languages for WARDOGS, each in its own name
+	static const std::vector<std::pair<std::string, QString>> list = {
+		{"en", "English"},
+		{"de", "Deutsch"},
+		{"fr", QString::fromUtf8("Français")},
+		{"es", QString::fromUtf8("Español")},
+		{"it", "Italiano"},
+		{"pt", QString::fromUtf8("Português (Brasil)")},
+		{"pl", "Polski"},
+		{"tr", QString::fromUtf8("Türkçe")},
+		{"ru", QString::fromUtf8("Русский")},
+		{"uk", QString::fromUtf8("Українська")},
+		{"ja", QString::fromUtf8("日本語")},
+		{"ko", QString::fromUtf8("한국어")},
+		{"zh", QString::fromUtf8("简体中文")},
+		{"zh-tw", QString::fromUtf8("繁體中文")},
+	};
+	return list;
+}
+
+bool Engine::hasDownedTemplate(const std::string &lang)
+{
+	return lang == "en" || lang == "es" || lang == "fr";
 }
 
 /// How much of the frame, and how many sizes, the damage-log search covers.
@@ -697,6 +736,9 @@ void Engine::pushAppConfig()
 	}
 	QJsonObject set;
 	set["player_name"] = QString::fromStdString(cfg.appPlayerName);
+	// the game's language as the downed search found it (or as set): the HUD's weapon names are read in it
+	set["game_lang"] = QString::fromStdString(cfg.gameLang == "auto" || cfg.gameLang.empty() ? cfg.gameLangFound
+												 : cfg.gameLang);
 	set["library"] = QString::fromStdString(cfg.appLibrary);
 	set["broadcaster"] = QString::fromStdString(cfg.appBroadcaster);
 	set["twitch_enabled"] = cfg.appTwitchEnabled;
@@ -2905,6 +2947,7 @@ void Engine::onResult(Result r)
 		altLangs_.clear();
 		cfg.gameLangFound = lang;
 		cfg.save();
+		pushAppConfig(); // ClipHound reads the HUD's weapon names in this language
 		log(QString("Game language: %1 (the damage log matched the %1 wording).").arg(langName(lang)));
 		emit stateChanged();
 	}
@@ -2959,8 +3002,8 @@ void Engine::detect(const Match &m)
 				// game is most likely in a language we do not have. Say so, once
 				lastNearBest_ = nearBest_;
 				if (nearBest_ >= 0.62 && ++nearMinutes_ >= 3 && !cfg.langAskShown &&
-				    cfg.gameLang == "auto" && cfg.gameLangFound.empty() &&
-				    cfg.customTemplateWidthFrac <= 0) {
+				    (cfg.gameLang == "auto" || !hasDownedTemplate(cfg.gameLang)) &&
+				    cfg.gameLangFound.empty() && cfg.customTemplateWidthFrac <= 0) {
 					cfg.langAskShown = true;
 					cfg.save();
 					log("The damage log never matched the English, Spanish or French wording: is the game "

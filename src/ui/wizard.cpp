@@ -75,14 +75,14 @@ QWizardPage *SetupWizard::pageYou()
 		       p));
 	lang_ = new QComboBox(p);
 	lang_->addItem("Auto (found from the downed screen)", "auto");
-	lang_->addItem("English", "en");
-	lang_->addItem("Español", "es");
-	lang_->addItem("Français", "fr");
+	for (const auto &l : Engine::gameLanguages())
+		lang_->addItem(l.second, QString::fromStdString(l.first));
 	int li = lang_->findData(QString::fromStdString(e_->cfg.gameLang));
 	lang_->setCurrentIndex(li < 0 ? 0 : li);
 	f->addRow("Game language", lang_);
-	f->addRow(note("The plugin reads the words on the downed screen. English, Spanish and French so far; for "
-		       "another language, open a ticket in the Kennel.gg Discord.",
+	f->addRow(note("Weapon names on your HUD are read in all of the game's languages. The downed screen is "
+		       "recognised in English, Spanish and French so far; in another language, pick it here and "
+		       "open a ticket in the Kennel.gg Discord to have its downed screen added.",
 		       p));
 	lookName_ = new QCheckBox("Show a \"POV · NAME\" tag over the squad mate's feed", p);
 	lookName_->setChecked(e_->cfg.lookName);

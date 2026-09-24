@@ -124,6 +124,7 @@ def main():
     reader = weapons.WeaponReader(base_dir="icons")
     det.weapons = reader
     ocr.WEAPON_READER = reader
+    weapons.set_language(cfg["detection"].get("game_lang", ""))
     if bridge is not None:
         bridge.on_hud = reader.on_hud
     print(f"[capture] ROI {cap.box} @ {cfg['capture']['fps']} fps, deciding a row on {det.votes} reads "
@@ -159,6 +160,11 @@ def main():
         elif det.me != was:
             print(f"[config] player name: {det.me!r}")
         det.cfg["clip_every_kill"] = bool(c["detection"].get("clip_every_kill"))
+        try:
+            import weapons
+            weapons.set_language(c["detection"].get("game_lang", ""))
+        except Exception as e:
+            print(f"[weapons] language: {e}")
         det.cfg["multikill_window_s"] = float(c["detection"].get("multikill_window_s", 30))
         det.set_rate(c["capture"].get("fps", 5))
         if hasattr(cap, "set_roi"):

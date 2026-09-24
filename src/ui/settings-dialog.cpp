@@ -1330,15 +1330,15 @@ QWidget *SettingsDialog::buildDetectTab()
 		auto *lrow = new QHBoxLayout();
 		auto *ll = new QLabel("Game language", w);
 		auto *lang = new QComboBox(w);
-		lang->addItem("Auto (found from the damage log)", "auto");
-		lang->addItem("English", "en");
-		lang->addItem("Español", "es");
-		lang->addItem("Français", "fr");
+		lang->addItem("Auto (found from the downed screen)", "auto");
+		for (const auto &l : Engine::gameLanguages())
+			lang->addItem(l.second, QString::fromStdString(l.first));
 		lang->setToolTip(
-			"The words of the damage-log header the plugin looks for when you are downed. Auto "
-			"tries every language it knows until one matches, then keeps that one. English, Spanish "
-			"and French so far: for another language open a ticket in the Kennel.gg Discord with a "
-			"frame saved while downed (the button below).");
+			"The language your game is in. ClipHound reads the weapon name off your HUD in all 14 of the "
+			"game's languages. The downed screen is recognised in English, Spanish and French so far; in "
+			"another language every known wording is searched, and a frame saved while downed (Advanced) "
+			"sent in a ticket in the Kennel.gg Discord adds yours. Auto finds English, Spanish or French "
+			"from the downed screen by itself.");
 		int li = lang->findData(QString::fromStdString(e_->cfg.gameLang));
 		lang->setCurrentIndex(li < 0 ? 0 : li);
 		lrow->addWidget(ll);
@@ -1356,6 +1356,7 @@ QWidget *SettingsDialog::buildDetectTab()
 			e_->cfg.gameLangFound.clear(); // a fresh start for auto
 			e_->cfg.save();
 			e_->loadTemplates();
+			e_->pushAppConfig(); // ClipHound reads the HUD's weapon names in it
 			e_->log(e_->cfg.gameLang == "auto"
 					? "Game language: auto, every wording searched until one matches."
 					: "Game language: " + Engine::langName(e_->cfg.gameLang) + ".");
