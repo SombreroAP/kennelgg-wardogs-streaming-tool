@@ -288,7 +288,18 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		if (!filling_ && on != e_->cfg.enabled)
 			e_->setEnabled(on);
 	});
-	v->addWidget(headRow(eyebrow("On screen", this), autoSwitch_, this));
+	magPack_ = new QCheckBox("Mag packing", this);
+	magPack_->setToolTip("Show a squad mate while your inventory is open (packing magazines), and come back to you "
+			     "the moment it closes. Needs ClipHound running and Auto switch on.");
+	connect(magPack_, &QCheckBox::toggled, this, [this](bool on) {
+		if (!filling_)
+			e_->setInvSwitch(on);
+	});
+	{
+		QWidget *h = headRow(eyebrow("On screen", this), magPack_, this);
+		static_cast<QHBoxLayout *>(h->layout())->addWidget(autoSwitch_, 0, Qt::AlignBottom);
+		v->addWidget(h);
+	}
 	povBox_ = new QWidget(this);
 	povFlow_ = new FlowLayout(povBox_, 4);
 	v->addWidget(povBox_);
@@ -382,6 +393,19 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		row->addWidget(highlights_, 1);
 		v->addLayout(row);
 	}
+	// ClipHound, said plainly: running or not, what it sees you holding, whether mag packing is watched
+	appLine_ = new QLabel(this);
+	appLine_->setObjectName("small");
+	appLine_->setWordWrap(true);
+	appLine_->setTextFormat(Qt::RichText);
+	connect(appLine_, &QLabel::linkActivated, this, [this](const QString &href) {
+		if (href == "kennel:start")
+			e_->launchApp();
+		else if (href == "kennel:auto")
+			e_->setEnabled(true);
+		refresh();
+	});
+	v->addWidget(appLine_);
 	clip_ = new QLabel(this);
 	clip_->setObjectName("small");
 	clip_->setWordWrap(true);
@@ -795,6 +819,28 @@ void Dock::refresh()
 				       "</b>  ·  <a style=\"color:#c99a3b\" href=\"kennel:rename\">Rename</a>  ·  "
 				       "<a style=\"color:#c99a3b\" href=\"kennel:replay\">Replay</a>");
 		}
+	}
+
+	// ----- ClipHound, in words
+	{
+		QString st = e_->appState();
+		QString gold = "<a style=\"color:#c99a3b\" href=\"";
+		QString t;
+		if (st == "connected") {
+			t = "<span style=\"color:#b9c48a\">\u25cf</span> ClipHound running";
+			if (!e_->holding().isEmpty())
+				t += "  \u00b7  holding <b>" + e_->holding().toHtmlEscaped() + "</b>";
+			if (e_->cfg.invSwitch)
+				t += e_->inventoryWatched() ? QString("  \u00b7  watching for mag packing")
+							    : "  \u00b7  mag packing waits for " + gold +
+								      "kennel:auto\">Auto switch</a>";
+		} else if (st == "starting")
+			t = "<span style=\"color:#e0b45c\">\u25cf</span> ClipHound starting...";
+		else
+			t = "<span style=\"color:#ef8a78\">\u25cf</span> ClipHound not running  \u00b7  " + gold +
+			    "kennel:start\">Start it</a>";
+		appLine_->setText(t);
+		magPack_->setChecked(e_->cfg.invSwitch);
 	}
 
 	// ----- squad row, events, menu

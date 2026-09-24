@@ -51,7 +51,8 @@ private:
 	QWidget *voiceRow_ = nullptr;
 	QProgressBar *voiceBar_ = nullptr;
 	QLabel *voiceLbl_ = nullptr;
-	QCheckBox *autoSwitch_ = nullptr, *dualAuto_ = nullptr;
+	QCheckBox *autoSwitch_ = nullptr, *dualAuto_ = nullptr, *magPack_ = nullptr;
+	QLabel *appLine_ = nullptr;
 	QLabel *dualHead_ = nullptr;
 	FlowLayout *povFlow_ = nullptr, *dualFlow_ = nullptr;
 	QWidget *povBox_ = nullptr, *dualBox_ = nullptr;

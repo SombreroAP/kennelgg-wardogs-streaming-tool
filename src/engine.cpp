@@ -124,6 +124,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	});
 	connect(&bridge, &Bridge::clientDisconnected, this, [this]() {
 		appStatus_.clear();
+		holding_.clear();
 		voiceStatus_.clear();
 		voice.detach();
 		frameTimer_.stop();
@@ -778,7 +779,7 @@ void Engine::pushAppConfig()
 	vh["enabled"] = cfg.dual() != nullptr && (cfg.dualAuto || (dualOn_ && !cfg.dualKeep));
 	vh["roi"] = QJsonArray{cfg.vehX, cfg.vehY, cfg.vehW, cfg.vehH};
 	set["vehicle"] = vh;
-	set["inventory"] = QJsonObject{{"enabled", cfg.invSwitch && cfg.enabled && !cfg.friends.empty()}};
+	set["inventory"] = QJsonObject{{"enabled", inventoryWatched()}};
 	QJsonObject o;
 	o["type"] = "app_config";
 	o["set"] = set;
@@ -1862,6 +1863,9 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		onVehicle(o.value("seat").toString());
 	} else if (type == "inventory") {
 		onInventory(o.value("open").toBool());
+	} else if (type == "holding") {
+		holding_ = o.value("name").toString();
+		emit stateChanged();
 	} else if (type == "nearby_test_result") {
 		QStringList texts;
 		for (auto v : o.value("texts").toArray())
@@ -3621,6 +3625,21 @@ void Engine::setEnabled(bool on)
 	detGame_.holdThreshold = 0;
 	log(on ? "Auto switch on: a squad mate takes over when you are downed."
 	       : "Auto switch off: your own POV stays up. The squad mate buttons on the dock still work, and clips keep coming.");
+	// ClipHound watches for the inventory screen only while Auto switch is on: tell it now. It was
+	// told only at the next settings change before, so turning Auto switch back on left magazine
+	// packing off until OBS restarted
+	pushAppConfig();
+	emit stateChanged();
+}
+
+void Engine::setInvSwitch(bool on)
+{
+	if (cfg.invSwitch == on)
+		return;
+	cfg.invSwitch = on;
+	cfg.save();
+	pushAppConfig();
+	log(on ? "Magazine packing / inventory POV switching on." : "Magazine packing / inventory POV switching off.");
 	emit stateChanged();
 }
 

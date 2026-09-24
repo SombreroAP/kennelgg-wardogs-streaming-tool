@@ -2,6 +2,11 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.4
+- **Fixed: magazine packing stayed off after Auto switch was turned back on.** ClipHound only watches for the inventory screen while Auto switch is on, and turning Auto switch on or off did not tell it: it stayed off until OBS was restarted. It is told at once now.
+- **ClipHound, in words, on the dock.** A line under the clip buttons says whether ClipHound is running (with a Start link when it is not), the weapon it sees in your hands, and whether it is watching for mag packing - or that mag packing is waiting for Auto switch, with a link that turns it on.
+- **Mag packing has its own tick on the dock,** next to Auto switch on the On screen heading, so it can be seen and changed without opening Settings.
+
 ## 0.19.3
 - **Weapon names are read in all 14 of the game's languages.** English, German, French, Spanish, Italian, Portuguese, Polish, Turkish, Russian, Ukrainian, Japanese, Korean and Simplified and Traditional Chinese. The translated names come from the game's own text (bows, grenades, explosives, hammers, the mortar, and the medkit and tools that mean the gun is put away), and every gun is also recognised by its model designation, which the game keeps in every language: "FUSIL AK74", "АК-74", "M67 破片手榴弹". Russian's Cyrillic look-alike letters (М4, МК22) and transliterations (РПГ-7, СКС) are handled. Latin-script languages are read with the model ClipHound ships; Russian, Ukrainian, Japanese, Korean and Chinese fetch their own reading model once, a few megabytes, the first time the game is set to them, so the installer does not grow. Tested on 123 plates across the 14 languages at three text sizes: 121 read from a single frame, none named wrongly, and no name was ever read off scenery.
 - **Game language (Settings, General, and Setup) lists all 14 languages.** Pick yours and the weapon names are read in it. The downed screen is still recognised in English, Spanish and French; in another language every known wording is searched, and the dock asks for a frame to add yours.

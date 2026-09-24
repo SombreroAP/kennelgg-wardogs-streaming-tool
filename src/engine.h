@@ -84,6 +84,12 @@ public:
 	int voiceHeardKind() const { return voiceHeardKind_; } // 0 nothing yet, 1 command, 2 not understood, 3 wake
 	QDateTime voiceHeardAt() const { return voiceHeardAt_; }
 	bool streamingOrRecording() const;
+	/// What ClipHound reads off your HUD as the weapon in your hands ("" = nothing yet, or not a weapon).
+	QString holding() const { return holding_; }
+	/// ClipHound is watching for the inventory screen (magazine packing): the switch is on, Auto switch
+	/// is on, and there is a squad to show.
+	bool inventoryWatched() const { return cfg.invSwitch && cfg.enabled && !cfg.friends.empty(); }
+	void setInvSwitch(bool on);
 	/// The scene live in OBS right now, when it is not the scene the plugin works in (else "").
 	QString sceneMismatch() const;
 	QString playerName() const;
@@ -390,8 +396,9 @@ private:
 	QStringList nameCheck_;              // just added while Closest is on: check their in-game names
 	bool closestAsk_ = false;            // Closest pressed without ClipHound
 	bool appUserStopped_ = false;
-	QString frameSaved_;           // a frame saved from a banner, to attach to a ticket
-	double lastNearBest_ = -1;     // the best below-threshold score of the last whole minute
+	QString frameSaved_;       // a frame saved from a banner, to attach to a ticket
+	double lastNearBest_ = -1; // the best below-threshold score of the last whole minute
+	QString holding_;
 	QString voiceStatus_;          // what ClipHound says the listener is doing
 	QString voicePending_;         // the manual clip waiting for its spoken name
 	bool replayAfterClip_ = false; // "clip replay": play the clip back once it is saved

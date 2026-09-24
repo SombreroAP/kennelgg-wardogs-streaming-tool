@@ -127,6 +127,7 @@ def main():
     weapons.set_language(cfg["detection"].get("game_lang", ""))
     if bridge is not None:
         bridge.on_hud = reader.on_hud
+        reader.on_change = lambda name: bridge.send({"type": "holding", "name": name})
     print(f"[capture] ROI {cap.box} @ {cfg['capture']['fps']} fps, deciding a row on {det.votes} reads "
           f"({det.min_reads} if it goes away early)   dry-run={DRY}")
 

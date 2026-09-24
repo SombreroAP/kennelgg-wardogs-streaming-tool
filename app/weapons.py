@@ -468,6 +468,7 @@ class WeaponReader:
         self.shared: dict[str, set[str]] = {}
         self._last_name = None
         self._clash: dict[str, int] = {}
+        self.on_change = None                      # callable(name): the dock shows what you are holding
         self.load()
         threading.Thread(target=self._watch, daemon=True, name="hud-plate").start()
 
@@ -517,6 +518,11 @@ class WeaponReader:
             return                                 # the same weapon: the entry keeps when it started
         self.timeline.append((ts, name))
         print(f"[weapons] holding: {name or '(no weapon)'}")
+        if self.on_change:
+            try:
+                self.on_change(name)
+            except Exception:
+                pass
 
     def held_at(self, ts: float) -> str | None:
         """What you were holding at `ts` (epoch seconds): the last weapon the plate showed before
