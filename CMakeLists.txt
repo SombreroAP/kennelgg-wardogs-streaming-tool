@@ -44,6 +44,7 @@ target_sources(
     src/config.cpp
     src/detector.cpp
     src/capture.cpp
+    src/picture.cpp
     src/switcher.cpp
     src/engine.cpp
     src/health.cpp

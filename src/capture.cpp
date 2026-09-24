@@ -22,7 +22,7 @@ bool Capture::grab(obs_source_t *source, int targetWidth, std::vector<uint8_t> &
 }
 
 bool Capture::grabRegion(obs_source_t *source, double rx, double ry, double rw, double rh, int targetWidth,
-			 std::vector<uint8_t> &bgra, int &w, int &h, int &linesize)
+			 std::vector<uint8_t> &bgra, int &w, int &h, int &linesize, obs_source_t *below)
 {
 	if (!source)
 		return false;
@@ -61,7 +61,10 @@ bool Capture::grabRegion(obs_source_t *source, double rx, double ry, double rw, 
 			 100.0f);
 		gs_blend_state_push();
 		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
-		obs_source_video_render(source);
+		if (below)
+			obs_source_skip_video_filter(below); // renders what that filter is given
+		else
+			obs_source_video_render(source);
 		gs_blend_state_pop();
 		gs_texrender_end(tr_);
 		gs_stage_texture(st_, gs_texrender_get_texture(tr_));

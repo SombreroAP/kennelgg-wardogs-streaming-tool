@@ -319,7 +319,10 @@ public:
 	/// Offered on the dock (and cycled through) right now: in a Kennel.gg voice channel, whoever is live
 	/// in it; anywhere else, the squad mates ticked as playing, unless known not to be streaming.
 	bool inSquadNow(const Friend &f) const;
-	QString feedStateText(const Friend &f) const; // "live" / "not streaming" / ""
+	QString feedStateText(const Friend &f) const; // "live" / "not streaming" / "no game picture" / ""
+	/// Their capture has been looked at and holds no game picture (Discord's call grid, a text
+	/// channel, a "stream ended" card): Off, whatever the roster says.
+	bool noGamePicture(const Friend &f) const;
 	/// The best squad mate to show when nothing nearer is known: the active one if not Off, else
 	/// any Live one, else -1 when everyone is known to be off.
 	int anyLiveFriend() const;
@@ -338,6 +341,22 @@ private:
 	QSet<QString> webLiveBusy_;    // keys with a request in flight
 	void webLiveTick();
 	static QString webLiveKey(const Friend &f);
+	// The picture check: every Discord capture that is on (warm or on screen) is looked at every
+	// second or two, and a squad mate whose capture holds no game picture is not offered or shown
+	struct PictureSeen {
+		int bad = 0, good = 0; // looks in a row without / with a game picture
+		bool off = false;
+		qint64 atMs = 0; // the last look
+		double area = 0, density = 0;
+	};
+	QTimer pictureTimer_;
+	QHash<QString, PictureSeen> picture_; // source name -> what its last looks found
+	std::atomic<bool> pictureBusy_{false};
+	int pictureTickN_ = 0;
+	Capture capPicture_;
+	void pictureTick();
+	void pictureSeen(const QString &source, bool picture, double area, double density);
+	QStringList namesOn(const QString &source) const;
 	QTimer replayTimer_; // polls the playing replay: seek once loaded, stop at its end
 	qint64 replayStartMs_ = 0, replayEndMs_ = 0, replayLengthMs_ = 0;
 	QElapsedTimer replayClock_;

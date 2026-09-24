@@ -777,12 +777,17 @@ void Dock::refresh()
 			: "Closest needs ClipHound running: it reads the NEARBY list in the corner of your game.");
 	povEmpty_->setVisible(povBtns_.isEmpty());
 	{
-		bool anyTicked = false;
-		for (const auto &f : e_->cfg.friends)
+		bool anyTicked = false, noPicture = false;
+		for (const auto &f : e_->cfg.friends) {
 			anyTicked = anyTicked || f.playing;
+			noPicture = noPicture || e_->noGamePicture(f);
+		}
 		povEmpty_->setText(
 			e_->cfg.friends.empty()
 				? "No squad mates yet: pop their streams out in Discord and press Add pop-outs."
+			: noPicture
+				? "Discord is not showing a game right now (the call screen or a channel), so nobody "
+				  "is offered: in Discord, click Watch Stream on a squad mate, or pop their stream out."
 			: e_->rosterLive() ? "Nobody is live in your voice channel right now."
 			: !anyTicked
 				? "Who are you playing with? <a style=\"color:#c99a3b\" href=\"kennel:squad\">Pick "

@@ -14,7 +14,14 @@ public:
 	/// texture of that part's size: the read-back is a few hundred kilobytes, not the whole frame.
 	/// targetWidth 0 = the part's own size on the source.
 	bool grabRegion(obs_source_t *source, double rx, double ry, double rw, double rh, int targetWidth,
-			std::vector<uint8_t> &bgra, int &w, int &h, int &linesize);
+			std::vector<uint8_t> &bgra, int &w, int &h, int &linesize, obs_source_t *below = nullptr);
+	/// The source as it looks under one of its filters (our hide filter): a warm feed is fully
+	/// transparent on stream, yet what it holds can still be looked at.
+	bool grabBelow(obs_source_t *source, obs_source_t *filter, int targetWidth, std::vector<uint8_t> &bgra, int &w,
+		       int &h, int &linesize)
+	{
+		return grabRegion(source, 0, 0, 1, 1, targetWidth, bgra, w, h, linesize, filter);
+	}
 
 private:
 	gs_texrender_t *tr_ = nullptr;

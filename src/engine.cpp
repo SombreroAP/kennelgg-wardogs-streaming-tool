@@ -23,6 +23,7 @@
 #include <QCoreApplication>
 #include <QUrl>
 #include "http.h"
+#include "picture.h"
 #include <QDateTime>
 
 #ifdef _WIN32
@@ -59,6 +60,8 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&popoutTimer_, &QTimer::timeout, this, &Engine::watchPopouts);
 	webLiveTimer_.setInterval(60000);
 	connect(&webLiveTimer_, &QTimer::timeout, this, &Engine::webLiveTick);
+	pictureTimer_.setInterval(1000);
+	connect(&pictureTimer_, &QTimer::timeout, this, &Engine::pictureTick);
 	connect(&timer_, &QTimer::timeout, this, &Engine::tick);
 	connect(&frameTimer_, &QTimer::timeout, this, &Engine::frameTick);
 	downDelay_.setSingleShot(true);
@@ -654,6 +657,7 @@ void Engine::start()
 	if (cfg.autoStartReplay && cfg.clipUseReplay)
 		clips.ensureReplayBuffer();
 	webLiveTimer_.start();
+	pictureTimer_.start();
 	QTimer::singleShot(8000, this, [this]() {
 		if (!stopping_)
 			webLiveTick();
@@ -989,6 +993,7 @@ void Engine::stopTimers()
 	timer_.stop();
 	frameTimer_.stop();
 	webLiveTimer_.stop();
+	pictureTimer_.stop();
 	healthTimer_.stop();
 	popoutTimer_.stop();
 	replayTimer_.stop();
@@ -1657,6 +1662,7 @@ void Engine::reloadConfig()
 		timer_.start(std::max(100, cfg.pollMs));
 		healthTimer_.start(5000);
 		webLiveTimer_.start();
+		pictureTimer_.start();
 		if (bridge.clients() > 0 && frameTimer_.interval() > 0)
 			frameTimer_.start();
 	}
@@ -2397,6 +2403,10 @@ Engine::Feed Engine::feedState(const Friend &f) const
 	}
 	if (f.kind != FriendKind::Discord)
 		return Feed::Unknown;
+	// what their capture actually holds beats every other sign: a stream the roster lists, or a
+	// pop-out that is bound, is still nothing to show while it is Discord's call grid
+	if (noGamePicture(f))
+		return Feed::Off;
 	// The voice roster is the authority when it knows my channel: a squad mate it does not list
 	// there is not streaming to me, whatever windows are still open on this PC - Discord leaves a
 	// pop-out up after a stream ends, and a bound window is not proof of a picture.
@@ -2439,7 +2449,7 @@ QString Engine::feedStateText(const Friend &f) const
 	case Feed::Live:
 		return "live";
 	case Feed::Off:
-		return "not streaming";
+		return noGamePicture(f) ? "no game picture" : "not streaming";
 	default:
 		return "";
 	}
@@ -2464,6 +2474,142 @@ int Engine::anyLiveFriend() const
 		if (feedState(cfg.friends[i]) == Feed::Unknown)
 			return (int)i;
 	return -1;
+}
+
+bool Engine::noGamePicture(const Friend &f) const
+{
+	if (!cfg.pictureCheck || f.kind != FriendKind::Discord)
+		return false;
+	auto it = picture_.constFind(QString::fromStdString(f.source));
+	if (it == picture_.constEnd() || !it->off)
+		return false;
+	// a capture nobody has looked at for a minute (hidden since) is not known to be empty any more
+	return QDateTime::currentMSecsSinceEpoch() - it->atMs < 60000;
+}
+
+QStringList Engine::namesOn(const QString &source) const
+{
+	QStringList out;
+	for (const auto &f : cfg.friends)
+		if (f.kind == FriendKind::Discord && QString::fromStdString(f.source) == source)
+			out << QString::fromStdString(f.name);
+	return out;
+}
+
+/// Look at every Discord capture that is running: the warm one under its hide filter, the one on
+/// screen, the vertical canvas's. A capture that is not showing anywhere is not drawn by OBS, so
+/// what it holds is old and is not looked at. On screen it is looked at every second, so the call
+/// grid comes off within two; otherwise every other second.
+void Engine::pictureTick()
+{
+	if (stopping_ || pictureBusy_ || !cfg.pictureCheck)
+		return;
+	pictureTickN_++;
+	if (!applied_ && (pictureTickN_ % 2) != 0)
+		return;
+	std::vector<std::string> names;
+	for (const auto &f : cfg.friends)
+		if (f.kind == FriendKind::Discord && !f.source.empty() &&
+		    std::find(names.begin(), names.end(), f.source) == names.end())
+			names.push_back(f.source);
+	if (names.empty())
+		return;
+	pictureBusy_ = true;
+	workers_++;
+	std::thread([this, names]() {
+		WorkerGuard guard(workers_);
+		struct Seen {
+			QString source;
+			Picture::Look look;
+		};
+		std::vector<Seen> seen;
+		for (const auto &n : names) {
+			if (stopping_)
+				break;
+			obs_source_t *src = obs_get_source_by_name(n.c_str());
+			if (!src)
+				continue;
+			if (obs_source_showing(src)) {
+				obs_source_t *hf = obs_source_get_filter_by_name(src, Config::hideFilterName());
+				std::vector<uint8_t> bgra;
+				int w = 0, h = 0, ls = 0;
+				if (capPicture_.grabRegion(src, 0, 0, 1, 1, Picture::kWidth, bgra, w, h, ls, hf))
+					seen.push_back(
+						{QString::fromStdString(n), Picture::look(bgra.data(), w, h, ls)});
+				if (hf)
+					obs_source_release(hf);
+			}
+			obs_source_release(src);
+		}
+		QMetaObject::invokeMethod(
+			this,
+			[this, seen]() {
+				pictureBusy_ = false;
+				if (stopping_)
+					return;
+				for (const auto &s : seen)
+					if (!s.look.empty)
+						pictureSeen(s.source, s.look.picture, s.look.area, s.look.density);
+			},
+			Qt::QueuedConnection);
+	}).detach();
+}
+
+void Engine::pictureSeen(const QString &source, bool picture, double area, double density)
+{
+	PictureSeen &p = picture_[source];
+	p.atMs = QDateTime::currentMSecsSinceEpoch();
+	p.area = area;
+	p.density = density;
+	const Friend *act = cfg.active();
+	bool onScreen = applied_ && act && QString::fromStdString(act->source) == source;
+	QStringList who = namesOn(source);
+	QString names = who.size() > 3 ? QString("%1 and %2 others").arg(who.mid(0, 2).join(", ")).arg(who.size() - 2)
+				       : who.join(", ");
+	if (picture) {
+		p.good++;
+		p.bad = 0;
+		if (!p.off || p.good < 2)
+			return;
+		p.off = false;
+		log(QString("Picture check: %1 - a game picture again, back on offer.").arg(names));
+		// still downed, and the swap came off because this feed had nothing: put it back
+		if (detected_ && !applied_ && cfg.enabled && !downDelay_.isActive() && act &&
+		    QString::fromStdString(act->source) == source)
+			applyNow(true, "game picture back in " + QString::fromStdString(act->name) + "'s feed");
+		emit stateChanged();
+		return;
+	}
+	p.bad++;
+	p.good = 0;
+	// two looks on screen (about two seconds), three when it is only warm: a stream loading or a
+	// dark moment never takes a squad mate off
+	if (p.off || p.bad < (onScreen ? 2 : 3))
+		return;
+	p.off = true;
+	bool shared = who.size() > 1 || source == Friend::discordCallSourceName();
+	log(QString("Picture check: no game picture in %1 (largest picture %2% of it, %3% filled; a stream is at "
+		    "least %4% and %5%) - %6 not shown until there is. %7")
+		    .arg(shared ? "the Discord window" : names + "'s feed")
+		    .arg((int)std::lround(area * 100))
+		    .arg((int)std::lround(density * 100))
+		    .arg((int)std::lround(Picture::kMinArea * 100))
+		    .arg((int)std::lround(Picture::kMinDensity * 100))
+		    .arg(shared ? names : "they are")
+		    .arg(shared ? "Discord is showing the call or a channel, or is minimised: click Watch Stream on a "
+				  "squad mate in Discord, or pop their stream out."
+				: "Their stream ended or has not started."));
+	if (onScreen) {
+		int alt = anyLiveFriend(); // this feed counts as Off now, so it is never picked again
+		if (alt >= 0 && alt != cfg.activeFriend) {
+			log("Picture check: " + QString::fromStdString(act->name) +
+			    "'s feed has no game picture - showing " + QString::fromStdString(cfg.friends[alt].name) +
+			    " instead.");
+			setActive(alt);
+		} else
+			applyNow(false, "no game picture in " + QString::fromStdString(act->name) + "'s feed");
+	}
+	emit stateChanged();
 }
 
 int Engine::nearbyDistanceOf(int friendIdx) const
@@ -3069,7 +3215,7 @@ void Engine::detect(const Match &m)
 		if (!applied_ && cfg.active() && feedState(*cfg.active()) == Feed::Off) {
 			int alt = anyLiveFriend();
 			if (alt < 0) {
-				log("Downed, but none of the squad is streaming right now - staying on your own POV.");
+				log("Downed, but none of the squad is streaming a game picture right now - staying on your own POV.");
 				return;
 			}
 			if (alt != cfg.activeFriend) {

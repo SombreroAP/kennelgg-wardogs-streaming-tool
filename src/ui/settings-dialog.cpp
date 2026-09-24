@@ -1139,6 +1139,18 @@ QWidget *SettingsDialog::buildSwitchTab()
 	v4->addWidget(preload_);
 	connect(preload_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	v4->addWidget(keepWarm_);
+	pictureCheck_ =
+		new QCheckBox("Only show a Discord squad mate while their capture has a game picture in it: never "
+			      "Discord's call screen, a text channel or a \"stream ended\" card",
+			      g4);
+	pictureCheck_->setToolTip(
+		"The capture is looked at every second or two, under the hide filter, so it works before "
+		"it goes on stream. Somebody in the call who is not streaming, or a Discord window that is "
+		"not on their stream, is left off the dock and never swapped in until a game picture is "
+		"there. A webcam or a shared desktop that fills the capture counts as a picture.");
+	pictureCheck_->setChecked(e_->cfg.pictureCheck);
+	v4->addWidget(pictureCheck_);
+	connect(pictureCheck_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	pages_[PSquad]->addWidget(g4);
 	connect(rosterOn_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(rosterSources_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
@@ -3171,6 +3183,8 @@ void SettingsDialog::collect()
 	c.rosterChannel.clear(); // whichever channel you are in
 	c.rosterAddSources = rosterSources_->isChecked();
 	c.keepWarm = keepWarm_->isChecked();
+	if (pictureCheck_)
+		c.pictureCheck = pictureCheck_->isChecked();
 	if (invSwitch_)
 		c.invSwitch = invSwitch_->isChecked();
 	c.preloadFeeds = preload_ ? preload_->isChecked() : c.preloadFeeds;

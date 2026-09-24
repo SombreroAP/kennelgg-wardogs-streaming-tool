@@ -85,6 +85,7 @@ void Config::load()
 	DEFI(activeFriend);
 	DEFB(bringToFront);
 	DEFB(keepWarm);
+	DEFB(pictureCheck);
 	DEFB(preloadFeeds);
 	DEFB(friendAudio);
 	DEFB(audioDefaults2);
@@ -255,6 +256,7 @@ void Config::load()
 	GETI(activeFriend);
 	GETB(bringToFront);
 	GETB(keepWarm);
+	GETB(pictureCheck);
 	GETB(preloadFeeds);
 	GETB(friendAudio);
 	GETB(audioDefaults2);
@@ -610,6 +612,7 @@ void Config::save() const
 	SETI(activeFriend);
 	SETB(bringToFront);
 	SETB(keepWarm);
+	SETB(pictureCheck);
 	SETB(preloadFeeds);
 	SETB(friendAudio);
 	SETB(audioDefaults2);

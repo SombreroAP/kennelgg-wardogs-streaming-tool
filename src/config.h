@@ -80,6 +80,9 @@ struct Config {
 	bool audioAutoPicked = false; // desktop audio was ticked automatically once
 	bool bringToFront = true;
 	bool keepWarm = true;
+	/// Discord squad mates are shown only while their capture holds a game picture: never the call
+	/// grid, a text channel or a "stream ended" card (Picture::look decides).
+	bool pictureCheck = true;
 	bool preloadFeeds = false;   // every squad mate's feed loaded and playing, hidden and silent
 	bool friendAudio = true;     // the squad mate on screen is the one feed with sound on your stream
 	bool audioDefaults2 = false; // one-time move to "nothing of yours is muted by default"

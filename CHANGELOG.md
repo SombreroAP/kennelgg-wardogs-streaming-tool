@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.7
+- **A squad mate's feed goes on stream only when it has a game picture in it.** Somebody in the Discord call who is not streaming, a Discord window sitting on the call screen or a text channel, or a stream that has just ended no longer ends up on your stream. Every Discord capture that is running is looked at every second or two (under the hide filter, so it is checked before it is ever shown): the call grid, channels and "stream ended" cards are flat panels with text and small avatars, and a game is picture from edge to edge, which is what it looks for. A capture with no game picture takes that squad mate off the dock and out of Closest, downed and mag-packing swaps until a picture is there again. If one goes blank while it is on stream, another squad mate with a picture takes over within two seconds, or your own POV comes back; if you are still down when the picture returns, the swap goes back on.
+  - The dock says so when it is Discord that is showing nothing ("click Watch Stream on a squad mate in Discord, or pop their stream out"), and the Squad window's Now column reads "no game picture".
+  - Tested on 48 WARDOGS frames (full screen, popped out, and inside the Discord window) plus 36 of them squeezed like a low-bitrate stream, and on 15 Discord screens (call grids of 1 to 6 people, gradient themes, text channels, "stream ended", black). Every Discord screen was left off. Every game frame was kept but two, both of the full-screen map (mostly flat colour): one inside the Discord window with its side panels, one at the worst stream quality. It needs three looks in a row before it takes anyone off, so a moment like that does not. A webcam or a shared desktop that fills the capture still counts as a picture.
+  - On by default; Settings, Squad & POV, Extras turns it off.
+
 ## 0.19.6
 - **Every kill is written down with what made it and exactly when.** Each kill ClipHound logs now carries the weapon, its type (gun, grenade, explosive, launcher, mortar, artillery, bow, melee, vehicle, vehicle weapon), the vehicle when there was one, a headshot flag, and its time to the millisecond.
   - **Guns** are named by the game's name only when something named them (your HUD at your kill, or a learned kill-feed icon); otherwise the weapon is left blank rather than guessed.
