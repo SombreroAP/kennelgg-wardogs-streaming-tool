@@ -297,6 +297,11 @@ class KillDetector:
     # chopper or C4, the kill was not the gun in your hands (you switched, or were in a vehicle)
     NOT_A_GUN = {"heli", "tank", "car", "c4", "rpg", "grenade", "mortar", "artillery", "hammer"}
     VEHICLES = {"heli", "tank", "car", "artillery"}
+    # kills that land after the thing is out of your hands: a grenade explodes, C4 is set off, a
+    # rocket or a mortar round flies, while the gun is already back up. The HUD's current weapon is
+    # never the answer for these; the thrown or fired one, if the plate showed it a moment before, is
+    DELAYED = {"grenade", "c4", "rpg", "mortar"}
+    DELAYED_WINDOW_S = 15.0
 
     def _weapon(self, row, my_kill: bool, icons: list[str]) -> tuple[str, str]:
         """The game's name for what made this kill, and where it came from.
@@ -312,7 +317,20 @@ class KillDetector:
         icon = max(with_icon, key=lambda r: r.weapon_icon.size).weapon_icon if with_icon else None
         generic = [i for i in icons if i not in ("skull", "explosion")]
         if my_kill:
+            killtype = [i for i in icons if i == "explosion"]
+            delayed = generic[0] if generic and generic[0] in self.DELAYED else ("explosion" if killtype and not generic else "")
+            if delayed:
+                # the feed says grenade / C4 / rocket / mortar (or a bare explosion): name it after
+                # the explosive the plate showed in the last few seconds, never the gun held now
+                classes = {"grenade", "c4", "rpg", "mortar"} if delayed == "explosion" else {delayed}
+                thrown = reader.recent(row.first, lambda n: W.class_of(n) in classes, self.DELAYED_WINDOW_S)
+                return (thrown, "hud") if thrown else ("", "")
             held = reader.held_at(row.first)
+            if held and W.class_of(held) in self.DELAYED and generic and generic[0] not in self.NOT_A_GUN:
+                # the plate already shows the grenade you are pulling, but the feed says a gun made
+                # the kill: the gun held just before it
+                held = reader.recent(row.first, lambda n: W.class_of(n) not in self.DELAYED and
+                                     W.category_of(n) not in ("tool", "melee"), self.DELAYED_WINDOW_S)
             if held:
                 cls = W.class_of(held)
                 # the HUD names the weapon; the one thing it cannot know is that the kill was made

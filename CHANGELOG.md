@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.5
+- **Grenade kills are no longer named after the gun in your hands.** A grenade goes off after you have switched back to your rifle, so the HUD shows the rifle by the time it kills. When the kill feed shows a grenade, C4, a rocket or a mortar round (or a bare explosion), the kill is named after the explosive the HUD showed in your hands in the 15 seconds before ("with the M67 Frag Grenade"), and never after the gun held now; with none, it keeps the kill-feed type ("with a grenade"). Clip titles, tags and the highlights reel follow, so a grenade kill no longer scores or reads as a rifle kill.
+- The other way round too: a gun kill made just as you pull a grenade is named after the gun you were holding a moment before.
+
 ## 0.19.4
 - **Fixed: magazine packing stayed off after Auto switch was turned back on.** ClipHound only watches for the inventory screen while Auto switch is on, and turning Auto switch on or off did not tell it: it stayed off until OBS was restarted. It is told at once now.
 - **ClipHound, in words, on the dock.** A line under the clip buttons says whether ClipHound is running (with a Start link when it is not), the weapon it sees in your hands, and whether it is watching for mag packing - or that mag packing is waiting for Auto switch, with a link that turns it on.

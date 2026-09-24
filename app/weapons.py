@@ -535,6 +535,22 @@ class WeaponReader:
                 break
         return name or None
 
+    def recent(self, ts: float, pred, within: float) -> str | None:
+        """The most recent weapon the plate showed in the `within` seconds up to `ts` that `pred`
+        accepts: the grenade you threw a moment ago, though the gun is back in your hands."""
+        cutoff = ts + 0.2
+        until = cutoff                             # when the entry after this one began
+        for t, n in reversed(self.timeline):
+            if t > cutoff:
+                until = t
+                continue
+            if ts - until > within:
+                break                              # put away longer ago than that
+            if n and pred(n):
+                return n
+            until = t
+        return None
+
     def current(self) -> str | None:
         return (self.timeline[-1][1] or None) if self.timeline else None
 
