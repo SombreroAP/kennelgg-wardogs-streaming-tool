@@ -157,12 +157,10 @@ begin
   if UninstallSilent() then
     Exit;
 
-  Form := CreateCustomForm();
+  // Inno Setup 6.4+: the size goes in here, and the form centres itself when shown
+  Form := CreateCustomForm(ScaleX(460), ScaleY(250), False, False);
   try
     Form.Caption := 'Uninstall Kennel.gg Wardogs Streaming Tool';
-    Form.ClientWidth := ScaleX(460);
-    Form.ClientHeight := ScaleY(250);
-    Form.Position := poScreenCenter;
 
     Info := TNewStaticText.Create(Form);
     Info.Parent := Form;
