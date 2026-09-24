@@ -38,7 +38,6 @@ except ImportError:  # the OCR build always has it; a bare test environment may 
 # line is y 0.837-0.852); generous so a different HUD scale or aspect still lands in it.
 HUD_ROI = (0.70, 0.815, 0.29, 0.055)
 HUD_FPS = 2.0
-HISTORY_S = 6.0            # HUD crops kept, seconds
 LEARNED_MATCH = 0.85       # a learned icon names a kill from this score: on the streamer's own rows the
                            # same gun scored 0.88-1.00 and the nearest other rifle 0.82 (22 Sep footage)
 LEARN_MAX = 12             # samples kept per weapon
@@ -122,6 +121,11 @@ WEAPONS: list[tuple[str, str, str]] = [
     ("L52 Cannon", "vehicle weapon", "artillery"),
 ]
 
+# things you can hold that are not weapons: seeing one of these on the plate means the gun you had is
+# put away. Only a positive match counts - unreadable text never clears what you were holding
+NOT_WEAPONS = ["Emergency Resuscitator", "M18 Smoke Grenade", "M18 Signal Grenade", "Halligan Bar", "Wrench",
+               "Light Drill", "Heavy Drill", "Loudspeaker"]
+
 # what can be learned from a kill-feed icon: things you hold (and the mortar you fire)
 LEARNABLE = {"assault rifle", "SMG", "shotgun", "LMG", "marksman rifle", "sniper rifle", "pistol", "launcher",
              "bow", "grenade", "explosive", "melee", "tool", "emplacement"}
@@ -142,15 +146,9 @@ def _norm(s: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", s.upper())
 
 
-def match_name(text: str) -> str | None:
-    """The weapon an OCR'd HUD line names, or None. The plate often carries the calibre after the
-    name ("GALIL 5.56"), and OCR drops or doubles a letter; the name has to lead the line and fit
-    clearly better than any other."""
-    t = _norm(text)
-    if len(t) < 2:
-        return None
+def _score_names(t: str, names) -> list[tuple[float, str]]:
     scored = []
-    for n, _, _ in WEAPONS:
+    for n in names:
         c = _norm(n)
         head = t[:len(c) + 1]
         # OCR swaps I/1 and O/0: compare with those folded together as well
@@ -162,11 +160,32 @@ def match_name(text: str) -> str | None:
             r = 1.0 if t.startswith(c) and (len(t) == len(c) or not t[len(c)].isalpha()) else 0.0
         scored.append((r, n))
     scored.sort(reverse=True)
-    best, name = scored[0]
-    second = scored[1][0] if len(scored) > 1 else 0.0
-    if best >= 0.82 and best - second >= 0.06:
-        return name
-    return None
+    return scored
+
+
+def match_item(text: str) -> tuple[str | None, bool]:
+    """(name, is_weapon) for an OCR'd plate line, or (None, False). The name may start at any word:
+    scenery behind the plate can put junk in front of it. The calibre after it ("GALIL 5.56") is
+    ignored. The fit has to be clearly better than any other name."""
+    words = [w for w in re.split(r"\s+", text.strip()) if w]
+    best = (0.0, None, False, 0.0)
+    for i in range(len(words)):
+        t = _norm(" ".join(words[i:]))
+        if len(t) < 2:
+            continue
+        ranked = sorted([(r, n, True) for r, n in _score_names(t, [n for n, _, _ in WEAPONS])] +
+                        [(r, n, False) for r, n in _score_names(t, NOT_WEAPONS)], reverse=True)
+        r, n, weapon = ranked[0]
+        second = ranked[1][0] if len(ranked) > 1 else 0.0
+        if r >= 0.82 and r - second >= 0.06 and r > best[0]:
+            best = (r, n, weapon, second)
+    return (best[1], best[2]) if best[1] else (None, False)
+
+
+def match_name(text: str) -> str | None:
+    """The weapon an OCR'd HUD line names, or None."""
+    name, weapon = match_item(text)
+    return name if weapon else None
 
 
 def read_plate(crop_bgr: np.ndarray) -> str:
@@ -186,13 +205,21 @@ def read_plate(crop_bgr: np.ndarray) -> str:
 
 
 class WeaponReader:
-    """Keeps the HUD corner's last few seconds and names what you held at a moment; saves and
-    serves the learned kill-feed icons."""
+    """Knows what you are holding, from the HUD, all the time; saves and serves the learned
+    kill-feed icons.
+
+    The item plate is watched continuously in the background: a crop that has not changed is not
+    read again, and at most one read a second is made, so it costs next to nothing between weapon
+    switches. Every clear reading goes on a timeline, and a kill takes the last one before it. That
+    way a kill is named even when the plate has faded by the time it happens: the game shows it
+    when you switch, and what you switched to is what you are still holding."""
 
     def __init__(self, base_dir: str = "icons"):
-        self.hist: deque = deque()
-        self._lock = threading.Lock()
-        self._cache: dict[float, str | None] = {}
+        self._cv = threading.Condition()
+        self._latest = None                        # the newest HUD crop, (crop, ts), not read yet
+        self._thumb = None                         # the last crop that was read, small and grey
+        self._last_read = 0.0
+        self.timeline: deque = deque(maxlen=400)   # (ts, name); "" = the plate shows something that is not a weapon
         self.dir = os.path.join(base_dir, "learned")
         self.learned: dict[str, list[np.ndarray]] = {}
         # weapons found to draw the same kill-feed icon (the game gives some guns one damage type,
@@ -201,43 +228,65 @@ class WeaponReader:
         self._last_name = None
         self._clash: dict[str, int] = {}
         self.load()
+        threading.Thread(target=self._watch, daemon=True, name="hud-plate").start()
 
     # ---- the HUD ---------------------------------------------------------------------------
     def on_hud(self, crop: np.ndarray, ts: float):
-        with self._lock:
-            self.hist.append((ts, crop))
-            while self.hist and ts - self.hist[0][0] > HISTORY_S:
-                old = self.hist.popleft()
-                self._cache.pop(old[0], None)
+        with self._cv:
+            self._latest = (crop, ts)
+            self._cv.notify()
 
-    def _name_of(self, ts: float, crop) -> str | None:
-        if ts not in self._cache:
-            text = read_plate(crop)
-            name = None
-            for line in text.splitlines():
-                name = match_name(line)
-                if name:
-                    break
-            self._cache[ts] = name
-        return self._cache[ts]
+    def _watch(self):
+        while True:
+            with self._cv:
+                while self._latest is None:
+                    self._cv.wait()
+                crop, ts = self._latest
+                self._latest = None
+            try:
+                g = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+                thumb = cv2.resize(g, (96, 12), interpolation=cv2.INTER_AREA).astype(np.int16)
+                # changed = enough cells changed a lot: a plate appearing is a small part of the
+                # crop, and an average over the whole of it hid that
+                if self._thumb is not None and float((np.abs(thumb - self._thumb) > 25).mean()) < 0.01:
+                    continue                       # the same plate (or the same nothing) as last time
+                wait = 1.0 - (time.time() - self._last_read)
+                if wait > 0:
+                    time.sleep(wait)              # one read a second at most; the newest crop is read next
+                self._thumb = thumb
+                self._last_read = time.time()
+                self._read(crop, ts)
+            except Exception as e:
+                print(f"[weapons] HUD read: {e}")
+
+    def _read(self, crop, ts: float):
+        text = read_plate(crop)
+        for line in text.splitlines():
+            name, weapon = match_item(line)
+            if name:
+                self._note(ts, name if weapon else "")   # a medkit or a tool: the gun is put away
+                return
+        # blank or unreadable says nothing about what is in your hands: keep the last reading
+
+    def _note(self, ts: float, name: str):
+        if self.timeline and self.timeline[-1][1] == name:
+            return                                 # the same weapon: the entry keeps when it started
+        self.timeline.append((ts, name))
+        print(f"[weapons] holding: {name or '(no weapon)'}")
 
     def held_at(self, ts: float) -> str | None:
-        """What you were holding at `ts` (epoch seconds): the name most of the HUD frames from two
-        seconds before to half a second after agree on."""
-        with self._lock:
-            frames = [(t, c) for t, c in self.hist if ts - 2.0 <= t <= ts + 0.5]
-        # the three nearest the moment: each is a tesseract call, and the clip is waiting
-        frames = sorted(frames, key=lambda f: abs(f[0] - ts))[:3]
-        names = [n for n in (self._name_of(t, c) for t, c in frames) if n]
-        if not names:
-            return None
-        name, votes = Counter(names).most_common(1)[0]
-        if votes * 2 < len(names):
-            return None           # switched weapons in that window: no answer beats a wrong one
-        if name != self._last_name:
-            print(f"[weapons] holding: {name}")
-            self._last_name = name
-        return name
+        """What you were holding at `ts` (epoch seconds): the last weapon the plate showed before
+        then. None when the plate has not been read yet this session, or showed a non-weapon."""
+        cutoff = ts + 0.2        # the plate can land a moment after the switch that preceded the kill
+        name = None
+        for t, n in reversed(self.timeline):
+            if t <= cutoff:
+                name = n
+                break
+        return name or None
+
+    def current(self) -> str | None:
+        return (self.timeline[-1][1] or None) if self.timeline else None
 
     # ---- learned icons -----------------------------------------------------------------------
     def _shared_path(self):

@@ -78,8 +78,11 @@ class Trigger:
         if ds and not any(ch.isdigit() for ch in t):
             bits.append("at " + (ds[0] if len(ds) == 1 else ", ".join(ds[:-1]) + " and " + ds[-1]))
         if weapons and weapons[0].lower() not in low:
-            w = weapons[0]
-            bits.append(("with the " if any(e.weapon for e in self.events) else "with a ") + w)
+            if any(e.weapon for e in self.events):
+                ws = weapons[:3]
+                bits.append("with the " + (ws[0] if len(ws) == 1 else ", the ".join(ws[:-1]) + " and the " + ws[-1]))
+            else:
+                bits.append("with a " + weapons[0])
         n = len(self.events)
         if n > 1 and "kill" in low and not any(ch.isdigit() for ch in t):
             bits.append(f"({n} kills)")
@@ -293,6 +296,7 @@ class KillDetector:
     # the generic kill-feed classes a gun can never be: if the HUD says Galil and the icon is a
     # chopper or C4, the kill was not the gun in your hands (you switched, or were in a vehicle)
     NOT_A_GUN = {"heli", "tank", "car", "c4", "rpg", "grenade", "mortar", "artillery", "hammer"}
+    VEHICLES = {"heli", "tank", "car", "artillery"}
 
     def _weapon(self, row, my_kill: bool, icons: list[str]) -> tuple[str, str]:
         """The game's name for what made this kill, and where it came from.
@@ -311,10 +315,14 @@ class KillDetector:
             held = reader.held_at(row.first)
             if held:
                 cls = W.class_of(held)
-                clash = generic and generic[0] in self.NOT_A_GUN and generic[0] != cls
-                if not clash:
+                # the HUD names the weapon; the one thing it cannot know is that the kill was made
+                # by a vehicle you are in (the gun you last held is still "held"), which the feed shows
+                if generic and generic[0] in self.VEHICLES and W.category_of(held) != "vehicle weapon":
+                    return "", ""
+                # learn the icon only when it cannot be something else entirely
+                if not (generic and generic[0] in self.NOT_A_GUN and generic[0] != cls):
                     reader.learn(held, icon)
-                    return held, "hud"
+                return held, "hud"
         exact = Counter(r.exact for r in row.reads if getattr(r, "exact", ""))
         if exact:
             name, votes = exact.most_common(1)[0]
