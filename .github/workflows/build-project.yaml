@@ -333,6 +333,28 @@ jobs:
           & $Iscc "/DVERSION=${{ steps.setup.outputs.pluginVersion }}" "/DSRC=${{ github.workspace }}\release\${{ needs.check-event.outputs.config }}\${{ steps.setup.outputs.pluginName }}" "/DOUTDIR=${{ github.workspace }}\release" "/DAPPSRC=${{ github.workspace }}\release\app\ClipHound" installer\kennelgg.iss
           Get-ChildItem "${{ github.workspace }}\release"
 
+      - name: Build Portable Zip 🎒
+        run: |
+          # Build Portable Zip 🎒 - portable OBS loads plugins only from inside its own folder, so
+          # this zip is laid out like that folder: extract it into the OBS folder and it is installed.
+          $name = "${{ steps.setup.outputs.pluginName }}"
+          $src = "${{ github.workspace }}\release\${{ needs.check-event.outputs.config }}\$name"
+          $root = "${{ github.workspace }}\release\portable"
+          Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force "$root\obs-plugins\64bit", "$root\data\obs-plugins\$name" | Out-Null
+          Copy-Item "$src\bin\64bit\$name.dll" "$root\obs-plugins\64bit\"
+          Copy-Item -Recurse -Force "$src\data\*" "$root\data\obs-plugins\$name\"
+          Copy-Item -Recurse -Force "${{ github.workspace }}\release\app\ClipHound" "$root\ClipHound"
+          Remove-Item "$root\ClipHound\config.yaml" -ErrorAction SilentlyContinue
+          Copy-Item installer\PORTABLE-README.txt "$root\READ ME - portable OBS.txt"
+          if (-not (Test-Path "$root\obs-plugins\64bit\$name.dll")) { Write-Error "Portable zip has no plugin DLL. Stopping."; exit 1 }
+          if (-not (Test-Path "$root\ClipHound\ClipHound.exe")) { Write-Error "Portable zip has no ClipHound.exe. Stopping."; exit 1 }
+          $zip = "${{ github.workspace }}\release\$name-${{ steps.setup.outputs.pluginVersion }}-windows-x64-portable.zip"
+          Push-Location $root
+          7z a -tzip -mx=7 $zip * | Select-Object -Last 3
+          Pop-Location
+          Get-Item $zip | Select-Object Name, Length
+
       - name: Upload Artifacts 📡
         uses: actions/upload-artifact@v4
         with:

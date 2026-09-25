@@ -2528,8 +2528,9 @@ void SettingsDialog::refreshLogs()
 {
 	if (!logView_)
 		return;
-	QString appDir = e_->cfg.appPath.empty() ? QString("C:/ProgramData/Kennel.gg/ClipHound")
-						 : QFileInfo(QString::fromStdString(e_->cfg.appPath)).absolutePath();
+	QString appDir =
+		QFileInfo(e_->cfg.appPath.empty() ? Engine::defaultAppPath() : QString::fromStdString(e_->cfg.appPath))
+			.absolutePath();
 	QString body = QString("=== Kennel.gg Wardogs plugin %1 ===\n").arg(PLUGIN_VERSION);
 	body += QString("state: %1 | game source: %2 | squad mate: %3 | replay buffer: %4 | ClipHound: %5 | clip hotkeys: %6 | twitch: %7\n\n")
 			.arg(QString::fromStdString(e_->stateText()), QString::fromStdString(e_->cfg.gameSource),

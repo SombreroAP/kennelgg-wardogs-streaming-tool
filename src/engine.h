@@ -234,6 +234,9 @@ public:
 	void loadTemplates();
 	void applySearchWidth();
 	static QString langName(const std::string &lang); // "es" -> "Spanish"
+	/// Where ClipHound is when nobody chose: unzipped next to a portable OBS (<OBS>\\ClipHound),
+	/// else where the installer puts it (C:\\ProgramData\\Kennel.gg\\ClipHound).
+	static QString defaultAppPath();
 	/// The game's 14 interface languages (code, name in that language), in the setting's order.
 	static const std::vector<std::pair<std::string, QString>> &gameLanguages();
 	/// Is there a built-in downed-screen wording for this language.

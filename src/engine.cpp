@@ -274,8 +274,9 @@ void Engine::launchApp()
 		return;
 	}
 	QString p = QString::fromStdString(cfg.appPath);
-	const QString def = "C:/ProgramData/Kennel.gg/ClipHound/ClipHound.exe";
-	if (p.isEmpty() && QFileInfo::exists(def)) {
+	const QString def = defaultAppPath();
+	// none chosen, or the one chosen is gone (a portable OBS moved to another folder or drive)
+	if ((p.isEmpty() || !QFileInfo::exists(p)) && QFileInfo::exists(def)) {
 		p = def;
 		cfg.appPath = def.toStdString();
 		cfg.save();
@@ -626,13 +627,14 @@ void Engine::start()
 			detectDiscordUser(false);
 	});
 	if (cfg.appPath.empty()) {
-		// the installer puts ClipHound here; adopt it once so the app starts with OBS
-		QString def = "C:/ProgramData/Kennel.gg/ClipHound/ClipHound.exe";
+		// the installer (or the portable download) put ClipHound here; adopt it once so the app
+		// starts with OBS
+		QString def = defaultAppPath();
 		if (QFileInfo::exists(def)) {
 			cfg.appPath = def.toStdString();
 			cfg.launchApp = true;
 			cfg.save();
-			log("Found ClipHound from the installer; it will start with OBS (Settings, General).");
+			log("Found ClipHound at " + def + "; it will start with OBS (Settings, General).");
 		}
 	}
 	clips.nameTemplate = QString::fromStdString(cfg.clipNameTemplate);
@@ -875,10 +877,20 @@ void Engine::twitchLogout()
 }
 
 /// The last few lines of ClipHound's own log, for when it starts but never says hello.
+QString Engine::defaultAppPath()
+{
+	// portable OBS runs from <OBS>\bin\64bit and looks for plugins only inside its own folder;
+	// the portable download puts ClipHound in <OBS>\ClipHound
+	QString portable = QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../../ClipHound/ClipHound.exe");
+	if (QFileInfo::exists(portable))
+		return portable;
+	return "C:/ProgramData/Kennel.gg/ClipHound/ClipHound.exe";
+}
+
 QStringList Engine::appLogTail(int lines) const
 {
-	QString dir = cfg.appPath.empty() ? QString("C:/ProgramData/Kennel.gg/ClipHound")
-					  : QFileInfo(QString::fromStdString(cfg.appPath)).absolutePath();
+	QString dir =
+		QFileInfo(cfg.appPath.empty() ? defaultAppPath() : QString::fromStdString(cfg.appPath)).absolutePath();
 	QFile f(dir + "/cliphound.log");
 	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
 		return {"(no cliphound.log at " + dir + " - it may not have got far enough to write one)"};

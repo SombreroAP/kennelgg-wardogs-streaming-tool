@@ -123,11 +123,10 @@ QList<Engine::HealthItem> Engine::health() const
 			h.level = 2;
 			h.why = "ClipHound closed right after starting.";
 			h.fixes = {Fix("logs", "Open logs"), Fix("app:start", "Try again")};
-		} else if (cfg.appPath.empty() &&
-			   !QFileInfo::exists("C:/ProgramData/Kennel.gg/ClipHound/ClipHound.exe")) {
+		} else if (cfg.appPath.empty() && !QFileInfo::exists(defaultAppPath())) {
 			h.level = 3;
 			h.why = "ClipHound is not installed: run the installer again and tick it for kill-feed clips, "
-				"Closest and voice.";
+				"Closest and voice (portable OBS: unzip the portable download into the OBS folder).";
 		} else if (appUserStopped_) {
 			h.level = 3;
 			h.why = "ClipHound is stopped: no kill-feed clips, Closest or voice until it runs.";

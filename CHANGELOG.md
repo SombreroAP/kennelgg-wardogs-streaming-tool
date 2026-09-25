@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.9
+- **Portable OBS is supported.** Portable OBS only loads plugins from inside its own folder, so the installer could never reach it. Each release now has a **portable zip** (on kennel.gg/obs under the main download): the plugin and ClipHound laid out like OBS's folder. Close OBS, drag everything in the zip into your portable OBS folder, start OBS. Settings live in portable OBS's own config folder, and updating is dragging the new zip in again.
+- ClipHound is found by itself when it sits in a `ClipHound` folder next to OBS, and started with OBS, with no Browse step. If the ClipHound you picked has gone (a portable OBS moved to another folder or drive), the one next to OBS is used instead.
+
 ## 0.19.8
 - **Uninstall can start you fresh.** Uninstalling from Windows (Settings, Apps) now asks whether to keep your settings. They are kept unless you tick **Also remove all my settings (start fresh)**. Ticked, it also removes the squad list, hotkeys, dock and setup answers, the clip list, ClipHound's settings and Twitch login, its logs, learned weapon icons and language packs. Your recorded clips and highlight reels are never touched. Sources the plugin added to your OBS scenes (named "Kennel.gg ...") stay in OBS; delete them there if you want them gone too.
 - The uninstaller waits for OBS to be closed, and closes ClipHound itself, so no file is left behind because it was in use.
