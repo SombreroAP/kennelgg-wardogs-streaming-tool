@@ -360,6 +360,10 @@ private:
 	void pictureTick();
 	void pictureSeen(const QString &source, bool picture, double area, double density);
 	QStringList namesOn(const QString &source) const;
+	QHash<QString, QDateTime> rosterGone_; // roster slots whose owner stopped sharing, and since when
+	QSet<QString> offered_;                // on the dock's list at the last state change
+	bool offeredKnown_ = false;
+	void logOfferedChanges();
 	QTimer replayTimer_; // polls the playing replay: seek once loaded, stop at its end
 	qint64 replayStartMs_ = 0, replayEndMs_ = 0, replayLengthMs_ = 0;
 	QElapsedTimer replayClock_;

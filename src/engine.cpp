@@ -56,6 +56,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&roster, &Roster::changed, this, &Engine::checkAccess);
 	connect(&roster, &Roster::polled, this, &Engine::checkAccess);
 	connect(&roster, &Roster::changed, this, &Engine::syncRoster);
+	connect(&roster, &Roster::polled, this, &Engine::syncRoster); // the minute's grace runs out between changes
 	popoutTimer_.setInterval(2000);
 	connect(&popoutTimer_, &QTimer::timeout, this, &Engine::watchPopouts);
 	webLiveTimer_.setInterval(60000);
@@ -1187,6 +1188,7 @@ void Engine::checkAccess()
 		lastRosterStatus_ = rs;
 		log("Discord voice: " + rs + ".");
 	}
+	logOfferedChanges(); // who is live comes from here: say who came onto or left the dock's list
 	Access a = rosterAccess();
 	if (a == lastAccess_)
 		return;
@@ -1242,12 +1244,28 @@ void Engine::syncRoster()
 		for (const auto &m : live)
 			if (same(m, f))
 				still = true;
-		if (still)
+		QString key = QString::fromStdString(f.name).toLower();
+		if (still) {
+			rosterGone_.remove(key);
 			continue;
+		}
+		// Discord drops the go-live flag for a moment when a stream restarts or changes quality,
+		// and a slot deleted then took its pop-out capture with it and came back unbound. Keep it
+		// while its pop-out window is open, and otherwise for a minute; it is simply not offered
+		// meanwhile (the roster says it is not live)
+		if (f.onPopout())
+			continue;
+		if (!rosterGone_.contains(key)) {
+			rosterGone_.insert(key, QDateTime::currentDateTime());
+			continue;
+		}
+		if (rosterGone_.value(key).secsTo(QDateTime::currentDateTime()) < 60)
+			continue;
+		rosterGone_.remove(key);
 		if (applied_ && (int)i == cfg.activeFriend)
 			applyNow(false, "their Discord share ended");
 		sw.removeFriendSources(cfg, f);
-		log("Squad: " + QString::fromStdString(f.name) + " stopped sharing - slot removed.");
+		log("Squad: " + QString::fromStdString(f.name) + " stopped sharing a minute ago - slot removed.");
 		cfg.friends.erase(cfg.friends.begin() + (long)i);
 		changed = true;
 	}
@@ -2008,6 +2026,47 @@ void Engine::broadcastState()
 {
 	if (bridge.allClients() > 0)
 		bridge.sendJson(stateJson());
+	logOfferedChanges();
+}
+
+/// One line each time a squad mate comes onto or leaves the dock's list, with the reason, so a
+/// log says why somebody who was streaming was not there.
+void Engine::logOfferedChanges()
+{
+	QSet<QString> now;
+	for (const auto &f : cfg.friends)
+		if (inSquadNow(f))
+			now.insert(QString::fromStdString(f.name));
+	if (!offeredKnown_) {
+		offeredKnown_ = true;
+		offered_ = now;
+		return;
+	}
+	QStringList in, out;
+	for (const auto &n : now)
+		if (!offered_.contains(n))
+			in << n;
+	for (const auto &f : cfg.friends) {
+		QString n = QString::fromStdString(f.name);
+		if (!offered_.contains(n) || now.contains(n))
+			continue;
+		QString why = noGamePicture(f) ? "no game picture in their capture"
+			      : feedState(f) == Feed::Off && rosterLive()
+				      ? "the Discord voice list has them not live in your channel"
+			      : feedState(f) == Feed::Off ? "not streaming"
+			      : rosterLive()              ? "the Discord voice list cannot vouch for them"
+							  : "not ticked as Playing";
+		out << n + " (" + why + ")";
+	}
+	for (const auto &n : offered_)
+		if (std::none_of(cfg.friends.begin(), cfg.friends.end(),
+				 [&](const Friend &f) { return QString::fromStdString(f.name) == n; }))
+			out << n + " (slot removed)";
+	offered_ = now;
+	if (!in.isEmpty())
+		log("Squad list: now offering " + in.join(", ") + ".");
+	if (!out.isEmpty())
+		log("Squad list: no longer offering " + out.join(", ") + ".");
 }
 
 void Engine::onControl(const QJsonObject &o)
@@ -2415,10 +2474,6 @@ Engine::Feed Engine::feedState(const Friend &f) const
 	}
 	if (f.kind != FriendKind::Discord)
 		return Feed::Unknown;
-	// what their capture actually holds beats every other sign: a stream the roster lists, or a
-	// pop-out that is bound, is still nothing to show while it is Discord's call grid
-	if (noGamePicture(f))
-		return Feed::Off;
 	// The voice roster is the authority when it knows my channel: a squad mate it does not list
 	// there is not streaming to me, whatever windows are still open on this PC - Discord leaves a
 	// pop-out up after a stream ends, and a bound window is not proof of a picture.
@@ -2443,6 +2498,10 @@ Engine::Feed Engine::feedState(const Friend &f) const
 			if (isThem(m)) {
 				if (!myChan.isEmpty() && m.channel != myChan)
 					return Feed::Off;
+				// the roster saying they are live is proof enough to offer them: the picture check
+				// only takes them off screen if what their capture holds turns out to be the call
+				// grid once it is shown (0.19.7 hid live squad mates whenever the main Discord
+				// window was on the call while their stream was watched in a pop-out)
 				return m.streaming ? Feed::Live : Feed::Off;
 			}
 		if (!myChan.isEmpty())
@@ -2450,6 +2509,9 @@ Engine::Feed Engine::feedState(const Friend &f) const
 		// the roster does not see me at all: I am playing on a server the bot is not in, or not in
 		// voice. It cannot vouch for anyone, so the windows on this PC decide, as without a roster
 	}
+	// nobody can vouch for them: what their capture holds decides, never the call grid
+	if (noGamePicture(f))
+		return Feed::Off;
 	if (f.onPopout())
 		return Feed::Live; // no roster to ask: a bound window is the best sign there is
 	return Feed::Unknown;
@@ -2612,8 +2674,18 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 				  "squad mate in Discord, or pop their stream out."
 				: "Their stream ended or has not started."));
 	if (onScreen) {
-		int alt = anyLiveFriend(); // this feed counts as Off now, so it is never picked again
-		if (alt >= 0 && alt != cfg.activeFriend) {
+		// somebody else whose picture comes from another capture: live first, then unknown. The
+		// roster may still call this one live, so anyLiveFriend() could hand them straight back
+		int alt = -1;
+		for (Feed want : {Feed::Live, Feed::Unknown}) {
+			for (size_t i = 0; i < cfg.friends.size() && alt < 0; ++i)
+				if ((int)i != cfg.activeFriend && cfg.friends[i].source != act->source &&
+				    feedState(cfg.friends[i]) == want && inSquadNow(cfg.friends[i]))
+					alt = (int)i;
+			if (alt >= 0)
+				break;
+		}
+		if (alt >= 0) {
 			log("Picture check: " + QString::fromStdString(act->name) +
 			    "'s feed has no game picture - showing " + QString::fromStdString(cfg.friends[alt].name) +
 			    " instead.");

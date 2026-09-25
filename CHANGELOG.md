@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.10
+- **Fixed: squad mates who were streaming could vanish from the dock.** Two causes, both fixed:
+  - When you are in a Kennel.gg voice channel, the voice list saying someone is live is now enough to offer them. Since 0.19.7 the game-picture check could overrule it: a squad mate watched through your main Discord window was hidden whenever that window was on the call screen, for example while you watched their stream in a pop-out. The picture check now decides only for people the voice list cannot vouch for (you are not in a Kennel.gg voice channel). It still takes a feed off screen within two seconds if what it shows turns out to be the call screen.
+  - A squad mate added from the voice list is no longer deleted the moment Discord drops their go-live flag (it does for a moment when a stream restarts or changes quality). Deleting the slot also deleted its pop-out capture, so it came back unlinked. The slot now stays while their pop-out is open, and otherwise for a minute.
+- The log says who came onto or left the dock's list, and why ("Squad list: no longer offering gazreyn (no game picture in their capture)"), so the next time somebody is missing the reason is written down.
+
 ## 0.19.9
 - **Portable OBS is supported.** Portable OBS only loads plugins from inside its own folder, so the installer could never reach it. Each release now has a **portable zip** (on kennel.gg/obs under the main download): the plugin and ClipHound laid out like OBS's folder. Close OBS, drag everything in the zip into your portable OBS folder, start OBS. Settings live in portable OBS's own config folder, and updating is dragging the new zip in again.
 - ClipHound is found by itself when it sits in a `ClipHound` folder next to OBS, and started with OBS, with no Browse step. If the ClipHound you picked has gone (a portable OBS moved to another folder or drive), the one next to OBS is used instead.
