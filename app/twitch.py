@@ -51,7 +51,8 @@ class Twitch:
             self._refresh()
             r = requests.post(f"{HELIX}/streams/markers", headers=self.h, json=body, timeout=10)
         if r.status_code == 404:
-            self._warn_mark("offline", "[twitch] no marker: the channel is not live")
+            self._warn_mark("offline", "[twitch] no marker: the channel is not live, or it does not save past "
+                                       "broadcasts (Twitch: Settings, Stream, Store past broadcasts)")
             return False
         if r.status_code in (401, 403):
             self._warn_mark("editor", f"[twitch] no marker: {self.cfg.get('clipper_login', 'this account')} is not "
