@@ -137,6 +137,9 @@ private:
 	QCheckBox *twitchMarkers_ = nullptr, *ytChapters_ = nullptr, *sessionTrack_ = nullptr;
 	QListWidget *sessionShow_ = nullptr; // what the on-stream bar shows: ticked, in this order
 	QCheckBox *sessionOverlayOn_ = nullptr, *statsShare_ = nullptr;
+	QLabel *accountLbl_ = nullptr;
+	QPushButton *accountBtn_ = nullptr;
+	void showAccount();
 	QComboBox *sessionOverlayPos_ = nullptr, *sessionOverlayMode_ = nullptr;
 	QSpinBox *highlightsMax_ = nullptr, *clipTrimLead_ = nullptr, *runGap_ = nullptr;
 	QCheckBox *clipTrim_ = nullptr, *runMerge_ = nullptr, *runCutGaps_ = nullptr;

@@ -257,12 +257,36 @@ QList<Engine::Banner> Engine::banners() const
 		b.id = "statsconsent";
 		b.level = 0;
 		b.text =
-			"<b>Leaderboards:</b> share your session stats with kennel.gg for the public leaderboards? At "
-			"the end of each stream: your in-game name, Discord and Twitch names, and the session's kills, "
-			"deaths, assists, revives, headshots, vehicles, downs, money earned and spent, time in game, "
-			"longest kill and top weapon. Never your clips, video, voice or chat. Stop and delete any time "
-			"in Settings.";
+			"<b>Leaderboards:</b> share your session stats on the kennel.gg leaderboards? They go to your "
+			"kennel.gg account (the same as for wagers and the Cash Cup; linking it is the next step) at the "
+			"end of each stream: the session's kills, deaths, assists, revives, headshots, vehicles, downs, "
+			"money earned and spent, time in game, longest kill and top weapon. Never your clips, video, voice "
+			"or chat. Stop and delete any time in Settings.";
 		b.actions = {Fix("stats:yes", "Yes, share"), Fix("stats:no", "No thanks"), Fix("stats:about", "More")};
+		add(b);
+	}
+	if (cfg.statsConsent == 1 && !accountLinked()) {
+		Banner b;
+		b.id = "account:" + linkCode_;
+		b.level = 1;
+		b.text =
+			linkCode_.isEmpty()
+				? "<b>Leaderboards:</b> taking part needs a kennel.gg account, the same one as for wagers "
+				  "and the Cash Cup. Your stats wait on this PC until it is linked."
+				: "<b>Linking to kennel.gg:</b> sign in on the page that opened (code <b>" +
+					  linkCode_.toHtmlEscaped() + "</b>). This PC picks the link up by itself.";
+		b.actions = {
+			Fix("account:link", linkCode_.isEmpty() ? "Link kennel.gg account" : "Open the page again")};
+		add(b);
+	}
+	if (cfg.statsConsent == 1 && accountLinked() && !accountMissing().isEmpty()) {
+		Banner b;
+		b.id = "accountmissing:" + accountMissing().join(",");
+		b.level = 0;
+		b.text = "Linked to kennel.gg as <b>" + QString::fromStdString(cfg.accountName).toHtmlEscaped() +
+			 "</b>. Still to connect: <b>" + accountMissing().join(", ").toHtmlEscaped() +
+			 "</b> - the same connections as for wagers and the Cash Cup.";
+		b.actions = {Fix("account:page", "Finish on kennel.gg")};
 		add(b);
 	}
 	if (sessionEndedAt_.isValid() && sessionEndedAt_.secsTo(QDateTime::currentDateTime()) < 3 * 3600) {
@@ -421,6 +445,14 @@ bool Engine::runAction(const QString &id)
 {
 	if (id == "stats:yes" || id == "stats:no") {
 		setStatsConsent(id == "stats:yes");
+		return true;
+	}
+	if (id == "account:link") {
+		linkAccount();
+		return true;
+	}
+	if (id == "account:page") {
+		QDesktopServices::openUrl(QUrl("https://kennel.gg/account/"));
 		return true;
 	}
 	if (id == "stats:about") {

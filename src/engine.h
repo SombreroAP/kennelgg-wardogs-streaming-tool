@@ -350,6 +350,17 @@ public:
 	void setStatsConsent(bool yes);
 	void deleteSharedStats();
 	static const char *statsUrl() { return "https://kennel.gg/api/stats"; }
+	/// The kennel.gg account (the same accounts as wagers and the Cash Cup). linkAccount() asks
+	/// kennel.gg for a code, opens its sign-in page and waits for the link; unlinkAccount() ends it.
+	static const char *accountApi() { return "https://kennel.gg/api/cashcup/v1"; }
+	void linkAccount();
+	void unlinkAccount();
+	void refreshAccount();
+	bool accountLinked() const { return !cfg.accountToken.empty(); }
+	QString linkCode() const { return linkCode_; } // "KNL-XXXX" while linking
+	/// From kennel.gg: complete (Discord + Steam + Twitch verified) and what is missing.
+	bool accountComplete() const { return accountInfo_.value("complete").toBool(); }
+	QStringList accountMissing() const;
 	/// The last stream's YouTube chapter list ("0:00 Start" and one line per clip), "" if none.
 	QString lastChapters() const { return lastChapters_; }
 	QString lastChaptersPath() const { return lastChaptersPath_; }
@@ -418,6 +429,11 @@ private:
 	void queueSessionUpload(); // this stream's stats, onto the upload queue (only with consent)
 	void flushStatsQueue();    // send what is queued; what fails stays for next time
 	bool statsFlushing_ = false;
+	QString linkCode_, deviceCode_;
+	QTimer linkPoll_;
+	qint64 linkUntil_ = 0;
+	QJsonObject accountInfo_; // /me's account block
+	void pollLink();
 	QHash<QString, QDateTime> unpoppedSince_;
 	QStringList unpopped_;
 	void checkUnpopped();

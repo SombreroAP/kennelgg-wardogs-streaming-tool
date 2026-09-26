@@ -145,12 +145,13 @@ struct Config {
 	bool replayStinger = true;   // the animated "INSTANT REPLAY" wipe into and out of each replay
 	bool replayStingerSound = true; // with its whoosh
 	bool replayFull1 = false;       // one-time move to full-screen replays (0.22.0)
-	bool sessionTrack = true;
+	bool sessionTrack = true;       // count this session's kills, deaths, assists, revives and money
 	// the kennel.gg leaderboards: 0 not asked yet, 1 yes (each stream's stats are sent), 2 no.
-	// Nothing leaves this PC until it is 1.
+	// Nothing leaves this PC until it is 1 and the PC is linked to a kennel.gg account.
 	int statsConsent = 0;
-	std::string statsInstall,
-		statsToken; // made at the first yes: this PC's id, and the key only it knows    // count this session's kills, deaths, assists, revives and money
+	// this PC linked to a kennel.gg account (the wager/tournament system's device link): the token is
+	// the link's key; the leaderboards take stats only from a linked PC
+	std::string accountToken, accountId, accountName;
 	bool sessionOverlayOn = true;              // the on-stream bar shown (it animates out when off)
 	std::string sessionOverlayPos = "tl";      // tl: top left under the team emblem, bc: bottom centre
 	std::string sessionOverlayMode = "always"; // always, or "pop": slides in when a number changes, out 20 s later

@@ -69,6 +69,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&popoutTimer_, &QTimer::timeout, this, &Engine::watchPopouts);
 	webLiveTimer_.setInterval(60000);
 	connect(&webLiveTimer_, &QTimer::timeout, this, &Engine::webLiveTick);
+	connect(&linkPoll_, &QTimer::timeout, this, &Engine::pollLink);
 	cashTimer_.setInterval(250);
 	connect(&cashTimer_, &QTimer::timeout, this, &Engine::cashTick);
 	pictureTimer_.setInterval(1000);
@@ -741,7 +742,11 @@ void Engine::start()
 		cfg.replayScale = 100;
 		cfg.save();
 	}
-	// sessions left on this PC by a stream that ended offline go now (with consent)
+	// the linked account's state, then sessions left on this PC by a stream that ended offline
+	QTimer::singleShot(15000, this, [this]() {
+		if (!stopping_)
+			refreshAccount();
+	});
 	QTimer::singleShot(20000, this, [this]() {
 		if (!stopping_)
 			flushStatsQueue();
@@ -2291,22 +2296,155 @@ static QString statsQueuePath()
 void Engine::setStatsConsent(bool yes)
 {
 	cfg.statsConsent = yes ? 1 : 2;
-	if (yes && (cfg.statsInstall.size() != 32 || cfg.statsToken.size() < 32)) {
-		auto hex = [](int bytes) {
-			QString s;
-			for (int i = 0; i < bytes; ++i)
-				s += QString("%1").arg(QRandomGenerator::system()->bounded(256), 2, 16, QChar('0'));
-			return s.toStdString();
-		};
-		cfg.statsInstall = hex(16);
-		cfg.statsToken = hex(32);
-	}
 	cfg.save();
-	log(yes ? "Leaderboards: your session stats will be shared with kennel.gg at the end of each stream "
-		  "(Settings, Clips & replays, to stop)."
-		: "Leaderboards: nothing is shared.");
+	if (yes && !accountLinked()) {
+		log("Leaderboards: sharing is on; link this PC to your kennel.gg account to take part.");
+		linkAccount(); // taking part means a kennel.gg account, as for wagers and the Cash Cup
+	} else
+		log(yes ? "Leaderboards: your session stats go to your kennel.gg account at the end of each stream "
+			  "(Settings, Clips & replays, to stop)."
+			: "Leaderboards: nothing is shared.");
 	if (yes)
 		flushStatsQueue();
+	emit stateChanged();
+}
+
+// ----- the kennel.gg account link (the wager/tournament system's device link, reused)
+
+QStringList Engine::accountMissing() const
+{
+	QStringList out;
+	for (const auto &v : accountInfo_.value("missing").toArray())
+		out << v.toString();
+	if (out.isEmpty() && !accountInfo_.isEmpty() && !accountComplete()) {
+		// an older /me without "missing": work it out from the connections themselves
+		if (accountInfo_.value("discord").toVariant().isNull())
+			out << "discord";
+		if (accountInfo_.value("steam").toVariant().isNull())
+			out << "steam";
+		if (!accountInfo_.value("twitch_verified").toBool())
+			out << "twitch";
+	}
+	return out;
+}
+
+void Engine::linkAccount()
+{
+	if (linkPoll_.isActive()) {
+		QDesktopServices::openUrl(QUrl(QString(accountApi()) + "/link/start?code=" + linkCode_));
+		return;
+	}
+	QJsonObject o;
+	// a Streaming Tool install: it can read the account, never post game readings (kennel-tourney §8j.1)
+	o["kind"] = "streaming";
+	o["plugin"] = QString("kennelgg-streaming %1").arg(PLUGIN_VERSION);
+	o["obs"] = QString(obs_get_version_string());
+	o["os"] = QSysInfo::prettyProductName();
+	o["name"] = QSysInfo::machineHostName();
+	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
+	Http::requestAsync(
+		this, "POST", QString(accountApi()) + "/device/start", QJsonDocument(o).toJson(QJsonDocument::Compact),
+		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
+			QJsonObject a = QJsonDocument::fromJson(r.body).object();
+			if (!r.ok || a.value("device_code").toString().isEmpty()) {
+				log("Account: kennel.gg did not give a link code (" +
+				    (r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error) + ").");
+				return;
+			}
+			deviceCode_ = a.value("device_code").toString();
+			linkCode_ = a.value("user_code").toString();
+			linkUntil_ = QDateTime::currentMSecsSinceEpoch() + a.value("expires_in").toInt(900) * 1000;
+			linkPoll_.start(std::max(2, a.value("interval").toInt(3)) * 1000);
+			log("Account: sign in on kennel.gg to link this PC (code " + linkCode_ + ").");
+			QDesktopServices::openUrl(QUrl(QString(accountApi()) + "/link/start?code=" + linkCode_));
+			emit stateChanged();
+		});
+}
+
+void Engine::pollLink()
+{
+	if (deviceCode_.isEmpty() || QDateTime::currentMSecsSinceEpoch() > linkUntil_) {
+		linkPoll_.stop();
+		if (!deviceCode_.isEmpty())
+			log("Account: the link code " + linkCode_ + " expired. Press Link again.");
+		deviceCode_.clear();
+		linkCode_.clear();
+		emit stateChanged();
+		return;
+	}
+	QJsonObject o;
+	o["device_code"] = deviceCode_;
+	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
+	Http::requestAsync(
+		this, "POST", QString(accountApi()) + "/device/poll", QJsonDocument(o).toJson(QJsonDocument::Compact),
+		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
+			QJsonObject a = QJsonDocument::fromJson(r.body).object();
+			QString st = a.value("status").toString();
+			if (st == "linked") {
+				linkPoll_.stop();
+				deviceCode_.clear();
+				linkCode_.clear();
+				QJsonObject p = a.value("player").toObject();
+				cfg.accountToken = a.value("token").toString().toStdString();
+				cfg.accountId = p.value("id").toString().toStdString();
+				cfg.accountName = p.value("name").toString().toStdString();
+				cfg.save();
+				log("Account: linked to kennel.gg as " + QString::fromStdString(cfg.accountName) + ".");
+				refreshAccount();
+				flushStatsQueue();
+				emit stateChanged();
+			} else if (st == "expired") {
+				linkUntil_ = 0; // the next tick tidies up
+			}
+		});
+}
+
+void Engine::refreshAccount()
+{
+	if (!accountLinked())
+		return;
+	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
+	Http::requestAsync(
+		this, "GET", QString(accountApi()) + "/me", QByteArray(),
+		"Authorization: Bearer " + QString::fromStdString(cfg.accountToken) + "\r\n", 10000, ua,
+		[this](Http::Result r) {
+			if (r.status == 401 || r.status == 403) {
+				log("Account: kennel.gg no longer knows this PC's link (unlinked on the site?). Link "
+				    "it again to keep sharing.");
+				cfg.accountToken.clear();
+				cfg.save();
+				accountInfo_ = QJsonObject();
+				emit stateChanged();
+				return;
+			}
+			QJsonObject me = QJsonDocument::fromJson(r.body).object();
+			if (!r.ok || me.isEmpty())
+				return;
+			accountInfo_ = me.value("account").toObject();
+			QString name = me.value("player").toObject().value("name").toString();
+			if (!name.isEmpty() && name.toStdString() != cfg.accountName) {
+				cfg.accountName = name.toStdString();
+				cfg.save();
+			}
+			emit stateChanged();
+		});
+}
+
+void Engine::unlinkAccount()
+{
+	if (!accountLinked())
+		return;
+	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
+	Http::requestAsync(this, "POST", QString(accountApi()) + "/device/unlink", QByteArray("{}"),
+			   "Content-Type: application/json\r\nAuthorization: Bearer " +
+				   QString::fromStdString(cfg.accountToken) + "\r\n",
+			   10000, ua, [](Http::Result) {});
+	cfg.accountToken.clear();
+	cfg.accountId.clear();
+	cfg.accountName.clear();
+	cfg.save();
+	accountInfo_ = QJsonObject();
+	log("Account: this PC is unlinked from kennel.gg. Nothing is shared until it is linked again.");
 	emit stateChanged();
 }
 
@@ -2341,8 +2479,8 @@ void Engine::queueSessionUpload()
 /// name, Discord and Twitch go with each send, as they are now.
 void Engine::flushStatsQueue()
 {
-	if (statsFlushing_ || stopping_ || cfg.statsConsent != 1 || cfg.statsInstall.empty())
-		return;
+	if (statsFlushing_ || stopping_ || cfg.statsConsent != 1 || !accountLinked())
+		return; // no consent, or no kennel.gg account linked: the sessions wait on this PC
 	QFile f(statsQueuePath());
 	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
 		return;
@@ -2351,18 +2489,19 @@ void Engine::flushStatsQueue()
 	lines.removeAll(QByteArray());
 	if (lines.isEmpty())
 		return;
-	QJsonObject o = QJsonDocument::fromJson(lines.first()).object();
-	o["install"] = QString::fromStdString(cfg.statsInstall);
-	o["token"] = QString::fromStdString(cfg.statsToken);
-	o["name"] = QString::fromStdString(cfg.appPlayerName);
-	o["discord"] = QString::fromStdString(cfg.myDiscord);
-	o["twitch"] = QString::fromStdString(cfg.appBroadcaster);
+	QJsonObject o = QJsonDocument::fromJson(lines.first()).object(); // who it is comes from the link
 	statsFlushing_ = true;
 	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
 	Http::requestAsync(
 		this, "POST", QString(statsUrl()) + "/session", QJsonDocument(o).toJson(QJsonDocument::Compact),
-		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
+		"Content-Type: application/json\r\nAuthorization: Bearer " + QString::fromStdString(cfg.accountToken) +
+			"\r\n",
+		10000, ua, [this](Http::Result r) {
 			statsFlushing_ = false;
+			if (r.status == 401) {
+				refreshAccount(); // the link was revoked: say so, and keep the sessions for the next link
+				return;
+			}
 			bool taken = r.ok && r.status == 200;
 			bool refused = r.status == 400 || r.status == 403; // never going to be taken
 			if (taken || refused) {
@@ -2391,18 +2530,18 @@ void Engine::flushStatsQueue()
 
 void Engine::deleteSharedStats()
 {
-	if (cfg.statsInstall.empty()) {
-		log("Leaderboards: this PC has never shared anything.");
+	QFile::remove(statsQueuePath()); // nothing waiting on this PC will be sent either
+	if (!accountLinked()) {
+		log("Leaderboards: link this PC to your kennel.gg account to delete what it shared.");
 		return;
 	}
 	QJsonObject o;
-	o["install"] = QString::fromStdString(cfg.statsInstall);
-	o["token"] = QString::fromStdString(cfg.statsToken);
-	QFile::remove(statsQueuePath());
 	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
 	Http::requestAsync(
 		this, "POST", QString(statsUrl()) + "/delete", QJsonDocument(o).toJson(QJsonDocument::Compact),
-		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
+		"Content-Type: application/json\r\nAuthorization: Bearer " + QString::fromStdString(cfg.accountToken) +
+			"\r\n",
+		10000, ua, [this](Http::Result r) {
 			QJsonObject a = QJsonDocument::fromJson(r.body).object();
 			log(r.ok && a.value("ok").toBool()
 				    ? QString("Leaderboards: deleted from kennel.gg (%1 sessions).")

@@ -90,8 +90,9 @@ void Config::load()
 	DEFB(ytChapters);
 	DEFB(sessionTrack);
 	DEFI(statsConsent);
-	DEFS(statsInstall);
-	DEFS(statsToken);
+	DEFS(accountToken);
+	DEFS(accountId);
+	DEFS(accountName);
 	DEFB(replayStinger);
 	DEFB(replayStingerSound);
 	DEFB(replayFull1);
@@ -275,8 +276,9 @@ void Config::load()
 	GETB(ytChapters);
 	GETB(sessionTrack);
 	GETI(statsConsent);
-	GETS(statsInstall);
-	GETS(statsToken);
+	GETS(accountToken);
+	GETS(accountId);
+	GETS(accountName);
 	GETB(replayStinger);
 	GETB(replayStingerSound);
 	GETB(replayFull1);
@@ -645,8 +647,9 @@ void Config::save() const
 	SETB(ytChapters);
 	SETB(sessionTrack);
 	SETI(statsConsent);
-	SETS(statsInstall);
-	SETS(statsToken);
+	SETS(accountToken);
+	SETS(accountId);
+	SETS(accountName);
 	SETB(replayStinger);
 	SETB(replayStingerSound);
 	SETB(replayFull1);

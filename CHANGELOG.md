@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.23.0
+- **The leaderboards are tied to your kennel.gg account.** Taking part needs the same kennel.gg account as wagers and the Cash Cup: tick "Share my session stats" (Setup, the dock or Settings) and the plugin asks kennel.gg for a link code and opens its sign-in page, where you sign in with Discord, Steam, Twitch or Google as usual; the plugin picks the link up by itself. Each stream's stats then go to your account, never to an anonymous PC. Nothing is sent from a PC that is not linked; its sessions wait on the PC until it is.
+- **Your account on the dock and in Settings**: "Linked as ..." with whatever is still to connect (Discord, Steam, Twitch), a button to finish it on kennel.gg/account, and Unlink. Unlinking on the site (or /unlink in Discord) is noticed, and the plugin says so.
+- The link is a Streaming Tool link: it can read your account, and can never send game readings to wagers or the Cash Cup.
+- Delete what I have shared removes every session on your account.
+
 ## 0.22.0
 - **Instant replay goes full screen, with a stinger.** An animated "INSTANT REPLAY" wipe - amber, olive and graphite panels sweeping across with the hound and the title riding on them, and a whoosh - covers the screen, the replay switches on full screen underneath, and the wipe carries on off to reveal it. When the replay ends, "BACK TO LIVE" wipes back the other way to your game. Nothing ever cuts or goes black: the switch happens while the screen is covered. It runs from a transparent browser source on top of your scene (Kennel.gg · Replay stinger), loaded when OBS starts so the first one is instant, on the vertical canvas too. Stopping a replay early from the dock or a hotkey plays the way out as well. Settings, Clips & replays turns the stinger or its whoosh off. Existing setups move to full-screen replays once.
 - **The session bar, your way.**

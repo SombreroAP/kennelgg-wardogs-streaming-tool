@@ -389,12 +389,13 @@ QWizardPage *SetupWizard::pageCheck()
 	statsShare_->setChecked(e_->cfg.statsConsent == 1);
 	v->addSpacing(6);
 	v->addWidget(statsShare_);
-	v->addWidget(
-		note("At the end of each stream: your in-game name, Discord and Twitch names, and the session's "
-		     "kills, deaths, assists, revives, headshots, vehicles, downs, money earned and spent, time in "
-		     "game, longest kill and top weapon. Never your clips, video, voice or chat. Off unless you tick "
-		     "it; stop and delete any time in Settings.",
-		     p));
+	v->addWidget(note(
+		"Ticked, Finish opens kennel.gg to link this PC to your kennel.gg account (the same one as for "
+		"wagers and the Cash Cup). At the end of each stream your account then gets the session's kills, "
+		"deaths, assists, revives, headshots, vehicles, downs, money earned and spent, time in game, longest "
+		"kill and top weapon. Never your clips, video, voice or chat. Off unless you tick it; stop and "
+		"delete any time in Settings.",
+		p));
 	auto *extras = new QLabel("<b>Optional extras</b>", p);
 	v->addSpacing(8);
 	v->addWidget(extras);

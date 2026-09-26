@@ -1825,14 +1825,33 @@ QWidget *SettingsDialog::buildClipsTab()
 	statsShare_ = new QCheckBox("Share my session stats with kennel.gg for the public leaderboards", gi);
 	statsShare_->setChecked(e_->cfg.statsConsent == 1);
 	statsShare_->setToolTip(
-		"At the end of each stream: your in-game name, Discord and Twitch names, and the session's kills, deaths, "
-		"assists, revives, headshots, vehicles, downs, money earned and spent, time in game, longest kill and "
-		"top weapon. Never your clips, video, voice or chat. Off until you tick it.");
+		"Needs this PC linked to your kennel.gg account (below). At the end of each stream your account gets the "
+		"session's kills, deaths, assists, revives, headshots, vehicles, downs, money earned and spent, time in "
+		"game, longest kill and top weapon. Never your clips, video, voice or chat. Off until you tick it.");
 	auto *delStats = new QPushButton("Delete what I have shared", gi);
 	auto *shareRow = new QHBoxLayout();
 	shareRow->addWidget(statsShare_, 1);
 	shareRow->addWidget(delStats);
 	fi->addRow("Leaderboards", shareRow);
+	accountLbl_ = new QLabel(gi);
+	accountLbl_->setWordWrap(true);
+	accountBtn_ = new QPushButton(gi);
+	auto *accPage = new QPushButton("My kennel.gg account", gi);
+	auto *accRow = new QHBoxLayout();
+	accRow->addWidget(accountLbl_, 1);
+	accRow->addWidget(accountBtn_);
+	accRow->addWidget(accPage);
+	fi->addRow("kennel.gg account", accRow);
+	connect(accountBtn_, &QPushButton::clicked, this, [this]() {
+		if (e_->accountLinked())
+			e_->unlinkAccount();
+		else
+			e_->linkAccount();
+	});
+	connect(accPage, &QPushButton::clicked, this,
+		[]() { QDesktopServices::openUrl(QUrl("https://kennel.gg/account/")); });
+	connect(e_, &Engine::stateChanged, this, [this]() { showAccount(); });
+	showAccount();
 	connect(statsShare_, &QCheckBox::toggled, this, [this](bool on) {
 		if (!building_)
 			e_->setStatsConsent(on);
@@ -3435,6 +3454,28 @@ void SettingsDialog::testFeed()
 	});
 	t->start();
 	e_->log("Measuring " + QString::fromStdString(f.name) + "'s feed for two seconds...");
+}
+
+void SettingsDialog::showAccount()
+{
+	if (!accountLbl_)
+		return;
+	if (e_->accountLinked()) {
+		QStringList miss = e_->accountMissing();
+		accountLbl_->setText(
+			"Linked as " + QString::fromStdString(e_->cfg.accountName) +
+			(miss.isEmpty() ? QString(e_->accountComplete() ? " (Discord, Steam and Twitch connected)" : "")
+					: " - still to connect: " + miss.join(", ")));
+		accountBtn_->setText("Unlink");
+	} else if (!e_->linkCode().isEmpty()) {
+		accountLbl_->setText("Sign in on the kennel.gg page that opened (code " + e_->linkCode() + ")");
+		accountBtn_->setText("Open the page again");
+	} else {
+		accountLbl_->setText(
+			"Not linked. The leaderboards take stats only from a PC linked to a kennel.gg account "
+			"(the same account as wagers and the Cash Cup).");
+		accountBtn_->setText("Link kennel.gg account");
+	}
 }
 
 void SettingsDialog::saveAndApply()
