@@ -198,6 +198,13 @@ struct Config {
 	static const char *dualLookName() { return "Kennel.gg dual look"; }
 	bool dualAuto = false; // ClipHound reads the vehicle keybind list and turns the window on / off
 	double vehX = 0.86, vehY = 0.60, vehW = 0.14, vehH = 0.25; // where that list is (fractions)
+	// the areas the plugin reads, set on Settings, Detect areas (fractions of the game source)
+	double dmgX = 0.45, dmgY = 0.15, dmgW = 0.55, dmgH = 0.80; // where the damage-log header is searched for
+	bool cashCustom =
+		false; // false: the top-right corner the cash reader was measured on (0.42 x 0.22 of the height)
+	double cashX = 0.76375, cashY = 0.0, cashW = 0.23625, cashH = 0.22; // the cash HUD, when cashCustom
+	double invCX = 0.88, invCY = 0.262, invCW = 0.10, invCH = 0.05;     // "COMBINE AMMO": the inventory is open
+	double invTX = 0.082, invTY = 0.010, invTW = 0.085, invTH = 0.038;  // the INVENTORY tab, the second sign
 	static const char *dualSceneName() { return "Kennel.gg dual"; }
 	static const char *dualFeedName() { return "Kennel.gg dual feed"; }
 	const Friend *dual() const

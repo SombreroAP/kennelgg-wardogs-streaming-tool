@@ -1,7 +1,10 @@
 #include "ui/settings-dialog.h"
+#include "ui/area-editor.h"
 #include "ui/quick-add.h"
 #include "voice-phrases.h"
 #include <QTextBrowser>
+#include <QButtonGroup>
+#include "ui/flow-layout.h"
 #include <QListView>
 #include <algorithm>
 #include <QEventLoop>
@@ -618,6 +621,7 @@ SettingsDialog::SettingsDialog(Engine *engine, QWidget *parent) : QDialog(parent
 		pages_[PAdvanced]->insertWidget(0, gd, 1);
 	}
 	pages_[PDual]->addWidget(buildDualTab());
+	pages_[PDetect]->addWidget(buildAreasTab(), 1);
 	pages_[PVoice]->addWidget(buildVoiceTab());
 	pages_[PGeneral]->addWidget(genAppBox_);
 	for (int i : {PGeneral, PVertical, PLook, PAdvanced})
@@ -626,13 +630,15 @@ SettingsDialog::SettingsDialog(Engine *engine, QWidget *parent) : QDialog(parent
 	scrolled(pageW_[PSquad], "Squad && POV");
 	scrolled(pageW_[PDual], "Dual POV");
 	scrolled(pageW_[PClips], "Clips && replays");
+	scrolled(pageW_[PDetect], "Detect areas");
 	scrolled(pageW_[PVertical], "Vertical (beta)");
 	scrolled(pageW_[PVoice], "Voice (beta)");
 	scrolled(pageW_[PLook], "Stream look");
 	scrolled(pageW_[PAdvanced], "Advanced");
 	tabs->addTab(buildLogsTab(), "Logs"); // already a scrolling text view
 	scrolled(buildAboutTab(), "Help");
-	tabKeys_ = {"general", "squad", "dual", "clips", "vertical", "voice", "look", "advanced", "logs", "help"};
+	tabKeys_ = {"general", "squad", "dual",     "clips", "detect", "vertical",
+		    "voice",   "look",  "advanced", "logs",  "help"};
 	// every spin box and drop-down: no accidental changes from a scroll (see WheelGuard)
 	{
 		auto *guard = new WheelGuard(this);
@@ -655,10 +661,10 @@ SettingsDialog::SettingsDialog(Engine *engine, QWidget *parent) : QDialog(parent
 		meter_->setValue(m.score < 0 ? 0 : (int)(m.score * 1000));
 		frame_->setFrame(e_->lastFrame(), m, e_->cfg.threshold,
 				 QRectF(e_->cfg.boxX, e_->cfg.boxY, e_->cfg.boxW, e_->cfg.boxH));
-		frame_->setBox2(QRectF(e_->cfg.nearX, e_->cfg.nearY, e_->cfg.nearW, e_->cfg.nearH));
-		if (feedPick_)
-			feedPick_->setFrame(e_->lastFrame(), Match(), 1.0,
-					    QRectF(e_->cfg.feedX, e_->cfg.feedY, e_->cfg.feedW, e_->cfg.feedH));
+		if (areaEd_) {
+			areaEd_->setFrame(e_->lastFrame());
+			refreshAreas();
+		}
 	});
 	connect(e_, &Engine::stateChanged, this, [this]() { updateAreas(); });
 	connect(e_, &Engine::stateChanged, this, [this]() {
@@ -1214,55 +1220,15 @@ QWidget *SettingsDialog::buildDetectTab()
 	meter_->setFormat("match %v / 1000");
 	v->addWidget(meter_);
 	connect(frame_, &FramePreview::boxChanged, this, [this](QRectF r) {
+		// the box a custom template is cut from (the other areas are on Settings, Detect areas)
 		Config &c = e_->cfg;
-		if (pickNear_ && pickNear_->isChecked()) {
-			c.nearX = r.x();
-			c.nearY = r.y();
-			c.nearW = r.width();
-			c.nearH = r.height();
-			c.save();
-			e_->pushAppConfig();
-		} else {
-			c.boxX = r.x();
-			c.boxY = r.y();
-			c.boxW = r.width();
-			c.boxH = r.height();
-			c.save();
-		}
-		updateAreas();
-	});
-
-	auto *nr = new QHBoxLayout();
-	pickTpl_ = new QRadioButton("the header box (dotted amber)", w);
-	pickNear_ = new QRadioButton("the NEARBY list (blue)", w);
-	pickTpl_->setChecked(true);
-	auto *nearReset = new QPushButton("Reset NEARBY box", w);
-	auto *nearTest = new QPushButton("Test read", w);
-	nearTest->setToolTip("Read the NEARBY area once, right now, and show what ClipHound sees there.");
-	nr->addWidget(new QLabel("Dragging on the picture sets:", w));
-	nr->addWidget(pickTpl_);
-	nr->addWidget(pickNear_);
-	nr->addWidget(nearReset);
-	nr->addWidget(nearTest);
-	nr->addStretch(1);
-	connect(nearTest, &QPushButton::clicked, this, [this]() { showNearbyTest(); });
-	v->addLayout(nr);
-	nearLbl2_ = muted("", w);
-	v->addWidget(nearLbl2_);
-	connect(pickTpl_, &QRadioButton::toggled, this, [this](bool) { updateAreas(); });
-	connect(nearReset, &QPushButton::clicked, this, [this]() {
-		Config &c = e_->cfg;
-		c.nearX = 0.80;
-		c.nearY = 0.79;
-		c.nearW = 0.19;
-		c.nearH = 0.14;
+		c.boxX = r.x();
+		c.boxY = r.y();
+		c.boxW = r.width();
+		c.boxH = r.height();
 		c.save();
-		e_->pushAppConfig();
 		updateAreas();
 	});
-	v->addWidget(muted(
-		"The blue box is the NEARBY list in the bottom-right corner of your game: the squad mates next to you and how far away they are. It is what \"Show whoever is closest\" (Squad & POV) reads, through ClipHound, from the moment you go down until you are back up. Drag round it with a little margin, including room above for a full squad, then press Test read to see what ClipHound makes of it.",
-		w));
 
 	auto *row = new QHBoxLayout();
 	auto *learn = new QPushButton("Learn my HUD (press while downed)", w);
@@ -2037,50 +2003,28 @@ QWidget *SettingsDialog::buildAppTab()
 		g));
 	pages_[PClips]->addWidget(g);
 
-	auto *ga = new QGroupBox("Kill-feed area", w);
-	auto *fa = new QVBoxLayout(ga);
-	feedPick_ = new FramePreview(ga);
-	feedPick_->setMinimumHeight(200);
-	feedPick_->setPicker("Drag a box on the picture to set the area");
-	fa->addWidget(feedPick_, 1);
-	auto *ar = new QHBoxLayout();
-	auto *reset = new QPushButton("Reset the kill-feed area", ga);
-	ar->addWidget(reset);
-	ar->addStretch(1);
-	fa->addLayout(ar);
-	auto *rr = new QHBoxLayout();
-	appFps_ = new QSpinBox(ga);
-	appFps_->setRange(3, 15);
-	appFps_->setSuffix(" times a second");
-	appFps_->setValue(e_->cfg.appFps > 0 ? e_->cfg.appFps : 10);
-	rr->addWidget(new QLabel("Read the feed", ga));
-	rr->addWidget(appFps_);
-	rr->addStretch(1);
-	fa->addLayout(rr);
-	areaLbl_ = muted("", ga);
-	fa->addWidget(areaLbl_);
-	fa->addWidget(muted(
-		"Drag a box round the kill feed - the list of kills on the left, about half way down - with a bit of margin. The game must be running so you can see where it is. Reading faster gets the clip sooner; a kill is decided about three quarters of a second after it appears whatever the rate, so 10 a second is plenty and 5 costs half the CPU. (The NEARBY box that drives Closest is in Downed detection, above.)",
-		ga));
-	pages_[PAdvanced]->addWidget(ga, 1);
-	auto setArea = [this](QRectF r) {
-		Config &c = e_->cfg;
-		c.feedX = r.x();
-		c.feedY = r.y();
-		c.feedW = r.width();
-		c.feedH = r.height();
-		c.save();
-		e_->pushAppConfig();
-		updateAreas();
-	};
-	connect(feedPick_, &FramePreview::boxChanged, this, setArea);
-	connect(reset, &QPushButton::clicked, this, [setArea]() { setArea(QRectF(0.0, 0.42, 0.24, 0.16)); });
-	connect(appFps_, &QSpinBox::editingFinished, this, [this]() {
-		e_->cfg.appFps = appFps_->value();
-		e_->cfg.save();
-		e_->pushAppConfig();
-	});
-	updateAreas();
+	{
+		// how often ClipHound reads the kill feed: on Settings, Detect areas, under the kill-feed box
+		feedRate_ = new QWidget(w);
+		auto *rr = new QHBoxLayout(feedRate_);
+		rr->setContentsMargins(0, 0, 0, 0);
+		appFps_ = new QSpinBox(feedRate_);
+		appFps_->setRange(3, 15);
+		appFps_->setSuffix(" times a second");
+		appFps_->setValue(e_->cfg.appFps > 0 ? e_->cfg.appFps : 10);
+		appFps_->setToolTip(
+			"Reading faster gets the clip sooner; a kill is decided about three quarters of a "
+			"second after it appears whatever the rate, so 10 a second is plenty and 5 costs half "
+			"the CPU.");
+		rr->addWidget(new QLabel("Read the kill feed", feedRate_));
+		rr->addWidget(appFps_);
+		rr->addStretch(1);
+		connect(appFps_, &QSpinBox::editingFinished, this, [this]() {
+			e_->cfg.appFps = appFps_->value();
+			e_->cfg.save();
+			e_->pushAppConfig();
+		});
+	}
 
 	auto *gt = new QGroupBox("Twitch clips", w);
 	auto *ft = new QFormLayout(gt);
@@ -2534,6 +2478,239 @@ void SettingsDialog::dualFromUi(bool preset)
 	c.save();
 	if (e_->dualOn())
 		e_->setDual(true, "settings changed");
+}
+
+// ============================================================ Detect areas
+
+namespace {
+struct AreaDef {
+	const char *key, *label;
+	QColor colour;
+	QRectF def;       // the default, as fractions of the game source
+	double aspect;    // fixed width / height in pixels, 0 = free
+	const char *what; // one line on what reads it
+};
+const QVector<AreaDef> &areaDefs()
+{
+	static const QVector<AreaDef> d = {
+		{"feed", "Kill feed", QColor(224, 180, 87), QRectF(0.0, 0.42, 0.24, 0.16), 0,
+		 "ClipHound reads the kill feed here: your kills, deaths and the clips they make. Round the list of kills, left side about half way down, with a little margin."},
+		{"dmg", "Damage log", QColor(239, 90, 76), QRectF(0.45, 0.15, 0.55, 0.80), 0,
+		 "The plugin looks for the downed screen's \"VIEW DAMAGE LOG\" header in here, ten times a second. Keep it generous: anywhere the header can appear on your screen."},
+		{"cash", "Cash", QColor(95, 208, 122), QRectF(), 0.42 / 0.22,
+		 "The session stats read your balance and the reward lines under it (KILL +$1,750, ASSIST, REVIVED TEAMMATE) here, four times a second. It sits on the balance by itself at any resolution, so there is no need to move it."},
+		{"invC", "Inventory: COMBINE AMMO", QColor(180, 140, 255), QRectF(0.88, 0.262, 0.10, 0.05), 0,
+		 "The \"COMBINE AMMO\" hint above the storage grid: when ClipHound reads it, the inventory is open and a squad mate's POV goes up while you pack magazines."},
+		{"invT", "Inventory tab", QColor(210, 184, 255), QRectF(0.082, 0.010, 0.085, 0.038), 0,
+		 "The INVENTORY tab, top left: the second sign that the inventory is open."},
+		{"near", "NEARBY", QColor(95, 169, 190), QRectF(0.80, 0.79, 0.19, 0.14), 0,
+		 "The NEARBY list, bottom right: which squad mates are next to you and how far. \"Show whoever is closest\" (Squad & POV) reads it while you are down. Leave room above it for a full squad."},
+		{"veh", "Vehicle keys", QColor(169, 184, 110), QRectF(0.86, 0.60, 0.14, 0.25), 0,
+		 "The keybind list the game draws bottom right in a vehicle (CYCLE WEAPON, DEPLOY SMOKE...): it says which seat you are in, and opens the dual window by itself if that is on."},
+	};
+	return d;
+}
+} // namespace
+
+QWidget *SettingsDialog::buildAreasTab()
+{
+	auto *w = new QWidget(this);
+	auto *v = new QVBoxLayout(w);
+	v->addWidget(
+		muted("Every area the plugin and ClipHound read, on a live picture of your game. Click a box (or its "
+		      "button) to pick it, drag it to move it, drag a corner or an edge to resize it, or drag on the "
+		      "picture to draw the picked one again. Changes take effect at once. Faint dashed boxes belong to "
+		      "features that are off.",
+		      w));
+	auto *btns = new FlowLayout();
+	auto *group = new QButtonGroup(w);
+	group->setExclusive(true);
+	for (const auto &d : areaDefs()) {
+		auto *b = new QPushButton(QString::fromUtf8("■  ") + d.label, w);
+		b->setCheckable(true);
+		b->setStyleSheet(
+			QString("QPushButton { color: %1; } QPushButton:checked { color: #121518; background: %1; "
+				"border-color: %1; }")
+				.arg(d.colour.name()));
+		group->addButton(b);
+		btns->addWidget(b);
+		areaBtns_[d.key] = b;
+		QString key = d.key;
+		connect(b, &QPushButton::clicked, this, [this, key]() {
+			areaEd_->select(key);
+			refreshAreas();
+		});
+	}
+	v->addLayout(btns);
+	areaEd_ = new AreaEditor(w);
+	areaEd_->setMinimumHeight(300);
+	v->addWidget(areaEd_, 1);
+	connect(areaEd_, &AreaEditor::areaChanged, this, [this](const QString &key, QRectF r) { setArea(key, r); });
+	connect(areaEd_, &AreaEditor::selectedChanged, this, [this](const QString &) { refreshAreas(); });
+	auto *row = new QHBoxLayout();
+	auto *reset = new QPushButton("Reset this area", w);
+	auto *resetAll = new QPushButton("Reset all areas", w);
+	areaTest_ = new QPushButton("Test read", w);
+	areaTest_->setToolTip("Read the NEARBY area once, right now, and show what ClipHound sees there.");
+	row->addWidget(reset);
+	row->addWidget(resetAll);
+	row->addWidget(areaTest_);
+	row->addStretch(1);
+	v->addLayout(row);
+	if (feedRate_)
+		v->addWidget(feedRate_);
+	cashUnlock_ = new QCheckBox("Move it anyway (only for a custom HUD scale or an unusual layout)", w);
+	cashUnlock_->setChecked(e_->cfg.cashCustom);
+	v->addWidget(cashUnlock_);
+	connect(cashUnlock_, &QCheckBox::toggled, this, [this](bool) { refreshAreas(); });
+	connect(areaEd_, &AreaEditor::lockedTouched, this, [this](const QString &key) {
+		if (key != "cash")
+			return;
+		cashNagged_ = true;
+		refreshAreas();
+	});
+	areaStatus_ = new QLabel(w);
+	areaStatus_->setWordWrap(true);
+	areaStatus_->setTextFormat(Qt::RichText);
+	v->addWidget(areaStatus_);
+	connect(areaTest_, &QPushButton::clicked, this, [this]() { showNearbyTest(); });
+	connect(reset, &QPushButton::clicked, this, [this]() {
+		QString key = areaEd_->selected();
+		for (const auto &d : areaDefs())
+			if (key == d.key)
+				setArea(key, d.def); // an empty rect puts the cash area back on automatic
+	});
+	connect(resetAll, &QPushButton::clicked, this, [this]() {
+		for (const auto &d : areaDefs())
+			setArea(d.key, d.def);
+	});
+	areaEd_->setFrame(e_->lastFrame());
+	refreshAreas();
+	areaEd_->select("feed");
+	refreshAreas();
+	return w;
+}
+
+void SettingsDialog::setArea(const QString &key, QRectF r)
+{
+	Config &c = e_->cfg;
+	auto put = [&r](double &x, double &y, double &w, double &h) {
+		x = r.x();
+		y = r.y();
+		w = r.width();
+		h = r.height();
+	};
+	bool app = false;
+	if (key == "feed") {
+		put(c.feedX, c.feedY, c.feedW, c.feedH);
+		app = true;
+	} else if (key == "dmg") {
+		put(c.dmgX, c.dmgY, c.dmgW, c.dmgH);
+		e_->applySearchWidth();
+	} else if (key == "cash") {
+		c.cashCustom = !r.isEmpty();
+		if (c.cashCustom)
+			put(c.cashX, c.cashY, c.cashW, c.cashH);
+	} else if (key == "invC") {
+		put(c.invCX, c.invCY, c.invCW, c.invCH);
+		app = true;
+	} else if (key == "invT") {
+		put(c.invTX, c.invTY, c.invTW, c.invTH);
+		app = true;
+	} else if (key == "near") {
+		put(c.nearX, c.nearY, c.nearW, c.nearH);
+		app = true;
+	} else if (key == "veh") {
+		put(c.vehX, c.vehY, c.vehW, c.vehH);
+		app = true;
+	}
+	c.save();
+	if (app)
+		e_->pushAppConfig();
+	e_->log("Detect areas: " + key + " set to x " + QString::number(r.x(), 'f', 3) + " y " +
+		QString::number(r.y(), 'f', 3) + " w " + QString::number(r.width(), 'f', 3) + " h " +
+		QString::number(r.height(), 'f', 3) + (key == "cash" && r.isEmpty() ? " (automatic)" : "") + ".");
+	refreshAreas();
+	updateAreas();
+}
+
+void SettingsDialog::refreshAreas()
+{
+	if (!areaEd_)
+		return;
+	const Config &c = e_->cfg;
+	QImage f = e_->lastFrame();
+	double W = f.isNull() ? 1920 : f.width(), H = f.isNull() ? 1080 : f.height();
+	QVector<AreaEditor::Area> a;
+	for (const auto &d : areaDefs()) {
+		QString k = d.key;
+		QRectF r = k == "feed"   ? QRectF(c.feedX, c.feedY, c.feedW, c.feedH)
+			   : k == "dmg"  ? (c.wideSearch ? QRectF(0, 0, 1, 1) : QRectF(c.dmgX, c.dmgY, c.dmgW, c.dmgH))
+			   : k == "cash" ? e_->cashArea(W, H)
+			   : k == "invC" ? QRectF(c.invCX, c.invCY, c.invCW, c.invCH)
+			   : k == "invT" ? QRectF(c.invTX, c.invTY, c.invTW, c.invTH)
+			   : k == "near" ? QRectF(c.nearX, c.nearY, c.nearW, c.nearH)
+					 : QRectF(c.vehX, c.vehY, c.vehW, c.vehH);
+		bool active = k == "feed"                    ? true
+			      : k == "dmg"                   ? c.autoDetect
+			      : k == "cash"                  ? c.sessionTrack
+			      : (k == "invC" || k == "invT") ? c.invSwitch
+			      : k == "near"                  ? c.nearEnabled
+							     : (c.dualAuto && c.dual() != nullptr);
+		AreaEditor::Area ar{k, QString::fromUtf8(d.label), d.colour, r, d.aspect, active};
+		ar.locked = k == "cash" && !(cashUnlock_ && cashUnlock_->isChecked());
+		a.push_back(ar);
+	}
+	areaEd_->setAreas(a);
+	QString sel = areaEd_->selected();
+	for (auto it = areaBtns_.begin(); it != areaBtns_.end(); ++it)
+		it.value()->setChecked(it.key() == sel);
+	areaTest_->setVisible(sel == "near");
+	if (cashUnlock_)
+		cashUnlock_->setVisible(sel == "cash");
+	if (sel != "cash")
+		cashNagged_ = false;
+	if (feedRate_)
+		feedRate_->setVisible(sel == "feed");
+	QString what, live;
+	for (const auto &d : areaDefs())
+		if (sel == d.key)
+			what = QString::fromUtf8(d.what);
+	if (sel == "feed")
+		live = e_->appConnected() ? "ClipHound is reading it."
+					  : "ClipHound is not running, so nothing reads it.";
+	else if (sel == "dmg") {
+		Match m = e_->lastGame();
+		live = c.wideSearch
+			       ? "\"Search the whole screen\" is on (Advanced), so the whole picture is searched and this "
+				 "box is not used."
+			       : QString("Best match now: %1 (downed at %2 and above).")
+					 .arg(m.score < 0 ? 0.0 : m.score, 0, 'f', 2)
+					 .arg(c.threshold, 0, 'f', 2);
+	} else if (sel == "cash") {
+		if (cashNagged_ && !(cashUnlock_ && cashUnlock_->isChecked()))
+			live = "No need to move this. It finds your balance by itself, top right, at 900p, 1080p, 1440p and 4K "
+			       "and in every game language. ";
+		QString st = e_->cashStatus();
+		const Session &s = e_->session();
+		live += st == "off"                     ? "Session stats are off (Clips & replays)."
+			: st.isEmpty() && s.haveBalance ? "Reading your balance: " + Session::money(s.balanceNow) + "."
+			: st.isEmpty()                  ? "Reading."
+							: "Not reading: " + st + ".";
+		live += c.cashCustom ? "  (Your own area; Reset puts it back on automatic.)"
+				     : "  (Automatic: the corner the reader was measured on.)";
+	} else if (sel == "invC" || sel == "invT")
+		live = !c.invSwitch             ? "Magazine packing / inventory switching is off (Squad & POV)."
+		       : e_->inventoryWatched() ? "ClipHound watches it three times a second."
+						: "Watched while Auto switch is on and you have a squad mate.";
+	else if (sel == "near")
+		live = (c.nearEnabled ? QString() : "\"Show whoever is closest\" is off (Squad & POV). ") +
+		       "Reading: " + e_->nearbyStatus();
+	else if (sel == "veh")
+		live = c.dualAuto ? "Read while the dual window can open by itself."
+				  : "The dual window does not open by itself (Dual POV), so this is not read.";
+	areaStatus_->setText("<span style=\"color:#9a9e93\">" + what.toHtmlEscaped() + "</span><br>" +
+			     live.toHtmlEscaped());
 }
 
 void SettingsDialog::updateAreas()

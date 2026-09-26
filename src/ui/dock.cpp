@@ -408,7 +408,7 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		sessionRow_ = new QWidget(this);
 		auto *srow = new QHBoxLayout(sessionRow_);
 		srow->setContentsMargins(0, 0, 0, 0);
-		sessionBtn_ = new QPushButton("Session Stats", sessionRow_);
+		sessionBtn_ = new QPushButton("Show Session Stats Overlay", sessionRow_);
 		sessionBtn_->setCheckable(true);
 		sessionBtn_->setToolTip(
 			"Show or hide the \"This session\" bar on your stream: K/D/A, revives, the "
@@ -907,6 +907,7 @@ void Dock::refresh()
 		sessionRow_->setVisible(e_->cfg.sessionTrack);
 		bool shown = e_->cfg.sessionOverlayOn && e_->hasSessionOverlay();
 		sessionBtn_->setChecked(shown);
+		sessionBtn_->setText(shown ? "Hide Session Stats Overlay" : "Show Session Stats Overlay");
 		sessionBtn_->setToolTip(
 			shown ? "The \"This session\" bar is on your stream. Press to slide it out."
 			      : "Show the \"This session\" bar on your stream (K/D/A, revives, the session "

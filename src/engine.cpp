@@ -495,10 +495,11 @@ void Engine::applySearchWidth()
 			d.minScale = 0.35f;
 			d.maxScale = 2.2f;
 		} else {
-			d.fromX = 0.45f;
-			d.toX = 1.0f;
-			d.fromY = 0.15f;
-			d.toY = 0.95f;
+			// the damage-log area on Settings, Detect areas
+			d.fromX = (float)std::clamp(cfg.dmgX, 0.0, 0.99);
+			d.toX = (float)std::clamp(cfg.dmgX + cfg.dmgW, d.fromX + 0.01, 1.0);
+			d.fromY = (float)std::clamp(cfg.dmgY, 0.0, 0.99);
+			d.toY = (float)std::clamp(cfg.dmgY + cfg.dmgH, d.fromY + 0.01, 1.0);
 			d.minScale = 0.5f;
 			d.maxScale = 1.6f;
 		}
@@ -859,7 +860,9 @@ void Engine::pushAppConfig()
 	vh["enabled"] = cfg.dual() != nullptr && (cfg.dualAuto || (dualOn_ && !cfg.dualKeep));
 	vh["roi"] = QJsonArray{cfg.vehX, cfg.vehY, cfg.vehW, cfg.vehH};
 	set["vehicle"] = vh;
-	set["inventory"] = QJsonObject{{"enabled", inventoryWatched()}};
+	set["inventory"] = QJsonObject{{"enabled", inventoryWatched()},
+				       {"combine", QJsonArray{cfg.invCX, cfg.invCY, cfg.invCW, cfg.invCH}},
+				       {"tab", QJsonArray{cfg.invTX, cfg.invTY, cfg.invTW, cfg.invTH}}};
 	QJsonObject o;
 	o["type"] = "app_config";
 	o["set"] = set;
@@ -2154,6 +2157,16 @@ QString Engine::cashStatus() const
 	return cashWhy_.isEmpty() ? "your balance is not on screen" : cashWhy_;
 }
 
+/// Where the cash reader looks, as fractions of a W x H game source: the area set on Settings, Detect
+/// areas, or the corner it was measured on (0.42 x 0.22 of the height, from the top right).
+QRectF Engine::cashArea(double W, double H) const
+{
+	if (cfg.cashCustom && cfg.cashW > 0.01 && cfg.cashH > 0.01)
+		return QRectF(cfg.cashX, cfg.cashY, cfg.cashW, cfg.cashH);
+	double rw = std::min(W, hud::kRegionW * H) / std::max(1.0, W);
+	return QRectF(1.0 - rw, 0.0, rw, hud::kRegionH);
+}
+
 /// The top-right corner of the game (the balance and the reward lines under it), drawn at the size
 /// a 4K frame has it, so every resolution reaches the reader alike. A worker per read, one at a time.
 void Engine::cashTick()
@@ -2172,11 +2185,11 @@ void Engine::cashTick()
 		if (src) {
 			double W = obs_source_get_width(src), H = obs_source_get_height(src);
 			if (W >= 320 && H >= 240) {
-				double rw = std::min(W, hud::kRegionW * H), rh = hud::kRegionH * H;
+				QRectF a = cashArea(W, H);
 				std::vector<uint8_t> bgra;
 				int w = 0, h = 0, ls = 0;
-				if (capCash_.grabRegion(src, (W - rw) / W, 0, rw / W, rh / H, hud::kRefW, bgra, w, h,
-							ls)) {
+				if (capCash_.grabRegion(src, a.x(), a.y(), a.width(), a.height(), hud::kRefW, bgra, w,
+							h, ls)) {
 					r = hud::read(*model, bgra.data(), w, h, ls);
 					ok = true;
 				}
@@ -2235,12 +2248,23 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				session_.earned += e.amt;
 				if (reason.contains("ZONE"))
 					session_.zoneEarned += e.amt;
-				// what it was for, in the words the bar has room for
-				QString why = reason == "REVIVED TEAMMATE" ? "REVIVE"
-					      : reason.contains("ZONE")    ? "ZONE"
-					      : reason.isEmpty()           ? "REWARD"
-									   : reason;
-				session_.noteMoney(e.amt, why.left(18));
+				// what it was for, in the words the bar has room for: only a reason the reader knows
+				// (a game in another language, or letters it could not settle, is just REWARD - never
+				// letter salad on stream)
+				bool known = false;
+				for (const std::string &k : hud::knownReasons())
+					if (reason == QString::fromStdString(k))
+						known = true;
+				QString why = !known                          ? "REWARD"
+					      : reason.contains("KILL")       ? "KILL"
+					      : reason.contains("ASSIST")     ? "ASSIST"
+					      : reason == "REVIVED TEAMMATE"  ? "REVIVE"
+					      : reason == "HEADSHOT"          ? "HEADSHOT"
+					      : reason.contains("DESTROYED")  ? "VEHICLE"
+					      : reason.contains("ZONE")       ? "ZONE"
+					      : reason == "PURCHASE REFUNDED" ? "REFUND"
+									      : "REWARD";
+				session_.noteMoney(e.amt, why);
 				changed = true;
 			}
 			if (reason.isEmpty())
@@ -3105,7 +3129,7 @@ QString Engine::nearbyStatus() const
 	if (!detected_ && !applied_)
 		return "N/A while you are up";
 	if (!nearbyAt_.isValid())
-		return nearbyEmptySince_.isValid() ? "nobody matched yet - use Test read under Settings, Advanced"
+		return nearbyEmptySince_.isValid() ? "nobody matched yet - use Test read under Settings, Detect areas"
 						   : (bridge.clients() > 0 ? "read when you go down (nothing read yet)"
 									   : "ClipHound is not running");
 	QString t = nearbyText();
@@ -3479,7 +3503,7 @@ void Engine::pickClosest(const QString &why, bool decisive)
 					    ? "Closest squad mate: ClipHound is not running, so the NEARBY list cannot be read - keeping the squad mate you picked."
 					    : (nearbyFresh()
 						       ? "Closest squad mate: nobody in the NEARBY list is one of your squad mates (check their in-game names in the Squad window)."
-						       : "Closest squad mate: no reading from the NEARBY list yet (check the blue box under Settings, Advanced)."));
+						       : "Closest squad mate: no reading from the NEARBY list yet (check the NEARBY box under Settings, Detect areas)."));
 		}
 		return;
 	}

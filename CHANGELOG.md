@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.26.0
+- **Detect areas: every area the plugin reads, on one live picture of your game.** A new Settings tab shows your game with each area drawn on it in its own colour: the kill feed, the damage log, the cash HUD, the inventory's COMBINE AMMO hint and INVENTORY tab, the NEARBY list and the vehicle keybinds. Click a box (or its button) to pick it, drag it to move it, drag a corner or an edge to resize it, or draw it again; each has a Reset, and Reset all puts every one back. Under the picture it says what reads that area and what it is reading right now (the balance it sees, the damage-log match, the NEARBY names). Changes take effect at once. The damage-log search area and the inventory's two areas could not be moved before; the kill-feed and NEARBY boxes move here from Advanced.
+- **The cash area finds itself.** It sits on your balance at 900p, 1080p, 1440p and 4K without being moved (tested on the same frames at all four: the balance read wrong 0 times at every resolution), so it is locked: trying to drag it says there is no need. "Move it anyway" is there for a custom HUD scale.
+- **The dock button says what it does:** "Show Session Stats Overlay", and "Hide Session Stats Overlay" while the bar is on your stream.
+- The reason beside the session balance only ever shows a reward the reader knows (KILL, ASSIST, REVIVE, HEADSHOT, VEHICLE, ZONE, REFUND); anything else, including every reward in a game that is not in English, shows REWARD. It used to show the raw letters, so a misread line could put nonsense on stream. The balance and the amounts are digits and read in every language.
+
 ## 0.25.1
 - **A Session Stats button on the dock.** Under Save clip, Instant replay and Highlights there is now a full-size **Session Stats** button that puts the "This session" bar on your stream or takes it off (it lights up while the bar is showing; the first press adds it to your scene), with smaller **Reset** and **Stats image** buttons beside it. They replace the small links under the session line.
 - Fixed: the stingers switched what was underneath a moment before they covered the whole screen, so a thin strip at the edge could show the cut (going to a squad mate's POV, into an instant replay and back to live). Each stinger now slows inside the moment every panel covers the screen and the switch happens well inside it. The way back to live is about a quarter of a second longer.

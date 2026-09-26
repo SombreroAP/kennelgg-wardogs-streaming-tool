@@ -214,7 +214,15 @@ class Bridge:
                     self.vehicle_cfg["roi"] = roi
             if isinstance(v.get("inventory"), dict):
                 on = bool(v["inventory"].get("enabled"))
-                if on != self.inventory_cfg.get("enabled"):
+                # the two tell-tales' areas, set on the plugin's Detect areas tab
+                import inventory
+                moved = False
+                for key, attr in (("combine", "COMBINE_ROI"), ("tab", "TAB_ROI")):
+                    roi = _roi_list(v["inventory"].get(key))
+                    if roi and roi[2] > 0.005 and roi[3] > 0.005 and tuple(roi) != tuple(getattr(inventory, attr)):
+                        setattr(inventory, attr, tuple(roi))
+                        moved = True
+                if on != self.inventory_cfg.get("enabled") or (moved and on):
                     self.inventory_cfg["enabled"] = on
                     self._subscribe()          # the crop streams come and go with the switch
             if isinstance(v.get("nearby"), dict):

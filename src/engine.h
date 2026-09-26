@@ -7,6 +7,7 @@
 #include <memory>
 #include <QObject>
 #include <QImage>
+#include <QRectF>
 #include <QTimer>
 #include <QSet>
 #include <QHash>
@@ -345,6 +346,8 @@ public:
 	void resetSession(const QString &why);
 	/// Whether the cash HUD is being read, or why not ("" = reading it).
 	QString cashStatus() const;
+	/// Where the cash reader looks, as fractions of a W x H game source.
+	QRectF cashArea(double W, double H) const;
 	/// The session stats overlay (a browser source) into the plugin's scene; "" or why not.
 	QString addSessionOverlay();
 	bool hasSessionOverlay() const; // the bar's browser source exists

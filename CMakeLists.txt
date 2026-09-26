@@ -66,6 +66,7 @@ target_sources(
     src/ui/squad.cpp
     src/ui/quick-add.cpp
     src/ui/stats-dialog.cpp
+    src/ui/area-editor.cpp
     src/ui/wizard.cpp
     src/ui/settings-dialog.cpp
 )

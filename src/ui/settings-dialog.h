@@ -1,4 +1,5 @@
 #pragma once
+#include <QMap>
 #include <QDialog>
 #include <QLabel>
 #include <QComboBox>
@@ -104,7 +105,7 @@ private:
 
 	// The tabs are by what you are trying to do. The builders below make their groups and hand each
 	// one to the page it belongs on; General collects who you are, your game and ClipHound.
-	enum Page { PGeneral, PSquad, PDual, PClips, PVertical, PVoice, PLook, PAdvanced, PCount };
+	enum Page { PGeneral, PSquad, PDual, PClips, PDetect, PVertical, PVoice, PLook, PAdvanced, PCount };
 	QWidget *pageW_[PCount] = {};
 	QVBoxLayout *pages_[PCount] = {};
 	QTabWidget *tabs_ = nullptr;
@@ -177,6 +178,17 @@ private:
 	QSpinBox *appFps_ = nullptr;
 	void updateAreas();
 	void showNearbyTest();
+	// Settings, Detect areas: every area the plugin and ClipHound read, on one live picture
+	QWidget *buildAreasTab();
+	void refreshAreas();
+	void setArea(const QString &key, QRectF r);
+	class AreaEditor *areaEd_ = nullptr;
+	QMap<QString, QPushButton *> areaBtns_;
+	QLabel *areaStatus_ = nullptr;
+	QPushButton *areaTest_ = nullptr;
+	QWidget *feedRate_ = nullptr;
+	QCheckBox *cashUnlock_ = nullptr; // "Move it anyway": the cash area is automatic and locked until ticked
+	bool cashNagged_ = false;
 	// closest squad mate (the game's NEARBY list)
 	QCheckBox *nearOn_ = nullptr, *nearFollow_ = nullptr;
 	QSlider *nearCooldown_ = nullptr;
