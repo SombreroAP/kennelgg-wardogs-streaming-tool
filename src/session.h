@@ -37,6 +37,7 @@ struct Session {
 	QJsonObject json() const;
 	/// What the on-stream bar can show, in its order: id and label. The settings pick from these.
 	static const QList<QPair<QString, QString>> &elements();
-	static QString defaultShow() { return "kda,revives,earned,spent,permin"; }
+	static QString defaultShow() { return "kda,revives,net,permin"; }
+	int64_t net() const { return earned - spent; } // the session balance: up or down on the session
 	static QString money(int64_t v, bool sign = false);
 };

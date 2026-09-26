@@ -73,11 +73,21 @@ QString Session::summary() const
 const QList<QPair<QString, QString>> &Session::elements()
 {
 	static const QList<QPair<QString, QString>> list = {
-		{"kda", "K / D / A"},          {"kills", "Kills"},          {"deaths", "Deaths"},
-		{"assists", "Assists"},        {"kd", "K/D ratio"},         {"downs", "Downs"},
-		{"revives", "Revives"},        {"headshots", "Headshots"},  {"vehicles", "Vehicles destroyed"},
-		{"earned", "Money earned"},    {"spent", "Money spent"},    {"permin", "$ per minute in game"},
-		{"balance", "Balance change"}, {"longest", "Longest kill"},
+		{"kda", "K / D / A"},
+		{"kills", "Kills"},
+		{"deaths", "Deaths"},
+		{"assists", "Assists"},
+		{"kd", "K/D ratio"},
+		{"downs", "Downs"},
+		{"revives", "Revives"},
+		{"headshots", "Headshots"},
+		{"vehicles", "Vehicles destroyed"},
+		{"net", "Session balance (earned minus spent: green up, red down)"},
+		{"earned", "Money earned"},
+		{"spent", "Money spent"},
+		{"permin", "$ per minute in game"},
+		{"balance", "In-game balance change"},
+		{"longest", "Longest kill"},
 	};
 	return list;
 }
@@ -98,6 +108,8 @@ QJsonObject Session::json() const
 	o["zoneEarned"] = (double)zoneEarned;
 	o["spent"] = (double)spent;
 	o["spentText"] = money(spent);
+	o["net"] = (double)net();
+	o["netText"] = money(net(), true);
 	o["perMin"] = (double)perMinute();
 	o["perMinText"] = perMinute() < 0 ? QString("-") : money(perMinute());
 	o["activeMin"] = (double)activeMs / 60000.0;

@@ -97,6 +97,7 @@ void Config::load()
 	DEFB(replayStingerSound);
 	DEFB(replayFull1);
 	DEFB(replayPip);
+	DEFB(sessionNet1);
 	DEFS(pipRestore);
 	DEFS(sessionShow);
 	DEFB(sessionOverlayOn);
@@ -285,6 +286,7 @@ void Config::load()
 	GETB(replayStingerSound);
 	GETB(replayFull1);
 	GETB(replayPip);
+	GETB(sessionNet1);
 	GETS(pipRestore);
 	GETS(sessionShow);
 	GETB(sessionOverlayOn);
@@ -658,6 +660,7 @@ void Config::save() const
 	SETB(replayStingerSound);
 	SETB(replayFull1);
 	SETB(replayPip);
+	SETB(sessionNet1);
 	SETS(pipRestore);
 	SETS(sessionShow);
 	SETB(sessionOverlayOn);

@@ -158,11 +158,12 @@ struct Config {
 	std::string sessionOverlayPos = "tl";      // tl: top left under the team emblem, bc: bottom centre
 	std::string sessionOverlayMode = "always"; // always, or "pop": slides in when a number changes, out 20 s later
 	std::string sessionShow =
-		"kda,revives,earned,spent,permin"; // what the on-stream bar shows, in order (Session::elements)
-	std::string replayWord = "!replay";        // what they type
-	std::string chatKick;         // your Kick channel, for the chat trigger (Twitch comes from the login)
-	std::string chatYouTube;      // your YouTube channel or @handle, for the chat trigger
-	std::string highlightsFolder; // where the highlights compilations live ("" = <clip folder>/highlights)
+		"kda,revives,net,permin";   // what the on-stream bar shows, in order (Session::elements)
+	bool sessionNet1 = false;           // one-time: Earned + Spent on the bar become Session balance (0.24.1)
+	std::string replayWord = "!replay"; // what they type
+	std::string chatKick;               // your Kick channel, for the chat trigger (Twitch comes from the login)
+	std::string chatYouTube;            // your YouTube channel or @handle, for the chat trigger
+	std::string highlightsFolder;       // where the highlights compilations live ("" = <clip folder>/highlights)
 	std::string replayLabel = "Instant replay"; // the tag on the replay's frame
 	bool highlightsAuto = false;                // build the session's highlights compilation when the stream stops
 	int highlightsMax = 12;                     // at most this many clips in it

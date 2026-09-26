@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.24.1
+- **Session balance on the bar.** Money earned and money spent are now one number, the session balance: what you are up or down on the session. It is green with a plus when you have made money, red with a minus when you have lost money overall, and it counts up or down to each new figure, changing colour as it goes. A tag under it shows each change in the same colours (+$1,250 in green, -$15,500 in red). Bars set to show Earned and Spent switch to Session balance once. Both are still in the list in Settings for anyone who wants them back.
+- Fixed: the tags that show what just changed (+1 K, +$1,000) were cut off by the bar's slide-in and never appeared.
+
 ## 0.24.0
 - **Your game stays on screen during an instant replay.** The replay fills the screen, and your live game shrinks into a small window in the bottom-right corner with an amber edge and a LIVE tag, so viewers can see straight away that they are watching a replay. When the replay ends, the game grows back to full size. It is your game capture in the plugin's scene, put back exactly where it was, even if OBS closes during a replay. Instant replays only, not the highlights reel. Settings, Clips & replays turns it off.
 - **The "INSTANT REPLAY" stinger lasts longer.** The panels still sweep in and out at the same speed, but they hold for about a second while the title is on screen, so it can be read.

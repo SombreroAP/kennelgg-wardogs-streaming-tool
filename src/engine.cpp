@@ -743,6 +743,21 @@ void Engine::start()
 		cfg.replayScale = 100;
 		cfg.save();
 	}
+	if (!cfg.sessionNet1) {
+		// 0.24.1: the bar's Earned and Spent become one Session balance, green up, red down
+		QStringList show = QString::fromStdString(cfg.sessionShow).split(',', Qt::SkipEmptyParts);
+		int at = std::min(show.indexOf("earned") < 0 ? 1 << 20 : show.indexOf("earned"),
+				  show.indexOf("spent") < 0 ? 1 << 20 : show.indexOf("spent"));
+		if (at < (1 << 20)) {
+			show.removeAll("earned");
+			show.removeAll("spent");
+			if (!show.contains("net"))
+				show.insert(std::min<int>(at, show.size()), "net");
+			cfg.sessionShow = show.join(',').toStdString();
+		}
+		cfg.sessionNet1 = true;
+		cfg.save();
+	}
 	// the linked account's state, then sessions left on this PC by a stream that ended offline
 	QTimer::singleShot(15000, this, [this]() {
 		if (!stopping_)
