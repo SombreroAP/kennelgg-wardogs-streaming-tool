@@ -1456,7 +1456,9 @@ std::string Switcher::ensureStinger(const Config &cfg, bool on)
 		return "the stinger page is missing from the plugin's data folder";
 	std::replace(page.begin(), page.end(), '\\', '/');
 	std::string url = "file:///" + page + "?port=" + std::to_string(cfg.bridgePort) +
-			  (cfg.replayStingerSound ? "" : "&sound=0");
+			  (cfg.replayStingerSound && cfg.stingerVolume > 0
+				   ? "&vol=" + std::to_string(std::clamp(cfg.stingerVolume, 1, 100))
+				   : std::string("&sound=0"));
 	auto put = [&](obs_source_t *ss, const char *name, int w, int h) -> std::string {
 		obs_scene_t *scene = ss ? obs_scene_from_source(ss) : nullptr;
 		if (!scene)

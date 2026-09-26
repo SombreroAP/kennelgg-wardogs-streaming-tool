@@ -75,6 +75,9 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
 (function () {
   var q = new URLSearchParams(location.search);
   var port = q.get("port") || "47821", sound = q.get("sound") !== "0";
+  // the whoosh's volume, % of its full level (Settings, Clips & replays; 50 by default)
+  var vol = Math.max(0, Math.min(100, parseFloat(q.get("vol") || "50"))) / 100;
+  if (vol <= 0) sound = false;
   // One choreography of D ms. Every panel is over every pixel only from about 590 to 660 ms of it
   // (measured at 16:9), so each mode eases almost to a stop inside that moment and its real clock
   // runs through a warp[]: "in" (INSTANT REPLAY) holds its title about a second, 2240 ms in all,
@@ -172,7 +175,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
       bp.frequency.exponentialRampToValueAtTime(3200, t0 + 0.42 * slow);
       bp.frequency.exponentialRampToValueAtTime(500, t0 + len);
       g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.38 * slow);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.35 * vol), t0 + 0.38 * slow);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
       src.connect(bp); bp.connect(g); g.connect(ac.destination);
       src.start(t0); src.stop(t0 + len);

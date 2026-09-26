@@ -143,7 +143,8 @@ struct Config {
 	bool twitchMarkers = true;   // a Twitch stream marker for every clip saved while live
 	bool ytChapters = true;      // a YouTube chapter list for the VOD, written when the stream stops
 	bool replayStinger = true;   // the animated "INSTANT REPLAY" wipe into and out of each replay
-	bool replayStingerSound = true; // with its whoosh
+	bool replayStingerSound = true; // with its whoosh (the replay and the SWITCHING POV stingers)
+	int stingerVolume = 50;         // the whoosh's volume, % of the original (0.26.2: half by default)
 	bool replayFull1 = false;       // one-time move to full-screen replays (0.22.0)
 	bool replayPip = true;          // the game shrinks to a small LIVE window, bottom right, during a replay
 	bool povStinger = true;         // the SWITCHING POV stinger covers every POV swap

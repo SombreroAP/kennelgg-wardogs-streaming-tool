@@ -1683,9 +1683,36 @@ QWidget *SettingsDialog::buildClipsTab()
 		"A transparent browser source on top of your scene (Kennel.gg · Replay stinger) plays it; the "
 		"replay switches on and off while it covers the screen, so there is never a cut or a black frame.");
 	fi->addRow(replayStinger_);
-	replayStingerSound_ = new QCheckBox("With a whoosh (goes out on stream)", gi);
+	replayStingerSound_ = new QCheckBox("Whoosh sound on the stingers (instant replay and SWITCHING POV; goes "
+					    "out on stream)",
+					    gi);
 	replayStingerSound_->setChecked(e_->cfg.replayStingerSound);
 	fi->addRow(replayStingerSound_);
+	{
+		auto *vr = new QHBoxLayout();
+		stingerVol_ = new QSlider(Qt::Horizontal, gi);
+		stingerVol_->setRange(0, 100);
+		stingerVol_->setSingleStep(5);
+		stingerVol_->setPageStep(10);
+		stingerVol_->setValue(std::clamp(e_->cfg.stingerVolume, 0, 100));
+		auto *vl = new QLabel(gi);
+		vl->setMinimumWidth(44);
+		auto show = [vl, this]() {
+			vl->setText(QString("%1 %").arg(stingerVol_->value()));
+		};
+		show();
+		vr->addWidget(stingerVol_, 1);
+		vr->addWidget(vl);
+		fi->addRow("Whoosh volume", vr);
+		connect(stingerVol_, &QSlider::valueChanged, this, [show](int) { show(); });
+		connect(stingerVol_, &QSlider::sliderReleased, this, [this]() { saveAndApply(); });
+		connect(stingerVol_, &QSlider::actionTriggered, this, [this](int a) {
+			if (a != QAbstractSlider::SliderMove) // keyboard and clicks on the groove
+				QTimer::singleShot(0, this, [this]() { saveAndApply(); });
+		});
+		connect(replayStingerSound_, &QCheckBox::toggled, stingerVol_, &QWidget::setEnabled);
+		stingerVol_->setEnabled(e_->cfg.replayStingerSound);
+	}
 	replayPip_ = new QCheckBox("Shrink the game to a small LIVE window, bottom right, while it plays", gi);
 	replayPip_->setChecked(e_->cfg.replayPip);
 	replayPip_->setToolTip("Instant replays only (not the highlights reel), main canvas only. The game "
@@ -3551,6 +3578,8 @@ void SettingsDialog::collect()
 			c.replayStinger = replayStinger_->isChecked();
 		if (replayStingerSound_)
 			c.replayStingerSound = replayStingerSound_->isChecked();
+		if (stingerVol_)
+			c.stingerVolume = stingerVol_->value();
 		if (replayPip_)
 			c.replayPip = replayPip_->isChecked();
 		if (twitchMarkers_)

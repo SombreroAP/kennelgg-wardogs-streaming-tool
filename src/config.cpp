@@ -95,6 +95,7 @@ void Config::load()
 	DEFS(accountName);
 	DEFB(replayStinger);
 	DEFB(replayStingerSound);
+	DEFI(stingerVolume);
 	DEFB(replayFull1);
 	DEFB(replayPip);
 	DEFB(povStinger);
@@ -304,6 +305,7 @@ void Config::load()
 	GETS(accountName);
 	GETB(replayStinger);
 	GETB(replayStingerSound);
+	GETI(stingerVolume);
 	GETB(replayFull1);
 	GETB(replayPip);
 	GETB(povStinger);
@@ -698,6 +700,7 @@ void Config::save() const
 	SETS(accountName);
 	SETB(replayStinger);
 	SETB(replayStingerSound);
+	SETI(stingerVolume);
 	SETB(replayFull1);
 	SETB(replayPip);
 	SETB(povStinger);

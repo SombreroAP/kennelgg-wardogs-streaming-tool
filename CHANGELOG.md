@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.26.2
+- **The stinger whoosh is half as loud by default, with its own volume.** The whoosh on the instant replay and SWITCHING POV stingers now plays at 50 % of its old level. Settings, Clips & replays: "Whoosh sound on the stingers" turns it off, and "Whoosh volume" sets it anywhere from 0 to 100 % (100 % is the old level). It changes on stream at once.
+
 ## 0.26.1
 - Fixed: clips named after the fists for kills at range ("Headshot 19m with the Fists", 71 m, 157 m). A kill takes the weapon the HUD last showed in your hands, and the HUD shows the fists for a moment when you switch or holster, so a rifle kill could be credited to them. Fists (and any melee weapon or tool) now only count for a kill within 5 m whose kill-feed icon is not a gun; otherwise the kill goes to the gun you held just before, or to no weapon at all rather than a wrong one.
 - Fixed: ClipHound had learned the fists' kill-feed icon from those rifle kills, which then named other rifle kills after the fists too. It forgets the melee icons it learned that way once, when it starts after this update, and learns them again only from real melee kills.
