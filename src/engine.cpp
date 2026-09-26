@@ -43,6 +43,13 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	};
 	cfg.load();
 	loadTemplates();
+	{
+		char *mp = obs_module_file("hud/model.bin");
+		hudModel_ = mp ? hud::loadModel(mp, &hudModelErr_) : nullptr;
+		if (!mp)
+			hudModelErr_ = "data/hud/model.bin is missing";
+		bfree(mp);
+	}
 	detRevive_.fromX = 0.15f;
 	detRevive_.toX = 0.60f;
 	detRevive_.fromY = 0.55f;
@@ -61,6 +68,8 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&popoutTimer_, &QTimer::timeout, this, &Engine::watchPopouts);
 	webLiveTimer_.setInterval(60000);
 	connect(&webLiveTimer_, &QTimer::timeout, this, &Engine::webLiveTick);
+	cashTimer_.setInterval(250);
+	connect(&cashTimer_, &QTimer::timeout, this, &Engine::cashTick);
 	pictureTimer_.setInterval(1000);
 	connect(&pictureTimer_, &QTimer::timeout, this, &Engine::pictureTick);
 	connect(&timer_, &QTimer::timeout, this, &Engine::tick);
@@ -724,6 +733,10 @@ void Engine::start()
 	applyRosterConfig();
 	sw.stopMedia(cfg); // the replay source forgets last session's file (it was decoding it at load)
 	timer_.start(std::max(100, cfg.pollMs));
+	cashTimer_.start();
+	if (!hudModel_)
+		log("Session stats: the cash reader could not start (" + QString::fromStdString(hudModelErr_) +
+		    ") - kills and deaths are still counted.");
 	healthTimer_.start(5000);
 	if (cfg.keepWarm && !applied_ && cfg.active())
 		sw.armWarm(cfg);
@@ -1010,6 +1023,7 @@ void Engine::stopTimers()
 	frameTimer_.stop();
 	webLiveTimer_.stop();
 	pictureTimer_.stop();
+	cashTimer_.stop();
 	healthTimer_.stop();
 	popoutTimer_.stop();
 	replayTimer_.stop();
@@ -1192,6 +1206,7 @@ void Engine::checkAccess()
 		log("Discord voice: " + rs + ".");
 	}
 	logOfferedChanges(); // who is live comes from here: say who came onto or left the dock's list
+	checkUnpopped();
 	Access a = rosterAccess();
 	if (a == lastAccess_)
 		return;
@@ -1696,6 +1711,7 @@ void Engine::reloadConfig()
 		healthTimer_.start(5000);
 		webLiveTimer_.start();
 		pictureTimer_.start();
+		cashTimer_.start();
 		if (bridge.clients() > 0 && frameTimer_.interval() > 0)
 			frameTimer_.start();
 	}
@@ -1792,7 +1808,14 @@ void Engine::log(const QString &msg)
 void Engine::onBridgeMessage(const QJsonObject &o)
 {
 	QString type = o.value("type").toString();
+	if (type == "tally") {
+		onTally(o);
+		return;
+	}
 	if (type == "subscribe") {
+		if (!o.value("frames").toBool(true))
+			QTimer::singleShot(200, this,
+					   [this]() { broadcastState(); }); // a controller or the stats overlay
 		double fps = bridge.wantedFps();
 		if (fps > 0)
 			frameTimer_.start((int)(1000.0 / fps));
@@ -2010,6 +2033,7 @@ QJsonObject Engine::stateJson() const
 	o["voiceStatus"] = voiceStatus_;
 	o["replayPlaying"] = replayTimer_.isActive();
 	o["inVoice"] = rosterLive();
+	o["session"] = session_.json();
 	QJsonArray fr;
 	for (size_t i = 0; i < cfg.friends.size(); i++) {
 		const Friend &f = cfg.friends[i];
@@ -2030,6 +2054,275 @@ void Engine::broadcastState()
 	if (bridge.allClients() > 0)
 		bridge.sendJson(stateJson());
 	logOfferedChanges();
+}
+
+// ----- session stats
+
+void Engine::resetSession(const QString &why)
+{
+	session_.reset();
+	cashStab_ = tourney::Stabilizer();
+	tallied_.clear();
+	log("Session stats: counting from now (" + why + ").");
+	emit stateChanged();
+}
+
+QString Engine::cashStatus() const
+{
+	if (!cfg.sessionTrack)
+		return "off";
+	if (!hudModel_)
+		return "the cash reader could not start";
+	if (cfg.gameSource.empty())
+		return "no game source";
+	qint64 now = QDateTime::currentMSecsSinceEpoch();
+	if (cashOkAt_ && now - cashOkAt_ < 5000)
+		return "";
+	return cashWhy_.isEmpty() ? "your balance is not on screen" : cashWhy_;
+}
+
+/// The top-right corner of the game (the balance and the reward lines under it), drawn at the size
+/// a 4K frame has it, so every resolution reaches the reader alike. A worker per read, one at a time.
+void Engine::cashTick()
+{
+	if (stopping_ || cashBusy_ || !hudModel_ || !cfg.sessionTrack || cfg.gameSource.empty())
+		return;
+	cashBusy_ = true;
+	std::string name = cfg.gameSource;
+	auto model = hudModel_;
+	workers_++;
+	std::thread([this, name, model]() {
+		WorkerGuard guard(workers_);
+		hud::Reading r;
+		bool ok = false;
+		obs_source_t *src = obs_get_source_by_name(name.c_str());
+		if (src) {
+			double W = obs_source_get_width(src), H = obs_source_get_height(src);
+			if (W >= 320 && H >= 240) {
+				double rw = std::min(W, hud::kRegionW * H), rh = hud::kRegionH * H;
+				std::vector<uint8_t> bgra;
+				int w = 0, h = 0, ls = 0;
+				if (capCash_.grabRegion(src, (W - rw) / W, 0, rw / W, rh / H, hud::kRefW, bgra, w, h,
+							ls)) {
+					r = hud::read(*model, bgra.data(), w, h, ls);
+					ok = true;
+				}
+			}
+			obs_source_release(src);
+		}
+		qint64 t = QDateTime::currentMSecsSinceEpoch();
+		QMetaObject::invokeMethod(
+			this,
+			[this, r, ok, t]() {
+				cashBusy_ = false;
+				if (!stopping_ && ok)
+					onCashReading(r, t);
+			},
+			Qt::QueuedConnection);
+	}).detach();
+}
+
+void Engine::onCashReading(const hud::Reading &r, qint64 t)
+{
+	std::vector<tourney::Event> ev;
+	cashStab_.push(t, r, ev);
+	if (r.balance.ok)
+		cashOkAt_ = t;
+	else
+		cashWhy_ = QString::fromStdString(r.why);
+	bool changed = false;
+	for (const auto &e : ev) {
+		if (e.kind == tourney::Event::Bal) {
+			if (!session_.haveBalance) {
+				session_.haveBalance = true;
+				session_.balanceStart = e.v;
+			}
+			if (session_.balanceNow != e.v || e.v == session_.balanceStart) {
+				session_.balanceNow = e.v;
+				changed = true;
+			}
+		} else if (e.kind == tourney::Event::Feed && !e.hasXp) {
+			// A reward shows a money line and an XP line ("KILL +$1,000", "KILL 250XP"): XP lines never
+			// count. A line whose amount did not read ("ROTORS DESTROYED" with the figure lost) still
+			// counts, unless the same reward already did within 2.5 s with one of the two lacking an
+			// amount: that is the same reward's other line. Two real "KILL +$1,000" a second apart
+			// both carry amounts, so both count.
+			QString reason = QString::fromStdString(e.txt).toUpper().simplified();
+			if (e.hasAmt && e.amt > 0) {
+				session_.earned += e.amt;
+				if (reason.contains("ZONE"))
+					session_.zoneEarned += e.amt;
+				changed = true;
+			}
+			if (reason.isEmpty())
+				continue;
+			while (!tallied_.isEmpty() && t - tallied_.first().t > 5000)
+				tallied_.removeFirst();
+			bool same = false;
+			for (const auto &p : tallied_)
+				if (p.reason == reason && t - p.t < 2500 && (!p.amt || !e.hasAmt))
+					same = true;
+			if (same)
+				continue;
+			tallied_.append({reason, t, e.hasAmt});
+			if (reason == "KILL" || reason == "REVENGE KILL")
+				session_.hudKills++;
+			else if (reason == "ASSIST")
+				session_.assists++;
+			else if (reason == "REVIVED TEAMMATE")
+				session_.revives++;
+			else if (reason == "HEADSHOT")
+				session_.headshots++;
+			else if (reason == "VEHICLE DESTROYED" || reason == "ROTORS DESTROYED")
+				session_.vehicles++;
+			changed = true;
+		}
+	}
+	if (changed)
+		emit stateChanged();
+}
+
+/// ClipHound read a kill-feed row with you in it: {"type":"tally","kill":bool,"death":bool,
+/// "headshot":bool,"distance":m,"weapon":name}.
+void Engine::onTally(const QJsonObject &o)
+{
+	if (!cfg.sessionTrack)
+		return;
+	if (o.value("death").toBool())
+		session_.deaths++;
+	else if (o.value("kill").toBool()) {
+		session_.kills++;
+		if (o.value("headshot").toBool())
+			session_.feedHeadshots++;
+		session_.longestKillM = std::max(session_.longestKillM, o.value("distance").toInt());
+		QString w = o.value("weapon").toString();
+		if (!w.isEmpty())
+			session_.weapons[w]++;
+	}
+	emit stateChanged();
+}
+
+void Engine::writeSessionSummary()
+{
+	if (!cfg.sessionTrack)
+		return;
+	QString text = session_.summary();
+	for (const auto &l : text.split('\n', Qt::SkipEmptyParts))
+		log("Session stats: " + l);
+	QString dir;
+	for (auto it = clips.history().rbegin(); it != clips.history().rend() && dir.isEmpty(); ++it)
+		if (!it->path.isEmpty())
+			dir = QFileInfo(it->path).absolutePath();
+	if (dir.isEmpty())
+		return;
+	QFile f(dir + "/Session stats " + session_.start.toString("yyyy-MM-dd HH-mm") + ".txt");
+	if (f.open(QIODevice::WriteOnly | QIODevice::Text))
+		f.write(text.toUtf8());
+}
+
+QString Engine::addSessionOverlay()
+{
+	char *p = obs_module_file("overlay/session.html");
+	std::string path = p ? p : "";
+	bfree(p);
+	if (path.empty())
+		return "the overlay page is missing from the plugin's data folder";
+	std::replace(path.begin(), path.end(), '\\', '/');
+	std::string url = "file:///" + path + "?port=" + std::to_string(cfg.bridgePort);
+	obs_source_t *ss = cfg.sceneName.empty() ? nullptr : obs_get_source_by_name(cfg.sceneName.c_str());
+	if (!ss || !obs_scene_from_source(ss)) {
+		if (ss)
+			obs_source_release(ss);
+		return "no scene: pick the plugin's scene under Settings, General";
+	}
+	obs_scene_t *scene = obs_scene_from_source(ss);
+	const char *name = Config::sessionOverlayName();
+	obs_source_t *src = obs_get_source_by_name(name);
+	if (!src) {
+		obs_data_t *st = obs_data_create();
+		obs_data_set_string(st, "url", url.c_str());
+		obs_data_set_int(st, "width", 1200);
+		obs_data_set_int(st, "height", 110);
+		obs_data_set_bool(st, "shutdown", false);
+		src = obs_source_create("browser_source", name, st, nullptr);
+		obs_data_release(st);
+	} else {
+		obs_data_t *st = obs_data_create();
+		obs_data_set_string(st, "url", url.c_str());
+		obs_source_update(src, st);
+		obs_data_release(st);
+	}
+	if (!src) {
+		obs_source_release(ss);
+		return "could not create a browser source (is the Browser Source available in this OBS?)";
+	}
+	if (!obs_scene_find_source(scene, name)) {
+		obs_sceneitem_t *item = obs_scene_add(scene, src);
+		struct obs_video_info ovi;
+		obs_get_video_info(&ovi);
+		struct vec2 pos;
+		pos.x = 40;
+		pos.y = (float)ovi.base_height - 150;
+		if (item)
+			obs_sceneitem_set_pos(item, &pos);
+	}
+	obs_source_release(src);
+	obs_source_release(ss);
+	log("Session stats: the overlay is in your scene (" + QString(name) + "); move and size it like any source.");
+	QTimer::singleShot(1500, this, [this]() { broadcastState(); });
+	return "";
+}
+
+/// Who is sharing in my Kennel.gg voice channel without a popped-out window on this PC. Without
+/// one they can be shown only through the main Discord window, one at a time and only while it is
+/// on their stream, so the dock says who to pop out.
+void Engine::checkUnpopped()
+{
+	QStringList now;
+	if (rosterLive()) {
+		QString me = QString::fromStdString(cfg.myDiscord).toLower(), myChan;
+		for (const auto &m : roster.members())
+			if (m.handle.toLower() == me)
+				myChan = m.channel;
+		for (const auto &m : roster.members()) {
+			if (!m.streaming || m.channel != myChan || isMe(m.handle))
+				continue;
+			QString h = m.handle.toLower(), n = m.name.toLower();
+			bool popped = false;
+			for (const auto &f : cfg.friends) {
+				if (f.kind != FriendKind::Discord || !f.onPopout())
+					continue;
+				QString fh = QString::fromStdString(f.handle).toLower(),
+					fn = QString::fromStdString(f.name).toLower();
+				if ((!h.isEmpty() && (fh == h || fn == h)) || fn == n)
+					popped = true;
+			}
+			if (!popped)
+				now << (m.handle.isEmpty() ? m.name : m.handle);
+		}
+	}
+	QDateTime t = QDateTime::currentDateTime();
+	for (auto it = unpoppedSince_.begin(); it != unpoppedSince_.end();)
+		it = now.contains(it.key()) ? std::next(it) : unpoppedSince_.erase(it);
+	QStringList due;
+	for (const auto &n : now) {
+		if (!unpoppedSince_.contains(n))
+			unpoppedSince_.insert(n, t);
+		else if (unpoppedSince_.value(n).secsTo(t) >= 20)
+			due << n;
+	}
+	due.sort(Qt::CaseInsensitive);
+	if (due != unpopped_) {
+		QStringList added;
+		for (const auto &n : due)
+			if (!unpopped_.contains(n))
+				added << n;
+		unpopped_ = due;
+		if (!added.isEmpty())
+			log("Squad: " + added.join(", ") + (added.size() == 1 ? " is" : " are") +
+			    " live in your voice channel but not popped out on this PC.");
+		emit stateChanged();
+	}
 }
 
 /// One line each time a squad mate comes onto or leaves the dock's list, with the reason, so a
@@ -3289,6 +3582,7 @@ void Engine::detect(const Match &m)
 	int minDown = fast ? 0 : cfg.minDownMs;
 	if (!detected_ && downRun_ >= cfg.downFrames) {
 		detected_ = true;
+		session_.downs++;
 		peakScore_ = m.score;
 		downX_ = m.x;
 		downY_ = m.y;
@@ -3491,10 +3785,12 @@ void Engine::onStreaming(bool live)
 		sessionStart_ = QDateTime::currentDateTime();
 		streamStart_ = sessionStart_;
 		chapters_.clear();
+		resetSession("the stream started");
 		log("Streaming: the highlights session starts here.");
 		return;
 	}
 	writeChapters();
+	writeSessionSummary();
 	streamStart_ = QDateTime();
 	if (cfg.highlightsAuto)
 		requestHighlights("stream ended", false);

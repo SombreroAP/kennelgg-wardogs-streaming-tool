@@ -19,6 +19,8 @@
 #include "roster.h"
 #include "config.h"
 #include "detector.h"
+#include "session.h"
+#include "hudocr/stabilizer.h"
 #include "switcher.h"
 
 /// The state machine. Lives on the Qt main thread; capture + matching run on a worker per poll.
@@ -332,6 +334,13 @@ public:
 	/// Ask now whether each Twitch / Kick / YouTube squad mate is live (it is asked every minute
 	/// anyway): a squad mate just added shows live or offline at once.
 	void webLiveTick();
+	/// This session's kills, deaths, assists, revives and money (Session).
+	const Session &session() const { return session_; }
+	void resetSession(const QString &why);
+	/// Whether the cash HUD is being read, or why not ("" = reading it).
+	QString cashStatus() const;
+	/// The session stats overlay (a browser source) into the plugin's scene; "" or why not.
+	QString addSessionOverlay();
 	/// The last stream's YouTube chapter list ("0:00 Start" and one line per clip), "" if none.
 	QString lastChapters() const { return lastChapters_; }
 	QString lastChaptersPath() const { return lastChaptersPath_; }
@@ -367,6 +376,32 @@ private:
 	QStringList namesOn(const QString &source) const;
 	QHash<QString, QDateTime> rosterGone_; // roster slots whose owner stopped sharing, and since when
 	QSet<QString> offered_;                // on the dock's list at the last state change
+	// live in my voice channel with no popped-out window, and since when: the dock reminds to pop
+	// them out after a short grace (the pop-out watch binds a window within two seconds)
+	// the session tracker: the cash HUD (top right) read four times a second by hudocr, settled by the
+	// tournament's stabilizer (a balance counts once read twice; each reward line once)
+	Session session_;
+	std::shared_ptr<const hud::Model> hudModel_;
+	std::string hudModelErr_;
+	tourney::Stabilizer cashStab_;
+	Capture capCash_;
+	QTimer cashTimer_;
+	std::atomic<bool> cashBusy_{false};
+	qint64 cashOkAt_ = 0;
+	QString cashWhy_;
+	struct Tallied {
+		QString reason;
+		qint64 t;
+		bool amt;
+	};
+	QList<Tallied> tallied_; // reward lines counted in the last few seconds
+	void cashTick();
+	void onCashReading(const hud::Reading &r, qint64 t);
+	void onTally(const QJsonObject &o);
+	void writeSessionSummary();
+	QHash<QString, QDateTime> unpoppedSince_;
+	QStringList unpopped_;
+	void checkUnpopped();
 	bool offeredKnown_ = false;
 	void logOfferedChanges();
 	QTimer replayTimer_; // polls the playing replay: seek once loaded, stop at its end

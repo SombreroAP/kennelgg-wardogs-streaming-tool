@@ -414,6 +414,21 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		refresh();
 	});
 	v->addWidget(appLine_);
+	session_ = new QLabel(this);
+	session_->setObjectName("small");
+	session_->setWordWrap(true);
+	session_->setTextFormat(Qt::RichText);
+	connect(session_, &QLabel::linkActivated, this, [this](const QString &href) {
+		if (href == "kennel:reset")
+			e_->resetSession("reset from the dock");
+		else if (href == "kennel:overlay") {
+			QString err = e_->addSessionOverlay();
+			if (!err.isEmpty())
+				e_->log("Session stats overlay: " + err);
+		}
+		refresh();
+	});
+	v->addWidget(session_);
 	clip_ = new QLabel(this);
 	clip_->setObjectName("small");
 	clip_->setWordWrap(true);
@@ -832,6 +847,20 @@ void Dock::refresh()
 				       "</b>  ·  <a style=\"color:#c99a3b\" href=\"kennel:rename\">Rename</a>  ·  "
 				       "<a style=\"color:#c99a3b\" href=\"kennel:replay\">Replay</a>");
 		}
+	}
+
+	// ----- this session
+	{
+		session_->setVisible(e_->cfg.sessionTrack);
+		QString gold = "<a style=\"color:#c99a3b\" href=\"";
+		QString cash = e_->cashStatus();
+		session_->setText(
+			"<b>This session</b>  " + e_->session().line().toHtmlEscaped() +
+			(cash.isEmpty() || cash == "off" ? QString()
+							 : "<br><span style=\"color:#7c8076\">Money and assists: " +
+								   cash.toHtmlEscaped() + "</span>") +
+			"<br>" + gold + "kennel:overlay\">Show on stream</a>  ·  " + gold + "kennel:reset\">Reset</a>");
+		session_->setToolTip(e_->session().summary());
 	}
 
 	// ----- ClipHound, in words

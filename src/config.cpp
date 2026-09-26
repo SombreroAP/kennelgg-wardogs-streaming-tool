@@ -88,6 +88,7 @@ void Config::load()
 	DEFI(chatClips);
 	DEFB(twitchMarkers);
 	DEFB(ytChapters);
+	DEFB(sessionTrack);
 	DEFB(pictureCheck);
 	DEFB(preloadFeeds);
 	DEFB(friendAudio);
@@ -262,6 +263,7 @@ void Config::load()
 	GETI(chatClips);
 	GETB(twitchMarkers);
 	GETB(ytChapters);
+	GETB(sessionTrack);
 	GETB(pictureCheck);
 	GETB(preloadFeeds);
 	GETB(friendAudio);
@@ -621,6 +623,7 @@ void Config::save() const
 	SETI(chatClips);
 	SETB(twitchMarkers);
 	SETB(ytChapters);
+	SETB(sessionTrack);
 	SETB(pictureCheck);
 	SETB(preloadFeeds);
 	SETB(friendAudio);

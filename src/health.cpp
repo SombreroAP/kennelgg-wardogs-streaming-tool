@@ -251,6 +251,19 @@ QList<Engine::Banner> Engine::banners() const
 		b.dismissable = false;
 		add(b);
 	}
+	if (!unpopped_.isEmpty()) {
+		Banner b;
+		b.id = "pop:" + unpopped_.join(","); // dismissed until somebody else joins the list
+		b.level = 1;
+		b.text = "<b>" + unpopped_.join(", ").toHtmlEscaped() + "</b> " +
+			 (unpopped_.size() == 1 ? "is" : "are") +
+			 " live in your voice channel but not popped out, so they can only be shown through your main "
+			 "Discord window. In Discord, right-click " +
+			 (unpopped_.size() == 1 ? "their stream" : "each stream") +
+			 ", <b>Pop Out</b>, then <b>Mute</b> it: the plugin picks the window up by itself.";
+		b.actions = {Fix("squad", "Open Squad")};
+		add(b);
+	}
 	for (auto it = minimised_.begin(); it != minimised_.end(); ++it) {
 		Banner b;
 		b.id = "min:" + it.key();

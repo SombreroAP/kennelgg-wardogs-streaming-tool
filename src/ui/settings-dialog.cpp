@@ -1752,6 +1752,19 @@ QWidget *SettingsDialog::buildClipsTab()
 		"into chapters.");
 	fi->addRow(ytChapters_);
 	connect(ytChapters_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	sessionTrack_ =
+		new QCheckBox("Count this session: kills, deaths, downs, assists, revives, headshots, vehicles and "
+			      "money earned",
+			      gi);
+	sessionTrack_->setChecked(e_->cfg.sessionTrack);
+	sessionTrack_->setToolTip(
+		"Kills and deaths come from the kill feed (ClipHound), downs from the downed screen, and assists, "
+		"revives, headshots, vehicles and money from the reward lines under your balance, top right. Those "
+		"reward names are read in English; money is read in any language. The dock shows the count, "
+		"\"Show on stream\" adds an overlay, and a summary is saved next to your clips when the stream "
+		"stops. A new session starts when you go live, or from the dock's Reset.");
+	fi->addRow(sessionTrack_);
+	connect(sessionTrack_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	highlightsMax_ = spin(3, 30, e_->cfg.highlightsMax, " clips at most");
 	fi->addRow("Compilation", highlightsMax_);
 	fi->addRow(muted(
@@ -3230,6 +3243,8 @@ void SettingsDialog::collect()
 			c.twitchMarkers = twitchMarkers_->isChecked();
 		if (ytChapters_)
 			c.ytChapters = ytChapters_->isChecked();
+		if (sessionTrack_)
+			c.sessionTrack = sessionTrack_->isChecked();
 		c.replayWord = replayWord_->text().trimmed().isEmpty() ? "!replay"
 								       : replayWord_->text().trimmed().toStdString();
 		c.replaySound = replaySound_->isChecked();

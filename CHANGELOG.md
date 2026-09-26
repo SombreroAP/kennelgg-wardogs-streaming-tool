@@ -2,6 +2,15 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.21.0
+- **Session stats.** The plugin counts your session: kills, deaths, K/D, downs, assists, revives, headshots, vehicles destroyed and money earned, with your balance change, longest kill and the gun you got most kills with.
+  - Kills and deaths come from the kill feed (ClipHound), downs from the downed screen, and assists, revives, headshots, vehicles and money from the reward lines under your balance, top right ("ASSIST +$...", "REVIVED TEAMMATE +$500"). Those are read by the same cash-HUD reader as the Kennel.gg Cash Cup, four times a second, and a line counts once however long it stays up. A reward's XP line never counts it twice.
+  - Reward names are read in English; money is read in any language.
+  - The dock shows the count under the clip buttons. **Show on stream** adds a "This session" bar to your scene (a browser source you can move and resize) that updates as it happens, a changed number flashing amber. **Reset** starts again; a new session also starts when you go live.
+  - When the stream stops, a summary ("Session stats <date>.txt") is saved next to your clips and written to the log.
+  - Settings, Clips & replays turns it off.
+- **A reminder to pop streams out.** When someone is live in your Kennel.gg voice channel and their stream is not popped out on your PC, the dock says so after 20 seconds, with how to do it. Without a pop-out they can only be shown through your main Discord window, one at a time. The plugin binds the window by itself once it is popped out.
+
 ## 0.20.0
 - **Clips when chat goes wild.** ClipHound watches your Twitch chat, and when several different people write at once - a few times your chat's usual pace - or a few of them ask for a clip ("clip it", "!clip"), the moment is saved as a clip named "Chat went wild" with the word they spammed ("Chat went wild (KEKW)"). It is dated five seconds before chat started reacting, so the highlights reel and the instant replay cut to the moment itself, not to chat's reaction. Commands, the usual bots and your own lines never count, the first minute after connecting only counts outright requests (the chat's usual pace is not known yet), and there is at most one a minute. Settings, Clips & replays: Off, Only big moments, Normal (the default), Small moments too. With Twitch clips on, a Twitch clip is made as well.
 - **Twitch stream markers for every clip.** Every clip saved while you are live - kill-feed, chat, voice, hotkey or dock - puts a marker on your Twitch VOD named after it, so the VOD can be scrubbed from moment to moment (Twitch shows them on the video's timeline and in the Highlighter). The Twitch login needs one more permission for this: log in to Twitch again once (Settings, Clips & replays, Twitch clips), and the settings say so until you do. The account logged in must be the channel or one of its editors, and the channel must save past broadcasts (Twitch, Settings, Stream). It works with Twitch clips turned off.

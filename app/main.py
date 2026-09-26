@@ -363,6 +363,13 @@ def main():
                     if getattr(ev, "weapon", ""):
                         who += f" ({ev.weapon})"
                     bridge.event(who, "kill")
+                    # the plugin's session count: your kills and your deaths (a suicide is a death)
+                    if ev.killer_me or ev.victim_me:
+                        bridge.send({"type": "tally", "kill": bool(ev.killer_me and not ev.victim_me),
+                                     "death": bool(ev.victim_me),
+                                     "headshot": "skull" in (ev.icons or []),   # the feed's headshot icon
+                                     "distance": int(getattr(ev, "distance_m", 0) or 0),
+                                     "weapon": getattr(ev, "weapon", "") or ""})
                 except Exception:
                     pass
         time.sleep(max(0, period - (time.time() - t0)))

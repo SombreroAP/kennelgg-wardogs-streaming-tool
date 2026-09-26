@@ -45,6 +45,12 @@ target_sources(
     src/detector.cpp
     src/capture.cpp
     src/picture.cpp
+    src/session.cpp
+    src/hudocr/image.cpp
+    src/hudocr/model.cpp
+    src/hudocr/reader.cpp
+    src/hudocr/text.cpp
+    src/hudocr/stabilizer.cpp
     src/switcher.cpp
     src/engine.cpp
     src/health.cpp

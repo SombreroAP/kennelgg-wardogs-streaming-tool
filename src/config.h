@@ -142,6 +142,7 @@ struct Config {
 	int chatClips = 2;           // clip when chat goes wild: 0 off, 1 big moments only, 2 normal, 3 small ones too
 	bool twitchMarkers = true;   // a Twitch stream marker for every clip saved while live
 	bool ytChapters = true;      // a YouTube chapter list for the VOD, written when the stream stops
+	bool sessionTrack = true;    // count this session's kills, deaths, assists, revives and money
 	std::string replayWord = "!replay"; // what they type
 	std::string chatKick;               // your Kick channel, for the chat trigger (Twitch comes from the login)
 	std::string chatYouTube;            // your YouTube channel or @handle, for the chat trigger
@@ -281,6 +282,7 @@ struct Config {
 		return preloadFeeds ? std::string(webSourceName()) + " - " + f.name : webSourceName();
 	}
 	static const char *overlaySourceName() { return "Kennel.gg look"; }
+	static const char *sessionOverlayName() { return "Kennel.gg · Session stats"; }
 	static const char *overlaySourceNameV() { return "Kennel.gg look (vertical)"; }
 	static const char *hideFilterName() { return "Kennel.gg hide"; }
 	/// Source names as builds before 0.7.0 made them; renamed once on start.
