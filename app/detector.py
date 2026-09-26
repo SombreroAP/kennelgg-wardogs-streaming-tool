@@ -288,7 +288,7 @@ class KillDetector:
         if any(x[1] == key and prof_corr(x[2], row.vprof) >= 0.8 for x in self._decided):
             return None                                # same kill re-acquired after a shift / dropped frame
         self._decided.append((row.first, key, row.vprof))
-        weapon, weapon_from, weapon_kind, vehicle = self._weapon(row, killer_rel == "me", icons)
+        weapon, weapon_from, weapon_kind, vehicle = self._weapon(row, killer_rel == "me", icons, dist)
         ev = FeedEvent(killer=Counter(names).most_common(1)[0][0], victim=Counter(victims).most_common(1)[0][0],
                        distance_m=dist, dist_conf=conf, icons=icons,
                        killer_rel=killer_rel, victim_rel=victim_rel, ts=row.first,
@@ -321,8 +321,13 @@ class KillDetector:
     # never the answer for these; the thrown or fired one, if the plate showed it a moment before, is
     DELAYED = {"grenade", "c4", "rpg", "mortar"}
     DELAYED_WINDOW_S = 15.0
+    # fists, a knife or a tool reach this far at most: a kill further away, or one the feed draws
+    # with a gun's icon, was not made with them - the plate showed them for a moment (a weapon
+    # switch, a holster) while the gun made the kill
+    MELEE_MAX_M = 5
+    GUN_ICONS = {k for k, v in W.CLASS_TYPE.items() if v == "gun"}
 
-    def _weapon(self, row, my_kill: bool, icons: list[str]) -> tuple[str, str, str, str]:
+    def _weapon(self, row, my_kill: bool, icons: list[str], dist: int = 0) -> tuple[str, str, str, str]:
         """(weapon, source, type, vehicle) for a kill: what made it, by the game's own name.
 
         source: "hud" (read off your screen at your kill), "learned" (a kill-feed icon learned from
@@ -373,6 +378,14 @@ class KillDetector:
                                      W.weapon_type(n) in ("gun", "bow", "melee"), self.DELAYED_WINDOW_S)
             if held and W.weapon_type(held) == "vehicle weapon" and g:
                 held = None            # the feed shows a hand-held gun: not the mounted one
+            if held and W.weapon_type(held) == "melee" and (dist > self.MELEE_MAX_M or g in self.GUN_ICONS):
+                # "Fists" at 71 m with a rifle icon: the gun you held just before made the kill
+                gun = reader.recent(row.first, lambda n: W.weapon_type(n) in ("gun", "bow"), 120.0)
+                print(f"[weapons] not {held} at {dist} m (feed icon {g or 'none'}): "
+                      + (f"{gun}, held just before" if gun else "no gun on the plate before it"))
+                if not gun:
+                    return feed
+                return gun, "hud", W.weapon_type(gun), ""   # not learned from: the plate was not on it
             if held:
                 if not (g and g in self.NOT_A_GUN and g != W.class_of(held)):
                     reader.learn(held, icon)

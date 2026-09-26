@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.26.1
+- Fixed: clips named after the fists for kills at range ("Headshot 19m with the Fists", 71 m, 157 m). A kill takes the weapon the HUD last showed in your hands, and the HUD shows the fists for a moment when you switch or holster, so a rifle kill could be credited to them. Fists (and any melee weapon or tool) now only count for a kill within 5 m whose kill-feed icon is not a gun; otherwise the kill goes to the gun you held just before, or to no weapon at all rather than a wrong one.
+- Fixed: ClipHound had learned the fists' kill-feed icon from those rifle kills, which then named other rifle kills after the fists too. It forgets the melee icons it learned that way once, when it starts after this update, and learns them again only from real melee kills.
+
 ## 0.26.0
 - **Detect areas: every area the plugin reads, on one live picture of your game.** A new Settings tab shows your game with each area drawn on it in its own colour: the kill feed, the damage log, the cash HUD, the inventory's COMBINE AMMO hint and INVENTORY tab, the NEARBY list and the vehicle keybinds. Click a box (or its button) to pick it, drag it to move it, drag a corner or an edge to resize it, or draw it again; each has a Reset, and Reset all puts every one back. Under the picture it says what reads that area and what it is reading right now (the balance it sees, the damage-log match, the NEARBY names). Changes take effect at once. The damage-log search area and the inventory's two areas could not be moved before; the kill-feed and NEARBY boxes move here from Advanced.
 - **The cash area finds itself.** It sits on your balance at 900p, 1080p, 1440p and 4K without being moved (tested on the same frames at all four: the balance read wrong 0 times at every resolution), so it is locked: trying to drag it says there is no need. "Move it anyway" is there for a custom HUD scale.

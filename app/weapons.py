@@ -609,7 +609,39 @@ class WeaponReader:
     def _shared_path(self):
         return os.path.join(self.dir, "shared.json")
 
+    def _purge_melee_once(self):
+        """Before 0.26.0 a gun kill was credited to the fists whenever the plate showed them at that
+        moment, and their "icon" was learned from rifle kills: those samples go, once."""
+        mark = os.path.join(self.dir, ".melee-purged-0.26")
+        if not os.path.isdir(self.dir) or os.path.exists(mark):
+            return
+        import shutil
+        gone = []
+        for name, cat, _ in WEAPONS:
+            if cat in ("melee", "tool"):
+                d = os.path.join(self.dir, slug(name))
+                if os.path.isdir(d):
+                    shutil.rmtree(d, ignore_errors=True)
+                    gone.append(name)
+        try:
+            with open(self._shared_path(), encoding="utf-8") as f:
+                sh = json.load(f)
+            melee = {slug(n) for n, c, _ in WEAPONS if c in ("melee", "tool")}
+            sh = {k: [x for x in v if x not in melee] for k, v in sh.items() if k not in melee}
+            with open(self._shared_path(), "w", encoding="utf-8") as f:
+                json.dump({k: v for k, v in sh.items() if v}, f, indent=1)
+        except (OSError, ValueError):
+            pass
+        try:
+            with open(mark, "w") as f:
+                f.write("melee icons learned from gun kills removed\n")
+        except OSError:
+            pass
+        if gone:
+            print(f"[weapons] forgot the learned icons of {', '.join(gone)} (learned from gun kills before 0.26.0)")
+
     def load(self):
+        self._purge_melee_once()
         self.learned = {}
         try:
             with open(self._shared_path(), encoding="utf-8") as f:
