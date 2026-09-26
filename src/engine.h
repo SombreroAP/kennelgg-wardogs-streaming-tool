@@ -444,8 +444,23 @@ private:
 	QElapsedTimer replayClock_;
 	bool replaySought_ = false, replayShown_ = false;
 	bool replayOutSent_ = false; // the "back to live" stinger is playing; the replay stops under its cover
-	static constexpr int kStingerCoverMs = 560; // the stinger fully covers the screen this long after it starts
+	// stinger.html's clock: "in" (2180 ms) covers the screen from 480 ms and holds its title until
+	// about 1640 ms; "out" (1300 ms, no words) covers it from 480 to 760 ms. The switch underneath
+	// happens a little after each cover starts.
+	static constexpr int kStingerInCoverMs = 560, kStingerInRevealMs = 1640, kStingerOutCoverMs = 560;
 	void sendStinger(const char *dir);
+	// the picture-in-picture: the game shrinks into the bottom-right corner over the replay, and
+	// grows back at the end, a moment before the "out" stinger covers the switch back
+	static constexpr int kPipShrinkMs = 800, kPipGrowMs = 650, kPipGrowLeadMs = 250;
+	QTimer pipTimer_;
+	QElapsedTimer pipClock_;
+	int pipDir_ = 0; // 1 shrinking, -1 growing, 0 still
+	void startPip(int delayMs);
+	void growPip();
+	void pipTick();
+	void endPip();
+	void sendPipFrame(bool on);
+	int outLeadMs() const; // how long before the replay's end the way back starts
 	int replaySeekChecks_ = 0;
 	QString replayWhat_;
 	Clips::Entry pendingReplay_;

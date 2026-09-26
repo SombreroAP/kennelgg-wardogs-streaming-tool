@@ -1694,7 +1694,7 @@ QWidget *SettingsDialog::buildClipsTab()
 	fi->addRow("Ends", replayPost_);
 	fi->addRow("Size", replayScale_);
 	replayStinger_ = new QCheckBox(
-		"Stinger: an animated \"INSTANT REPLAY\" wipe into each replay, and \"BACK TO LIVE\" out of it", gi);
+		"Stinger: an animated \"INSTANT REPLAY\" wipe into each replay, and a quick one out of it", gi);
 	replayStinger_->setChecked(e_->cfg.replayStinger);
 	replayStinger_->setToolTip(
 		"A transparent browser source on top of your scene (Kennel.gg · Replay stinger) plays it; the "
@@ -1703,6 +1703,13 @@ QWidget *SettingsDialog::buildClipsTab()
 	replayStingerSound_ = new QCheckBox("With a whoosh (goes out on stream)", gi);
 	replayStingerSound_->setChecked(e_->cfg.replayStingerSound);
 	fi->addRow(replayStingerSound_);
+	replayPip_ = new QCheckBox("Shrink the game to a small LIVE window, bottom right, while it plays", gi);
+	replayPip_->setChecked(e_->cfg.replayPip);
+	replayPip_->setToolTip("Instant replays only (not the highlights reel), main canvas only. The game "
+			       "capture shrinks into the corner over the replay, then grows back to full size "
+			       "when the replay ends. Needs the game capture in the plugin's scene.");
+	fi->addRow(replayPip_);
+	connect(replayPip_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(replayStinger_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(replayStingerSound_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	replaySound_ = new QCheckBox("Play the clip's sound (it carries your mic and the game from a minute ago)", gi);
@@ -3346,6 +3353,8 @@ void SettingsDialog::collect()
 			c.replayStinger = replayStinger_->isChecked();
 		if (replayStingerSound_)
 			c.replayStingerSound = replayStingerSound_->isChecked();
+		if (replayPip_)
+			c.replayPip = replayPip_->isChecked();
 		if (twitchMarkers_)
 			c.twitchMarkers = twitchMarkers_->isChecked();
 		if (ytChapters_)

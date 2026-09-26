@@ -106,6 +106,19 @@ public:
 	int mediaState() const;      // obs_media_state, OBS_MEDIA_STATE_NONE when there is no source
 	int64_t mediaTimeMs() const; // where playback is in the file
 	void stopMedia(const Config &cfg);
+	/// The instant replay's picture-in-picture (main canvas): the game shrinks to a small window in
+	/// the bottom-right corner over the replay, and grows back when it ends. pipBegin() notes where
+	/// the game item is (returned as JSON, kept in the config until pipRestore() so a crash mid-replay
+	/// cannot leave it small) and lifts it just over the replay; "" when it cannot (no game item in
+	/// the plugin's scene, or a rotated or flipped one).
+	std::string pipBegin(const Config &cfg);
+	/// k = 0 where the game was, 1 the small window; the caller eases it.
+	void pipStep(double k);
+	/// The small window as fractions of the canvas, for the stinger page's LIVE frame.
+	void pipRect(double r[4]) const;
+	bool pipOn() const { return !pipSource_.empty(); }
+	/// Exactly as it was: transform and order. `saved` = a pipBegin() JSON from an earlier run.
+	void pipRestore(const std::string &saved = "");
 	/// Choices a source kind offers for one of its list properties (e.g. window_capture "window").
 	static std::vector<std::pair<std::string, std::string>> listProperty(const char *kind,
 									     const char *prop); // name, value
@@ -141,7 +154,12 @@ public:
 
 private:
 	std::map<std::string, bool> prevMute_;
-	std::string dualInner_; // the capture inside the dual window while it is up: never re-armed
+	std::string pipScene_, pipSource_; // the game item being shrunk, by scene and source name
+	double pipFrom_[4] = {0, 0, 0, 0}, pipTo_[4] = {0, 0, 0, 0}; // canvas px: x, y, w, h
+	uint32_t pipBoundsAlign_ = 0;
+	enum obs_bounds_type pipBounds_ = OBS_BOUNDS_SCALE_INNER;
+	obs_sceneitem_t *pipItem(); // no ref: valid until the scene changes
+	std::string dualInner_;     // the capture inside the dual window while it is up: never re-armed
 	obs_source_t *sceneSource(const Config &cfg); // +ref
 	std::string ensureBrowserSource(obs_scene_t *scene, const char *name, const std::string &url, bool rerouteAudio,
 					int width = 0, int height = 0);

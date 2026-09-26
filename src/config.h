@@ -145,6 +145,8 @@ struct Config {
 	bool replayStinger = true;   // the animated "INSTANT REPLAY" wipe into and out of each replay
 	bool replayStingerSound = true; // with its whoosh
 	bool replayFull1 = false;       // one-time move to full-screen replays (0.22.0)
+	bool replayPip = true;          // the game shrinks to a small LIVE window, bottom right, during a replay
+	std::string pipRestore;         // where the game item was while it is small (a crash cannot lose it)
 	bool sessionTrack = true;       // count this session's kills, deaths, assists, revives and money
 	// the kennel.gg leaderboards: 0 not asked yet, 1 yes (each stream's stats are sent), 2 no.
 	// Nothing leaves this PC until it is 1 and the PC is linked to a kennel.gg account.

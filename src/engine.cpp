@@ -59,6 +59,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	downSince_ = lastReviveSeen_;
 	lastPick_ = lastNearbyWarn_ = lastReviveSeen_;
 	connect(&replayTimer_, &QTimer::timeout, this, &Engine::replayTick);
+	connect(&pipTimer_, &QTimer::timeout, this, &Engine::pipTick);
 	connect(&healthTimer_, &QTimer::timeout, this, &Engine::sendObsHealth);
 	sessionStart_ = QDateTime::currentDateTime();
 	connect(&roster, &Roster::changed, this, &Engine::checkAccess);
@@ -753,8 +754,16 @@ void Engine::start()
 	});
 	// the stinger page loaded well before the first replay, so its first wipe is not missed
 	QTimer::singleShot(3000, this, [this]() {
-		if (!stopping_)
-			sw.ensureStinger(cfg, cfg.replayStinger);
+		if (stopping_)
+			return;
+		sw.ensureStinger(cfg, cfg.replayStinger);
+		if (!cfg.pipRestore.empty() && !replaying()) {
+			// OBS stopped while the game was the small window: put it back where it was
+			sw.pipRestore(cfg.pipRestore);
+			cfg.pipRestore.clear();
+			cfg.save();
+			log("Instant replay: the game was left small by the last session; it is back where it was.");
+		}
 	});
 	if (!hudModel_)
 		log("Session stats: the cash reader could not start (" + QString::fromStdString(hudModelErr_) +
@@ -1049,6 +1058,7 @@ void Engine::stopTimers()
 	healthTimer_.stop();
 	popoutTimer_.stop();
 	replayTimer_.stop();
+	pipTimer_.stop();
 	downDelay_.stop();
 	upDelay_.stop();
 }
@@ -4358,10 +4368,10 @@ void Engine::replayTick()
 			return;
 		}
 		replayWindow(pendingReplay_, dur, cfg.replayPreS, cfg.replayPostS, &replayStartMs_, &replayEndMs_);
-		// the first half second plays under the stinger's cover: start that much earlier, so the
-		// viewer still sees the whole lead-in
+		// the first moments play under the stinger's cover: start that much earlier, so the viewer
+		// still sees the whole lead-in
 		if (cfg.replayStinger && replayStartMs_ > 0)
-			replayStartMs_ = std::max<qint64>(0, replayStartMs_ - kStingerCoverMs);
+			replayStartMs_ = std::max<qint64>(0, replayStartMs_ - kStingerInRevealMs);
 		if (replayStartMs_ > 0)
 			sw.seekMedia(replayStartMs_);
 		replaySought_ = true;
@@ -4391,22 +4401,27 @@ void Engine::replayTick()
 		replayShown_ = true;
 		replayClock_.restart();
 		if (cfg.replayStinger) {
-			// "INSTANT REPLAY" wipes across; the replay goes on full screen while it covers everything
+			// "INSTANT REPLAY" wipes across; the replay goes on full screen while it covers everything,
+			// the game over it at full size, and the game shrinks away to its corner as the wipe leaves
 			sendStinger("in");
-			QTimer::singleShot(kStingerCoverMs, this, [this]() {
+			QTimer::singleShot(kStingerInCoverMs, this, [this]() {
 				if (replaying() && !replayOutSent_) {
 					sw.showMedia(cfg);
+					startPip(kStingerInRevealMs - kStingerInCoverMs -
+						 200);               // shrinking as it uncovers
 					sw.ensureStinger(cfg, true); // over the camera and alerts showMedia raised
 				}
 			});
-		} else
+		} else {
 			sw.showMedia(cfg);
+			startPip(0);
+		}
 		return;
 	}
 	if (replayOutSent_)
 		return; // "back to live" is playing: the replay stops under its cover
-	// with the stinger, it starts just before the end so its cover lands on the last frame
-	bool pastEnd = replayEndMs_ > 0 && t >= replayEndMs_ - (cfg.replayStinger ? kStingerCoverMs : 0);
+	// the way back starts just before the end, so its cover lands on the last frame
+	bool pastEnd = replayEndMs_ > 0 && t >= replayEndMs_ - outLeadMs();
 	bool ended = replayClock_.elapsed() > 800 && (st == OBS_MEDIA_STATE_ENDED || st == OBS_MEDIA_STATE_STOPPED);
 	bool safety = replayClock_.elapsed() > replayLengthMs_ + 4000; // the clock never lies, the state might
 	if (pastEnd || ended || safety)
@@ -4421,28 +4436,124 @@ void Engine::sendStinger(const char *dir)
 	bridge.sendJson(o);
 }
 
+int Engine::outLeadMs() const
+{
+	bool pip = sw.pipOn();
+	if (cfg.replayStinger)
+		return kStingerOutCoverMs + (pip ? kPipGrowLeadMs : 0);
+	return pip ? kPipGrowMs : 0;
+}
+
 void Engine::endReplay(const QString &why)
 {
 	if (!replaying())
 		return;
 	if (replayOutSent_)
 		return; // already on its way out
-	if (!cfg.replayStinger || !replayShown_) {
+	bool pip = sw.pipOn();
+	if (!replayShown_ || (!cfg.replayStinger && !pip)) {
 		stopReplay(why);
 		return;
 	}
 	replayOutSent_ = true;
-	sw.ensureStinger(cfg, true);
-	sendStinger("out");
-	QTimer::singleShot(kStingerCoverMs, this, [this, why]() {
+	int lead = 0;
+	if (pip) {
+		// the game grows back to full size first; the wordless "out" wipe follows it over
+		growPip();
+		lead = cfg.replayStinger ? kPipGrowLeadMs : kPipGrowMs;
+	}
+	if (cfg.replayStinger)
+		QTimer::singleShot(lead, this, [this]() {
+			if (!replaying())
+				return;
+			sw.ensureStinger(cfg, true);
+			sendStinger("out");
+		});
+	QTimer::singleShot(lead + (cfg.replayStinger ? kStingerOutCoverMs : 0), this, [this, why]() {
 		if (replaying())
 			stopReplay(why);
 	});
 }
 
+// --- the picture-in-picture ----------------------------------------------------------------
+
+void Engine::startPip(int delayMs)
+{
+	// instant replays only (not the highlights reel), the main canvas only
+	if (!cfg.replayPip || pendingReplay_.path.isEmpty())
+		return;
+	std::string saved = sw.pipBegin(cfg);
+	if (saved.empty())
+		return; // no game capture in the plugin's scene: the replay stays as it is
+	cfg.pipRestore = saved;
+	cfg.save();
+	pipDir_ = 1;
+	QTimer::singleShot(delayMs, this, [this]() {
+		if (!sw.pipOn() || pipDir_ != 1)
+			return;
+		pipClock_.start();
+		pipTimer_.start(16);
+	});
+}
+
+void Engine::growPip()
+{
+	if (!sw.pipOn())
+		return;
+	sendPipFrame(false);
+	pipDir_ = -1;
+	pipClock_.start();
+	pipTimer_.start(16);
+}
+
+void Engine::pipTick()
+{
+	if (!sw.pipOn() || pipDir_ == 0) {
+		pipTimer_.stop();
+		return;
+	}
+	int ms = pipDir_ > 0 ? kPipShrinkMs : kPipGrowMs;
+	double p = std::min(1.0, pipClock_.elapsed() / (double)ms);
+	// ease in and out (cubic): it gathers speed, then settles into place
+	double e = p < 0.5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;
+	sw.pipStep(pipDir_ > 0 ? e : 1 - e);
+	if (p >= 1.0) {
+		pipTimer_.stop();
+		if (pipDir_ > 0)
+			sendPipFrame(true); // the LIVE frame round the small window, once it has landed
+		pipDir_ = 0;
+	}
+}
+
+void Engine::endPip()
+{
+	pipTimer_.stop();
+	pipDir_ = 0;
+	if (cfg.pipRestore.empty() && !sw.pipOn())
+		return;
+	sendPipFrame(false);
+	sw.pipRestore(cfg.pipRestore);
+	cfg.pipRestore.clear();
+	cfg.save();
+}
+
+void Engine::sendPipFrame(bool on)
+{
+	QJsonObject o;
+	o["type"] = "pip";
+	o["on"] = on;
+	if (on) {
+		double r[4];
+		sw.pipRect(r);
+		o["rect"] = QJsonArray{r[0], r[1], r[2], r[3]};
+	}
+	bridge.sendJson(o);
+}
+
 void Engine::stopReplay(const QString &why)
 {
 	replayTimer_.stop();
+	endPip(); // the game back exactly where it was, whatever stopped the replay
 	bool was = replaying();
 	replayLengthMs_ = 0;
 	replayStartMs_ = replayEndMs_ = 0;

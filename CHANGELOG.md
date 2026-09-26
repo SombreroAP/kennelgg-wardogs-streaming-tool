@@ -2,6 +2,11 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.24.0
+- **Your game stays on screen during an instant replay.** The replay fills the screen, and your live game shrinks into a small window in the bottom-right corner with an amber edge and a LIVE tag, so viewers can see straight away that they are watching a replay. When the replay ends, the game grows back to full size. It is your game capture in the plugin's scene, put back exactly where it was, even if OBS closes during a replay. Instant replays only, not the highlights reel. Settings, Clips & replays turns it off.
+- **The "INSTANT REPLAY" stinger lasts longer.** The panels still sweep in and out at the same speed, but they hold for about a second while the title is on screen, so it can be read.
+- **The stinger back to your game is quick and has no words.** The same panels sweep across at the same speed as before, with no title.
+
 ## 0.23.1
 - **The session bar steps aside during an instant replay.** A replay is past footage and its "INSTANT REPLAY" tag sits top left, where the bar does: the bar now slides out as a replay starts and slides back in after "BACK TO LIVE". Found running the replay and bar together in OBS.
 

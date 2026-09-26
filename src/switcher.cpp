@@ -1,9 +1,11 @@
 #include "switcher.h"
 #include <util/platform.h>
+#include <graphics/matrix4.h>
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 #include <plugin-support.h>
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <cstring>
 #ifdef _WIN32
@@ -1456,8 +1458,9 @@ std::string Switcher::ensureStinger(const Config &cfg, bool on)
 		obs_scene_t *scene = ss ? obs_scene_from_source(ss) : nullptr;
 		if (!scene)
 			return "no scene";
-		// its whoosh goes out with the stream (reroute_audio), not only to this PC's speakers
-		std::string e = ensureBrowserSource(scene, name, url, true, w, h);
+		// its whoosh goes out with the stream (reroute_audio), not only to this PC's speakers; the
+		// vertical one leaves the picture-in-picture frame to the main canvas
+		std::string e = ensureBrowserSource(scene, name, w ? url + "&canvas=v" : url, true, w, h);
 		if (!e.empty())
 			return e;
 		if (obs_sceneitem_t *it = obs_scene_find_source(scene, name)) {
@@ -1716,6 +1719,156 @@ void Switcher::stopMedia(const Config &cfg)
 	hideEverywhere(Config::replayFrameName());
 	hideEverywhere(Config::replayFrameNameV());
 	(void)cfg;
+}
+
+// --- the replay's picture-in-picture ---------------------------------------------------------
+
+obs_sceneitem_t *Switcher::pipItem()
+{
+	if (pipSource_.empty())
+		return nullptr;
+	obs_source_t *ss = obs_get_source_by_name(pipScene_.c_str());
+	obs_scene_t *scene = ss ? obs_scene_from_source(ss) : nullptr;
+	obs_sceneitem_t *it = scene ? obs_scene_find_source(scene, pipSource_.c_str()) : nullptr;
+	if (ss)
+		obs_source_release(ss);
+	return it;
+}
+
+std::string Switcher::pipBegin(const Config &cfg)
+{
+	if (cfg.gameSource.empty())
+		return "";
+	obs_source_t *ss = sceneSource(cfg);
+	if (!ss)
+		return "";
+	obs_scene_t *scene = obs_scene_from_source(ss);
+	obs_sceneitem_t *item = scene ? obs_scene_find_source(scene, cfg.gameSource.c_str()) : nullptr;
+	std::string sceneName = obs_source_get_name(ss);
+	obs_source_release(ss);
+	if (!item || !obs_sceneitem_visible(item))
+		return "";
+	struct obs_transform_info ti;
+	obs_sceneitem_get_info2(item, &ti);
+	if (std::fabs(ti.rot) > 0.01f || ti.scale.x < 0 || ti.scale.y < 0)
+		return ""; // turned or mirrored: not ours to animate
+	// where it is on the canvas now: the corners of its box
+	struct matrix4 m;
+	obs_sceneitem_get_box_transform(item, &m);
+	struct vec3 a, b;
+	vec3_set(&a, 0, 0, 0);
+	vec3_set(&b, 1, 1, 0);
+	vec3_transform(&a, &a, &m);
+	vec3_transform(&b, &b, &m);
+	double x = std::min(a.x, b.x), y = std::min(a.y, b.y), w = std::fabs(b.x - a.x), h = std::fabs(b.y - a.y);
+	if (w < 16 || h < 16)
+		return "";
+	// the small window: 30 % of the canvas wide, its own shape, in from the bottom-right corner
+	struct obs_video_info ovi;
+	obs_get_video_info(&ovi);
+	double W = ovi.base_width, H = ovi.base_height, margin = H * 0.035;
+	double tw = W * 0.30, th = tw * h / w;
+	pipFrom_[0] = x, pipFrom_[1] = y, pipFrom_[2] = w, pipFrom_[3] = h;
+	pipTo_[0] = W - margin - tw, pipTo_[1] = H - margin - th, pipTo_[2] = tw, pipTo_[3] = th;
+	// the way back, kept outside OBS too
+	obs_data_t *d = obs_data_create();
+	obs_data_set_string(d, "scene", sceneName.c_str());
+	obs_data_set_string(d, "source", cfg.gameSource.c_str());
+	obs_data_set_int(d, "order", obs_sceneitem_get_order_position(item));
+	obs_data_set_double(d, "px", ti.pos.x);
+	obs_data_set_double(d, "py", ti.pos.y);
+	obs_data_set_double(d, "sx", ti.scale.x);
+	obs_data_set_double(d, "sy", ti.scale.y);
+	obs_data_set_int(d, "align", ti.alignment);
+	obs_data_set_int(d, "btype", ti.bounds_type);
+	obs_data_set_int(d, "balign", ti.bounds_alignment);
+	obs_data_set_double(d, "bx", ti.bounds.x);
+	obs_data_set_double(d, "by", ti.bounds.y);
+	obs_data_set_bool(d, "bcrop", ti.crop_to_bounds);
+	const char *js = obs_data_get_json(d);
+	std::string saved = js ? js : "";
+	obs_data_release(d);
+	pipScene_ = sceneName;
+	pipSource_ = cfg.gameSource;
+	// a box it fits exactly, so frame 0 looks the same as before: its own bounds when it has them,
+	// else "scale to inner" (a box made from its own size)
+	pipBounds_ = ti.bounds_type == OBS_BOUNDS_NONE ? OBS_BOUNDS_SCALE_INNER : ti.bounds_type;
+	pipBoundsAlign_ = ti.bounds_type == OBS_BOUNDS_NONE ? OBS_ALIGN_CENTER : ti.bounds_alignment;
+	// over the replay and its frame (they are on top now), under the camera and alerts
+	int top = -1;
+	for (const char *n : {Config::replaySourceName(), Config::replayFrameName()})
+		if (obs_sceneitem_t *r = obs_scene_find_source(scene, n))
+			top = std::max(top, obs_sceneitem_get_order_position(r));
+	pipStep(0);
+	if (top >= 0)
+		obs_sceneitem_set_order_position(item, top);
+	return saved;
+}
+
+void Switcher::pipStep(double k)
+{
+	obs_sceneitem_t *item = pipItem();
+	if (!item)
+		return;
+	k = std::clamp(k, 0.0, 1.0);
+	double r[4];
+	for (int i = 0; i < 4; i++)
+		r[i] = pipFrom_[i] + (pipTo_[i] - pipFrom_[i]) * k;
+	struct obs_transform_info ti;
+	obs_sceneitem_get_info2(item, &ti);
+	ti.pos.x = (float)r[0];
+	ti.pos.y = (float)r[1];
+	ti.alignment = OBS_ALIGN_LEFT | OBS_ALIGN_TOP;
+	ti.bounds_type = pipBounds_;
+	ti.bounds_alignment = pipBoundsAlign_;
+	ti.bounds.x = (float)r[2];
+	ti.bounds.y = (float)r[3];
+	obs_sceneitem_set_info2(item, &ti);
+}
+
+void Switcher::pipRect(double r[4]) const
+{
+	struct obs_video_info ovi;
+	obs_get_video_info(&ovi);
+	double W = ovi.base_width ? ovi.base_width : 1920, H = ovi.base_height ? ovi.base_height : 1080;
+	r[0] = pipTo_[0] / W, r[1] = pipTo_[1] / H, r[2] = pipTo_[2] / W, r[3] = pipTo_[3] / H;
+}
+
+void Switcher::pipRestore(const std::string &saved)
+{
+	std::string js = saved;
+	obs_data_t *d = js.empty() ? nullptr : obs_data_create_from_json(js.c_str());
+	if (!js.empty() && !d)
+		return;
+	std::string scene = d ? obs_data_get_string(d, "scene") : pipScene_;
+	std::string source = d ? obs_data_get_string(d, "source") : pipSource_;
+	pipScene_.clear();
+	pipSource_.clear();
+	if (!d) {
+		// this run's own: pipBegin() handed the JSON to the engine, which passes it back
+		return;
+	}
+	obs_source_t *ss = obs_get_source_by_name(scene.c_str());
+	obs_scene_t *sc = ss ? obs_scene_from_source(ss) : nullptr;
+	if (obs_sceneitem_t *item = sc ? obs_scene_find_source(sc, source.c_str()) : nullptr) {
+		struct obs_transform_info ti;
+		obs_sceneitem_get_info2(item, &ti);
+		ti.pos.x = (float)obs_data_get_double(d, "px");
+		ti.pos.y = (float)obs_data_get_double(d, "py");
+		ti.scale.x = (float)obs_data_get_double(d, "sx");
+		ti.scale.y = (float)obs_data_get_double(d, "sy");
+		ti.alignment = (uint32_t)obs_data_get_int(d, "align");
+		ti.bounds_type = (enum obs_bounds_type)obs_data_get_int(d, "btype");
+		ti.bounds_alignment = (uint32_t)obs_data_get_int(d, "balign");
+		ti.bounds.x = (float)obs_data_get_double(d, "bx");
+		ti.bounds.y = (float)obs_data_get_double(d, "by");
+		ti.crop_to_bounds = obs_data_get_bool(d, "bcrop");
+		obs_sceneitem_set_info2(item, &ti);
+		obs_sceneitem_set_order_position(item, (int)obs_data_get_int(d, "order"));
+	}
+	if (ss)
+		obs_source_release(ss);
+	obs_data_release(d);
 }
 
 /// Your own POV, and nothing else: every squad mate's video and audio hidden in every scene.

@@ -133,7 +133,7 @@ private:
 		 *replayCool_ = nullptr;
 	QCheckBox *replayChat_ = nullptr, *replaySound_ = nullptr, *replayHw_ = nullptr, *highlightsAuto_ = nullptr;
 	QComboBox *chatClips_ = nullptr;
-	QCheckBox *replayStinger_ = nullptr, *replayStingerSound_ = nullptr;
+	QCheckBox *replayStinger_ = nullptr, *replayStingerSound_ = nullptr, *replayPip_ = nullptr;
 	QCheckBox *twitchMarkers_ = nullptr, *ytChapters_ = nullptr, *sessionTrack_ = nullptr;
 	QListWidget *sessionShow_ = nullptr; // what the on-stream bar shows: ticked, in this order
 	QCheckBox *sessionOverlayOn_ = nullptr, *statsShare_ = nullptr;
