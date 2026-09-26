@@ -266,6 +266,9 @@ public:
 	void autoPickAudio();
 
 public slots:
+	/// Swap to the active squad mate's POV (on) or back to yours. With the POV stinger on, SWITCHING
+	/// POV covers the screen first and the swap happens under it; calls while it runs coalesce into
+	/// the last one.
 	void applyNow(bool on, const QString &why);
 	void toggle();
 	void toggleDual();
@@ -501,6 +504,20 @@ private:
 	std::vector<std::string> altLangs_;
 	static bool loadLangTemplate(Detector &d, const std::string &lang);
 	bool dualOn_ = false, dualAutoOn_ = false;
+	// the POV stinger (stinger.html "pov": covered from 480 ms)
+	static constexpr int kPovCoverMs = 560;
+	bool povPending_ = false, povTarget_ = false;
+	QString povWhy_;
+	int povShown_ = -1; // the squad mate on screen while applied_
+	void applySwitch(bool on, const QString &why);
+	// the dual-POV window grows in from its centre (overshooting a touch) and shrinks away
+	static constexpr int kDualInMs = 480, kDualOutMs = 320;
+	QTimer dualTimer_;
+	QElapsedTimer dualClock_;
+	int dualDir_ = 0; // 1 growing in, -1 shrinking away
+	void dualAnimate(int dir, int delayMs = 0);
+	void dualTick();
+	int dualDelayMs_ = 0;
 	QString vehicleSeat_;
 	QString updateState_, newVersion_, newUrl_, newNotes_;
 	bool applied_ = false, detected_ = false, applying_ = false, lookPreview_ = false, previewWanted_ = false;

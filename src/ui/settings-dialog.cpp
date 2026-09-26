@@ -917,19 +917,19 @@ QWidget *SettingsDialog::buildSwitchTab()
 	connect(nearMax_, &QSpinBox::editingFinished, this, [this]() { saveAndApply(); });
 	auto *cdRow = new QHBoxLayout();
 	nearCooldown_ = new QSlider(Qt::Horizontal, gc);
-	nearCooldown_->setRange(1, 10);
-	nearCooldown_->setValue(std::clamp(e_->cfg.nearCooldownS, 1, 10));
+	nearCooldown_->setRange(3, 30);
+	nearCooldown_->setValue(std::clamp(e_->cfg.nearCooldownS, 3, 30));
 	nearCooldown_->setTickPosition(QSlider::TicksBelow);
-	nearCooldown_->setTickInterval(1);
+	nearCooldown_->setTickInterval(3);
 	nearCdLbl_ = new QLabel(gc);
 	cdRow->addWidget(nearCooldown_, 1);
 	cdRow->addWidget(nearCdLbl_);
 	fc->addRow("Wait between swaps", cdRow);
 	auto showCd = [this]() {
 		int v = nearCooldown_->value();
-		nearCdLbl_->setText(QString("%1 s").arg(v) + (v <= 2   ? "  (follows them as they move)"
-							      : v >= 8 ? "  (settles on one feed and stays)"
-								       : ""));
+		nearCdLbl_->setText(QString("%1 s").arg(v) + (v <= 6    ? "  (follows them as they move)"
+							      : v >= 15 ? "  (settles on one feed and stays)"
+									: ""));
 	};
 	showCd();
 	connect(nearCooldown_, &QSlider::valueChanged, this, [showCd](int) { showCd(); });
@@ -1477,6 +1477,23 @@ QWidget *SettingsDialog::buildDetectTab()
 	f->addRow("Switch delays", dlRow);
 	connect(downDelay_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
 	connect(upDelay_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
+	auto *psRow = new QHBoxLayout();
+	povStinger_ = new QCheckBox("\"SWITCHING POV\" stinger over every swap", g);
+	povStinger_->setChecked(e_->cfg.povStinger);
+	povStinger_->setToolTip("The same animated panels as the instant replay, saying SWITCHING POV and whose view "
+				"comes next. The swap happens while they cover the screen, so viewers never see a cut. "
+				"The show-squad-mate delay above still holds: the stinger's run-up comes out of it.");
+	povMin_ = new QSpinBox(g);
+	povMin_->setRange(0, 30);
+	povMin_->setSuffix(" s");
+	povMin_->setValue(e_->cfg.povMinS);
+	psRow->addWidget(povStinger_);
+	psRow->addWidget(new QLabel("   keep a POV up at least", g));
+	psRow->addWidget(povMin_);
+	psRow->addStretch(1);
+	f->addRow("Swaps", psRow);
+	connect(povStinger_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	connect(povMin_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
 	auto *mdRow = new QHBoxLayout();
 	minDown_ = new QSpinBox(g);
 	minDown_->setRange(0, 20000);
@@ -3306,6 +3323,10 @@ void SettingsDialog::collect()
 	c.minDownMs = minDown_->value();
 	c.downDelayMs = downDelay_ ? downDelay_->value() : c.downDelayMs;
 	c.upDelayMs = upDelay_ ? upDelay_->value() : c.upDelayMs;
+	if (povStinger_)
+		c.povStinger = povStinger_->isChecked();
+	if (povMin_)
+		c.povMinS = povMin_->value();
 	c.pollMs = pollMs_->value();
 	c.autoDetect = auto_->isChecked();
 	c.watchRevive = revive_->isChecked();

@@ -86,6 +86,25 @@ body.cam #mark { right: 8.5vw; bottom: 6.6vw; }
 body.v #mark { right: 4vw; bottom: 12vw; }
 body.v #mark img { height: 4.4vw; } body.v #mark span { font-size: 3vw; }
 body.s #mark { display: none !important; }
+/* entrances: each time the source comes on screen (OBS tells the page, obsSourceVisibleChanged) the
+   pieces come in one after another - corners close in from outside, the frame settles, the name
+   plate and the replay tag wipe open from their left edge, the HUD fades up. body.in = arrived. */
+.corner { transition: transform .5s cubic-bezier(.16, 1, .3, 1), opacity .3s ease-out; }
+body:not(.in) .corner { opacity: 0; }
+body:not(.in) .corner.tl { transform: translate(-2.5vw, -2.5vw); }
+body:not(.in) .corner.tr { transform: translate(2.5vw, -2.5vw); }
+body:not(.in) .corner.bl { transform: translate(-2.5vw, 2.5vw); }
+body:not(.in) .corner.br { transform: translate(2.5vw, 2.5vw); }
+.hud, #mark { transition: opacity .45s ease-out .25s; }
+body:not(.in) .hud, body:not(.in) #mark { opacity: 0 !important; transition: none; }
+#frame { transition: opacity .35s ease-out, transform .6s cubic-bezier(.16, 1, .3, 1); }
+body:not(.in) #frame { opacity: 0; transform: scale(1.035); transition: none; }
+#name, #rtag { clip-path: inset(-40% -8% -40% -2%); transition: clip-path .55s cubic-bezier(.16, 1, .3, 1) .12s, opacity .2s ease-out .12s; }
+body:not(.in) #name, body:not(.in) #rtag { clip-path: inset(-40% 100% -40% -2%); opacity: 0; transition: none; }
+#name.pos-tc, #name.pos-mc { transition-property: clip-path, opacity; }
+body:not(.in) #name.pos-tc, body:not(.in) #name.pos-mc { clip-path: inset(-40% 50% -40% 50%); }
+#name b, #rtag span { display: inline-block; transition: letter-spacing .7s cubic-bezier(.16, 1, .3, 1) .12s; }
+body:not(.in) #name b, body:not(.in) #rtag span { letter-spacing: .6vw; transition: none; }
 </style></head>
 <body>
 <canvas id="grain"></canvas>
@@ -133,6 +152,19 @@ body.s #mark { display: none !important; }
       clock.textContent = h + ":" + m + ":" + ss;
     }, 500);
   }
+  // the entrance, on load and every time the source is shown again (enter=<ms> waits that long first:
+  // under a stinger, the pieces arrive as it uncovers the screen)
+  var enterMs = parseInt(q.getAll("enter").pop() || "180", 10) || 0, enterT = 0;   // the last one given wins
+  function enter() {
+    document.body.classList.remove("in");
+    void document.body.offsetWidth;
+    clearTimeout(enterT);
+    enterT = setTimeout(function () { document.body.classList.add("in"); }, enterMs);
+  }
+  window.addEventListener("obsSourceVisibleChanged", function (e) {
+    if (e.detail && e.detail.visible) enter(); else { clearTimeout(enterT); document.body.classList.remove("in"); }
+  });
+  if (q.has("still")) document.body.classList.add("in"); else enter();
   if (grain > 0) {
     var c = document.getElementById("grain"), ctx = c.getContext("2d");
     c.style.opacity = (grain / 100 * 0.45).toFixed(2);

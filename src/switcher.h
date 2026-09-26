@@ -24,6 +24,10 @@ public:
 	/// The small window. `rearm`: when taking it down while you are alive, put the squad mate's
 	/// capture back into its warm state; false while the full-screen swap is showing them instead.
 	std::string applyDual(const Config &cfg, bool on, bool rearm = true);
+	/// The dual-POV window's size for its entrance and exit: k = 1 its full size, smaller shrinks it
+	/// about its own centre. applyDual() places it at dualK (set it small first to grow it in).
+	void dualScale(const Config &cfg, double k);
+	double dualK = 1.0;
 	void shutdown(); // on OBS exit, before modules unload
 	/// Look overlay on/off (also used for preview).
 	std::string updateLook(const Config &cfg, bool on);
@@ -159,7 +163,8 @@ private:
 	uint32_t pipBoundsAlign_ = 0;
 	enum obs_bounds_type pipBounds_ = OBS_BOUNDS_SCALE_INNER;
 	obs_sceneitem_t *pipItem(); // no ref: valid until the scene changes
-	std::string dualInner_;     // the capture inside the dual window while it is up: never re-armed
+	void placeDual(const Config &cfg, obs_sceneitem_t *item, double k);
+	std::string dualInner_; // the capture inside the dual window while it is up: never re-armed
 	obs_source_t *sceneSource(const Config &cfg); // +ref
 	std::string ensureBrowserSource(obs_scene_t *scene, const char *name, const std::string &url, bool rerouteAudio,
 					int width = 0, int height = 0);

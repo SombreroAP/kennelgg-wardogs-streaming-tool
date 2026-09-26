@@ -5,8 +5,8 @@
 <!-- Kennel.gg instant replay stinger. A full-canvas, transparent browser source that sits on top of
      everything. The plugin sends {"type":"stinger","dir":"in"|"out"} over its local bridge; the
      screen is fully covered while the plugin switches the replay on (in) or off (out) underneath,
-     then the stinger wipes away. "in" carries INSTANT REPLAY and is slowed to read it; "out" is quick
-     and has no words. {"type":"pip","on":true,"rect":[x,y,w,h]} (fractions of the canvas) draws the
+     then the stinger wipes away. "in" carries INSTANT REPLAY and holds to read it; "out" is quick
+     and has no words; "pov" (with "sub": whose view is next) says SWITCHING POV, for the POV swap. {"type":"pip","on":true,"rect":[x,y,w,h]} (fractions of the canvas) draws the
      LIVE frame round the game's small window while the replay plays.
      Query: port (the bridge), sound=0 (no whoosh), canvas=v (the vertical one: no LIVE frame),
      t=<ms>&dir=in|out (freeze one frame, for previews), pip=x,y,w,h (show the frame, for previews). -->
@@ -81,19 +81,29 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
   // through warp[], 2180 ms in all, covered from 480 to about 1640 ms. The plugin's timings
   // (Engine::kStingerIn* / kStingerOut*) match these.
   var D = 1300, COVER_AT = 480, COVER_END = 760;
-  var HOLD_AT = 500, RAMP = 160, HOLD = 800, VMIN = 0.08;   // real ms, and the slowest speed
-  var warp = [], c = 0;
-  for (var r = 0; c < D; r++) {                     // warp[real ms] = choreography ms
-    warp.push(c);
-    var h = r - HOLD_AT, w = 0;                     // w: 0 normal speed .. 1 the hold
-    if (h >= 0 && h < RAMP) w = h / RAMP;
-    else if (h >= RAMP && h < RAMP + HOLD) w = 1;
-    else if (h >= RAMP + HOLD && h < 2 * RAMP + HOLD) w = 1 - (h - RAMP - HOLD) / RAMP;
-    w = w * w * (3 - 2 * w);
-    c += 1 - (1 - VMIN) * w;
+  // "pov" (SWITCHING POV, between squad mates' views) holds for a shorter moment: 1720 ms, covered
+  // from 480 to about 1180 ms, so a swap still lands quickly.
+  var HOLD_AT = 500, RAMP = 160, VMIN = 0.08;       // real ms, and the slowest speed
+  function makeWarp(hold) {                         // warp[real ms] = choreography ms
+    var warp = [], c = 0;
+    for (var r = 0; c < D; r++) {
+      warp.push(c);
+      var h = r - HOLD_AT, w = 0;                   // w: 0 normal speed .. 1 the hold
+      if (h >= 0 && h < RAMP) w = h / RAMP;
+      else if (h >= RAMP && h < RAMP + hold) w = 1;
+      else if (h >= RAMP + hold && h < 2 * RAMP + hold) w = 1 - (h - RAMP - hold) / RAMP;
+      w = w * w * (3 - 2 * w);
+      c += 1 - (1 - VMIN) * w;
+    }
+    return warp;
   }
-  var D_IN = warp.length;
-  var inT = function (t) { return t <= 0 ? t : t >= D_IN ? D : warp[Math.floor(t)]; };
+  var WARPS = { "in": makeWarp(800), pov: makeWarp(300) };
+  var D_IN = WARPS["in"].length;
+  function warpT(t, dir) {
+    var w = WARPS[dir];
+    if (!w) return t;
+    return t <= 0 ? t : t >= w.length ? D : w[Math.floor(t)];
+  }
   var $ = function (id) { return document.getElementById(id); };
   var st = $("st"), s1 = $("s1"), s2 = $("s2"), s3 = $("s3"), s4 = $("s4"), card = $("card"),
       title = $("title"), sub = $("sub"), rule = $("rule"), cl = $("cl"), cr = $("cr"), inner = $("inner");
@@ -106,7 +116,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
   // One frame of the stinger at t ms. dir "in" sweeps left to right, "out" right to left.
   function frame(t, dir) {
     var sgn = dir === "out" ? -1 : 1;
-    if (dir !== "out") t = inT(t);                    // the way in holds its title
+    t = warpT(t, dir);                                // "in" and "pov" hold their title
     inner.style.display = dir === "out" ? "none" : ""; // the way back: panels only, no words
     st.style.visibility = t <= 0 || t >= D ? "hidden" : "visible";
     // a slab crosses the screen: from off one side (p=0), over it, off the other side (p=1)
@@ -171,11 +181,13 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
   }
 
   var running = 0;
-  function play(dir) {
-    var total = dir === "out" ? D : D_IN;
+  function play(dir, sub) {
+    var total = WARPS[dir] ? WARPS[dir].length : D;
+    title.innerHTML = dir === "pov" ? "SWITCHING <b>POV</b>" : "INSTANT <b>REPLAY</b>";
+    $("sub").textContent = sub || "kennel.gg";
     var t0 = performance.now(), id = ++running;
     whoosh(1);
-    if (dir !== "out") setTimeout(function () { if (id === running) whoosh(1); }, D_IN - 780);
+    if (dir === "in") setTimeout(function () { if (id === running) whoosh(1); }, D_IN - 780);
     (function step(now) {
       if (id !== running) return;
       var t = now - t0;
@@ -205,6 +217,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
   if (q.has("pip")) pipFrame(true, q.get("pip").split(",").map(parseFloat));
   if (q.has("t")) {                                    // a still, for previews
     var dir = q.get("dir") || "in";
+    if (dir === "pov") { title.innerHTML = "SWITCHING <b>POV</b>"; if (q.get("sub")) $("sub").textContent = q.get("sub"); }
     frame(parseFloat(q.get("t")), dir);
     return;
   }
@@ -217,7 +230,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
       if (typeof m.data !== "string") return;
       try {
         var o = JSON.parse(m.data);
-        if (o.type === "stinger") play(o.dir === "out" ? "out" : "in");
+        if (o.type === "stinger") play(o.dir === "out" || o.dir === "pov" ? o.dir : "in", o.sub);
         else if (o.type === "pip") pipFrame(!!o.on, o.rect);
       } catch (e) {}
     };

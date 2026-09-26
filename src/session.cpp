@@ -1,4 +1,5 @@
 #include "session.h"
+#include <QJsonArray>
 #include <QStringList>
 #include <algorithm>
 
@@ -110,6 +111,10 @@ QJsonObject Session::json() const
 	o["spentText"] = money(spent);
 	o["net"] = (double)net();
 	o["netText"] = money(net(), true);
+	QJsonArray log;
+	for (const Money &m : moneyLog)
+		log.append(QJsonObject{{"seq", m.seq}, {"amt", (double)m.amt}, {"why", m.why}});
+	o["moneyLog"] = log;
 	o["perMin"] = (double)perMinute();
 	o["perMinText"] = perMinute() < 0 ? QString("-") : money(perMinute());
 	o["activeMin"] = (double)activeMs / 60000.0;

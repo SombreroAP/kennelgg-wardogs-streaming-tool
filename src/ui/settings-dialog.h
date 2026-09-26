@@ -95,7 +95,8 @@ private:
 	QSlider *hold_ = nullptr;
 	QLabel *holdLbl_ = nullptr;
 	QSpinBox *downFrames_, *upFrames_, *minDown_, *pollMs_;
-	QSpinBox *downDelay_ = nullptr, *upDelay_ = nullptr;
+	QSpinBox *downDelay_ = nullptr, *upDelay_ = nullptr, *povMin_ = nullptr;
+	QCheckBox *povStinger_ = nullptr;
 	QCheckBox *auto_, *revive_;
 	QCheckBox *wide_ = nullptr;
 	QSlider *reviveThr_;

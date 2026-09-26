@@ -146,6 +146,9 @@ struct Config {
 	bool replayStingerSound = true; // with its whoosh
 	bool replayFull1 = false;       // one-time move to full-screen replays (0.22.0)
 	bool replayPip = true;          // the game shrinks to a small LIVE window, bottom right, during a replay
+	bool povStinger = true;         // the SWITCHING POV stinger covers every POV swap
+	int povMinS = 5;                // a POV stays on screen at least this long before the next swap
+	bool povCalm1 = false;          // one-time: fewer swaps (0.25.0: 12 s between squad mates)
 	std::string pipRestore;         // where the game item was while it is small (a crash cannot lose it)
 	bool sessionTrack = true;       // count this session's kills, deaths, assists, revives and money
 	// the kennel.gg leaderboards: 0 not asked yet, 1 yes (each stream's stats are sent), 2 no.
@@ -234,11 +237,11 @@ struct Config {
 	bool nearEnabled = false; // pick the squad mate the game says is nearest when you go down
 	bool nearFollow = true;   // keep following the nearest one while you are down
 	double nearX = 0.80, nearY = 0.79, nearW = 0.19,
-	       nearH = 0.14;   // where the NEARBY list is (fractions of the game source)
-	int nearMarginM = 15;  // someone must be this many metres closer to take over mid-swap
-	int nearMaxM = 99;     // once on screen, only swap over to someone this close or closer
-	int nearCooldownS = 4; // shortest gap between two swaps of the feed while down, 1-10 s
-	int nearTtlS = 20;     // a reading older than this is stale and ignored
+	       nearH = 0.14;    // where the NEARBY list is (fractions of the game source)
+	int nearMarginM = 15;   // someone must be this many metres closer to take over mid-swap
+	int nearMaxM = 99;      // once on screen, only swap over to someone this close or closer
+	int nearCooldownS = 12; // shortest gap between two swaps of the feed while down, 3-30 s
+	int nearTtlS = 20;      // a reading older than this is stale and ignored
 	bool appConfigDirty =
 		false; // edited while the app was not connected; push on connect // tell ClipHound to quit when OBS closes (and end it if we started it)
 	std::string clipNameTemplate = "{title} - {date} {time}"; // the same words as the Twitch clip, then when

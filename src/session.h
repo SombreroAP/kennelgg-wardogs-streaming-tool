@@ -27,6 +27,21 @@ struct Session {
 	int64_t balanceStart = 0, balanceNow = 0;
 	int longestKillM = 0;
 	QMap<QString, int> weapons; // your kills by weapon name
+	/// The last few changes to the session balance and what each was for ("KILL", "PURCHASE"), so
+	/// the bar can say it next to the number. seq only grows; the bar shows the ones it has not seen.
+	struct Money {
+		int seq;
+		int64_t amt;
+		QString why;
+	};
+	QList<Money> moneyLog;
+	int moneySeq = 0;
+	void noteMoney(int64_t amt, const QString &why)
+	{
+		moneyLog.append({++moneySeq, amt, why});
+		while (moneyLog.size() > 8)
+			moneyLog.removeFirst();
+	}
 
 	void reset() { *this = Session(); }
 	int killCount() const { return std::max(kills, hudKills); }

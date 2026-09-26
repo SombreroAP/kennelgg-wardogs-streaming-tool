@@ -2,6 +2,13 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.25.0
+- **A "SWITCHING POV" stinger over every POV swap.** The same animated panels as the instant replay sweep across saying SWITCHING POV, with whose view comes next underneath (a squad mate's name, or "your POV"). The swap happens while they cover the screen, so viewers never see a cut. When you go down, the squad mate is on screen at the same moment as before: the stinger's run-up comes out of the "show squad mate after" delay. If you are revived while it runs, it plays and nothing swaps. Settings, Squad & POV turns it off.
+- **Fewer swaps.** The wait between swaps from one squad mate to another is now 12 seconds (it was 4; the slider goes up to 30), and a POV stays on screen for at least 5 seconds before swapping back, so a damage log that flickers no longer swaps twice in a second. Settings, Squad & POV: "keep a POV up at least".
+- **The dual POV window grows in and shrinks away.** It pops up from its centre, a touch past full size, and settles; when it goes, it lifts slightly and shrinks into its centre. After a POV swap it grows back in as the stinger uncovers the screen.
+- **Overlays arrive with an entrance.** Each time a squad mate's view comes on screen, the camcorder corners close in from outside, the frame settles, the name plate wipes open from its left edge and the HUD fades up, timed to arrive as the stinger uncovers the screen. The instant replay's tag does the same after the replay stinger.
+- **The session balance says what each change was for.** Next to the number, KILL, ASSIST, REVIVE, HEADSHOT, ZONE or PURCHASE slides out with each change (green for money in, red for money out), stays a moment and folds away. The tag under it shows the amount.
+
 ## 0.24.1
 - **Session balance on the bar.** Money earned and money spent are now one number, the session balance: what you are up or down on the session. It is green with a plus when you have made money, red with a minus when you have lost money overall, and it counts up or down to each new figure, changing colour as it goes. A tag under it shows each change in the same colours (+$1,250 in green, -$15,500 in red). Bars set to show Earned and Spent switch to Session balance once. Both are still in the list in Settings for anyone who wants them back.
 - Fixed: the tags that show what just changed (+1 K, +$1,000) were cut off by the bar's slide-in and never appeared.

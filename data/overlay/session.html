@@ -70,6 +70,16 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
 .c.net.up b { text-shadow: 0 0 14px currentColor; }
 .c.net i { color: #7fe093; border-left-color: #5fd07a; }
 .c.net i.neg { color: #f27a6e; border-left-color: #ef5a4c; }
+/* what the last change was for (KILL, ASSIST, PURCHASE), right beside the number: it slides open,
+   stays a moment, and folds away again */
+.c .row { display: flex; align-items: center; }
+.c .why { display: block; max-width: 0; margin-left: 0; overflow: hidden; white-space: nowrap; opacity: 0;
+          font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 2px;
+          line-height: 1.1; color: #7fe093; transform: translateX(-6px);
+          transition: max-width .5s cubic-bezier(.16, 1, .3, 1), margin-left .5s cubic-bezier(.16, 1, .3, 1),
+                      opacity .3s ease-out, transform .5s cubic-bezier(.16, 1, .3, 1); }
+.c .why.neg { color: #f27a6e; }
+.c .why.on { max-width: 320px; margin-left: 14px; opacity: 1; transform: none; }
 /* at the bottom the increases rise above the bar instead */
 .bc .c i { top: auto; bottom: 100%; margin: 0 0 6px 0; }
 </style>
@@ -111,7 +121,8 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
       c.className = "c " + def[1];
       c.id = "c-" + id;
       c.style.setProperty("--i", String(bar.querySelectorAll(".c").length + 1));
-      c.innerHTML = "<b></b><small></small><i></i>";
+      c.innerHTML = id === "net" ? "<div class=\"row\"><b></b><span class=\"why\"></span></div><small></small><i></i>"
+                                 : "<b></b><small></small><i></i>";
       c.querySelector("small").textContent = def[0];
       bar.appendChild(c);
     });
@@ -150,6 +161,21 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
     void i.offsetWidth;                         // restart the animation
     i.classList.add("go");
   }
+  var whyT = 0;
+  function why(el, list) {
+    var w = el.querySelector(".why");
+    if (!w) return;
+    var sum = list.reduce(function (a, m) { return a + m.amt; }, 0);
+    var words = [];
+    list.forEach(function (m) { if (words.indexOf(m.why) < 0) words.push(m.why); });
+    w.textContent = words.join(" + ");
+    w.classList.toggle("neg", sum < 0);
+    w.classList.remove("on");
+    void w.offsetWidth;
+    w.classList.add("on");
+    clearTimeout(whyT);
+    whyT = setTimeout(function () { w.classList.remove("on"); }, 3200);
+  }
   var prev = null;
   function deltas(s) {
     var out = {};
@@ -166,6 +192,13 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
     if (n("earned") > 0) out.earned = "+" + money(n("earned"));
     if (n("spent") > 0) out.spent = "+" + money(n("spent"));
     if (n("net") !== 0) out.net = signed(n("net"));
+    // what each new change was for, from the plugin's log of them
+    var seen = prev.moneyLog && prev.moneyLog.length ? prev.moneyLog[prev.moneyLog.length - 1].seq : 0;
+    var fresh = (s.moneyLog || []).filter(function (m) { return m.seq > seen; });
+    if (fresh.length) {
+      out.net = fresh.map(function (m) { return signed(m.amt); }).join("  ");
+      out.why = fresh;
+    }
     return out;
   }
   function draw(s) {
@@ -186,6 +219,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
         b.textContent = text;
       }
       if (!rolling[id] || performance.now() - rolling[id] > 1000) tint(id, s.net || 0);
+      if (id === "net" && d.why) why(el, d.why);
       if (d[id]) {
         badge(id, d[id]);
         el.classList.add("up");

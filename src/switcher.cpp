@@ -95,6 +95,8 @@ std::string Switcher::overlayUrl(const Config &cfg, const std::string &friendNam
 		q += "&vig=1";
 	if (cfg.lookMark)
 		q += "&mark=1";
+	if (cfg.povStinger)
+		q += "&enter=650"; // the swap happens under SWITCHING POV: arrive as it uncovers the screen
 	if (!q.empty() && q[0] == '&')
 		q.erase(0, 1);
 	return "file:///" + path + "?" + q;
@@ -1414,7 +1416,8 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 		std::string page = pp ? pp : "";
 		bfree(pp);
 		std::replace(page.begin(), page.end(), '\\', '/');
-		std::string url = "file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel);
+		std::string url = "file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel) +
+				  (cfg.replayStinger ? "&enter=1100" : ""); // the tag arrives as the stinger uncovers
 		std::string e2 = ensureBrowserSource(scene, Config::replayFrameName(), url, false, (int)w, (int)h);
 		if (e2.empty()) {
 			if (obs_sceneitem_t *fi = obs_scene_find_source(scene, Config::replayFrameName())) {
@@ -1562,8 +1565,8 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 		std::string page = pp ? pp : "";
 		bfree(pp);
 		std::replace(page.begin(), page.end(), '\\', '/');
-		std::string url =
-			"file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel) + (portrait ? "&v=1" : "");
+		std::string url = "file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel) +
+				  (portrait ? "&v=1" : "") + (cfg.replayStinger ? "&enter=1100" : "");
 		std::string e2 = ensureBrowserSource(scene, Config::replayFrameNameV(), url, false, (int)w, (int)h);
 		if (e2.empty()) {
 			if (obs_sceneitem_t *fi = obs_scene_find_source(scene, Config::replayFrameNameV())) {
@@ -2001,7 +2004,8 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 	std::string lookName = Config::dualLookName();
 	if (look) {
 		std::string url = overlayUrl(cfg, f->name);
-		url += (url.find('?') == std::string::npos ? "?" : "&") + std::string("small=1&frame=1&scale=") +
+		url += (url.find('?') == std::string::npos ? "?" : "&") +
+		       std::string("enter=280&small=1&frame=1&scale=") +
 		       std::to_string(std::clamp(cfg.dualNameScale, 25, 400));
 		std::string e2 = ensureBrowserSource(dual, lookName.c_str(), url, true);
 		if (!e2.empty() && log)
@@ -2042,12 +2046,7 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 	if (!item)
 		item = obs_scene_add(scene, dualSrc);
 	if (item) {
-		float w = (float)(cfg.dualW * ovi.base_width), h = w * 9.0f / 16.0f;
-		struct vec2 pos = {(float)(cfg.dualX * ovi.base_width), (float)(cfg.dualY * ovi.base_height)},
-			    bounds = {w, h};
-		obs_sceneitem_set_pos(item, &pos);
-		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
-		obs_sceneitem_set_bounds(item, &bounds);
+		placeDual(cfg, item, dualK); // placed (at its entrance size) before it can be drawn
 		obs_sceneitem_set_visible(item, err.empty());
 		moveToTop(item);
 		raiseOnTop(cfg);
@@ -2056,6 +2055,32 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 	obs_source_release(dualSrc);
 	obs_source_release(ss);
 	return err;
+}
+
+void Switcher::placeDual(const Config &cfg, obs_sceneitem_t *item, double k)
+{
+	struct obs_video_info ovi;
+	obs_get_video_info(&ovi);
+	float w = (float)(cfg.dualW * ovi.base_width), h = w * 9.0f / 16.0f;
+	float kk = (float)std::clamp(k, 0.001, 1.5);
+	// about its centre: the corner where it would be at full size, moved in by half what it lost
+	struct vec2 pos = {(float)(cfg.dualX * ovi.base_width) + w * (1 - kk) / 2,
+			   (float)(cfg.dualY * ovi.base_height) + h * (1 - kk) / 2},
+		    bounds = {std::max(1.0f, w * kk), std::max(1.0f, h * kk)};
+	obs_sceneitem_set_alignment(item, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
+	obs_sceneitem_set_pos(item, &pos);
+	obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
+	obs_sceneitem_set_bounds(item, &bounds);
+}
+
+void Switcher::dualScale(const Config &cfg, double k)
+{
+	obs_source_t *ss = sceneSource(cfg);
+	if (!ss)
+		return;
+	if (obs_sceneitem_t *item = obs_scene_find_source(obs_scene_from_source(ss), Config::dualSceneName()))
+		placeDual(cfg, item, k);
+	obs_source_release(ss);
 }
 
 std::vector<std::string> Switcher::apply(const Config &cfg, bool on)

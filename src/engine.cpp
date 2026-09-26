@@ -60,6 +60,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	lastPick_ = lastNearbyWarn_ = lastReviveSeen_;
 	connect(&replayTimer_, &QTimer::timeout, this, &Engine::replayTick);
 	connect(&pipTimer_, &QTimer::timeout, this, &Engine::pipTick);
+	connect(&dualTimer_, &QTimer::timeout, this, &Engine::dualTick);
 	connect(&healthTimer_, &QTimer::timeout, this, &Engine::sendObsHealth);
 	sessionStart_ = QDateTime::currentDateTime();
 	connect(&roster, &Roster::changed, this, &Engine::checkAccess);
@@ -743,6 +744,13 @@ void Engine::start()
 		cfg.replayScale = 100;
 		cfg.save();
 	}
+	if (!cfg.povCalm1) {
+		// 0.25.0: swaps between squad mates settle for longer, so the SWITCHING POV stinger is not
+		// playing all the time
+		cfg.nearCooldownS = std::max(cfg.nearCooldownS, 12);
+		cfg.povCalm1 = true;
+		cfg.save();
+	}
 	if (!cfg.sessionNet1) {
 		// 0.24.1: the bar's Earned and Spent become one Session balance, green up, red down
 		QStringList show = QString::fromStdString(cfg.sessionShow).split(',', Qt::SkipEmptyParts);
@@ -771,7 +779,7 @@ void Engine::start()
 	QTimer::singleShot(3000, this, [this]() {
 		if (stopping_)
 			return;
-		sw.ensureStinger(cfg, cfg.replayStinger);
+		sw.ensureStinger(cfg, cfg.replayStinger || cfg.povStinger);
 		if (!cfg.pipRestore.empty() && !replaying()) {
 			// OBS stopped while the game was the small window: put it back where it was
 			sw.pipRestore(cfg.pipRestore);
@@ -1074,6 +1082,7 @@ void Engine::stopTimers()
 	popoutTimer_.stop();
 	replayTimer_.stop();
 	pipTimer_.stop();
+	dualTimer_.stop();
 	downDelay_.stop();
 	upDelay_.stop();
 }
@@ -1752,8 +1761,8 @@ void Engine::watchPopouts()
 void Engine::reloadConfig()
 {
 	if (!stopping_)
-		sw.ensureStinger(cfg,
-				 cfg.replayStinger); // on or off as Settings say; back after a scene-collection change
+		// on or off as Settings say; back after a scene-collection change
+		sw.ensureStinger(cfg, cfg.replayStinger || cfg.povStinger);
 	if (paused_ && !stopping_) {
 		// after a scene-collection change: sceneCleanup() let go of everything, so start again
 		paused_ = false;
@@ -2226,6 +2235,12 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				session_.earned += e.amt;
 				if (reason.contains("ZONE"))
 					session_.zoneEarned += e.amt;
+				// what it was for, in the words the bar has room for
+				QString why = reason == "REVIVED TEAMMATE" ? "REVIVE"
+					      : reason.contains("ZONE") ? "ZONE"
+					      : reason.isEmpty()        ? "REWARD"
+									: reason;
+				session_.noteMoney(e.amt, why.left(18));
 				changed = true;
 			}
 			if (reason.isEmpty())
@@ -2263,6 +2278,7 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 	}
 	if (dropPending_ && t - dropAt_ >= 5000) {
 		session_.spent += dropFrom_ - dropTo_;
+		session_.noteMoney(-(dropFrom_ - dropTo_), "PURCHASE"); // a loadout, a vehicle, a buy
 		dropPending_ = false;
 		changed = true;
 	}
@@ -3480,7 +3496,7 @@ void Engine::pickClosest(const QString &why, bool decisive)
 		int cur = nearbyDistanceOf(cfg.activeFriend);
 		if (cur >= 0 && cfg.nearMaxM > 0 && d > cfg.nearMaxM)
 			return; // too far to be the one coming for you: stay on who is on screen
-		auto left = std::chrono::seconds(std::clamp(cfg.nearCooldownS, 1, 10)) - (clock_::now() - lastPick_);
+		auto left = std::chrono::seconds(std::clamp(cfg.nearCooldownS, 3, 30)) - (clock_::now() - lastPick_);
 		if (left.count() > 0) {
 			if (clock_::now() - lastNearbyWarn_ > std::chrono::seconds(5)) {
 				lastNearbyWarn_ = clock_::now();
@@ -3979,8 +3995,9 @@ void Engine::detect(const Match &m)
 			if (cfg.downDelayMs <= 0)
 				applyNow(true, QString("downed screen detected (%1)").arg(m.score, 0, 'f', 3));
 			else {
-				downDelay_.start(
-					cfg.downDelayMs); // cancelled if the log goes away first (a blip, or a quick revive)
+				// cancelled if the log goes away first (a blip, or a quick revive); the stinger's
+				// run-up comes out of the wait, so the squad mate is on screen when they were before
+				downDelay_.start(std::max(0, cfg.downDelayMs - (cfg.povStinger ? kPovCoverMs : 0)));
 				log(QString("Downed - showing the squad mate in %1 ms unless you are revived first.")
 					    .arg(cfg.downDelayMs));
 			}
@@ -3989,13 +4006,22 @@ void Engine::detect(const Match &m)
 		detected_ = false;
 		detGame_.holdThreshold = 0;
 		downDelay_.stop();
+		if (povPending_ && povTarget_ && !applied_)
+			povTarget_ = false; // revived while SWITCHING POV was on its way: it plays, nothing swaps
 		clearNearby();
 		if (applied_) {
-			if (fast || cfg.upDelayMs <= 0)
+			// a POV stays up for povMinS at least, so a flicker of the damage log does not swap
+			// twice in a second (and play the stinger twice)
+			qint64 shownMs =
+				std::chrono::duration_cast<std::chrono::milliseconds>(clock_::now() - downSince_)
+					.count();
+			int hold = (int)std::max<qint64>(0, (qint64)cfg.povMinS * 1000 - shownMs);
+			int wait = std::max(fast ? 0 : cfg.upDelayMs, hold);
+			if (wait <= 0)
 				applyNow(false, fast ? "revived (squad mate's revive seen, damage log gone)"
 						     : QString("damage log gone (%1)").arg(m.score, 0, 'f', 3));
 			else
-				upDelay_.start(cfg.upDelayMs);
+				upDelay_.start(wait);
 		} else
 			log("Damage log gone before the delay ended - no switch.");
 	}
@@ -4004,6 +4030,52 @@ void Engine::detect(const Match &m)
 // ----- actions -----
 
 void Engine::applyNow(bool on, const QString &why)
+{
+	// cut straight away: no stinger wanted, or not a swap anyone should watch
+	bool instant = !cfg.povStinger || stopping_ || !cfg.active() || why == "paused" ||
+		       why.startsWith("squad mate removed") || why.startsWith("setup test");
+	if (instant && !povPending_) {
+		applySwitch(on, why);
+		return;
+	}
+	if (povPending_) { // the stinger is on its way: the swap under its cover is the last one asked for
+		povTarget_ = on;
+		povWhy_ = why;
+		return;
+	}
+	if (on == applied_ && (!on || povShown_ == cfg.activeFriend)) {
+		applySwitch(on, why); // nothing on screen would change
+		return;
+	}
+	povPending_ = true;
+	povTarget_ = on;
+	povWhy_ = why;
+	// a moment later, so "off then on" (switching squad mate) is one stinger naming who comes next
+	QTimer::singleShot(0, this, [this]() {
+		if (stopping_) {
+			povPending_ = false;
+			return;
+		}
+		sw.ensureStinger(cfg, true);
+		QJsonObject o;
+		o["type"] = "stinger";
+		o["dir"] = "pov";
+		const Friend *a = cfg.active();
+		o["sub"] = povTarget_ && a ? QString::fromStdString(a->name) : QString("your POV");
+		bridge.sendJson(o);
+		QTimer::singleShot(kPovCoverMs, this, [this]() {
+			povPending_ = false;
+			if (stopping_)
+				return;
+			bool on = povTarget_;
+			if (on && applied_ && povShown_ != cfg.activeFriend)
+				applySwitch(false, "switching squad mate");
+			applySwitch(on, povWhy_);
+		});
+	});
+}
+
+void Engine::applySwitch(bool on, const QString &why)
 {
 	if (applying_)
 		return;
@@ -4027,6 +4099,7 @@ void Engine::applyNow(bool on, const QString &why)
 			log(QString("Squad mate feeds hidden (%1 item%2).").arg(n).arg(n == 1 ? "" : "s"));
 	}
 	applied_ = on;
+	povShown_ = on ? cfg.activeFriend : -1;
 	lookPreview_ = false;
 	if (on)
 		downSince_ = clock_::now();
@@ -4043,10 +4116,18 @@ void Engine::applyNow(bool on, const QString &why)
 				sw.trimToContent(cfg, *a);
 		});
 	}
-	if (dualOn_)
+	if (dualOn_) {
 		// the small window makes way for the full-screen swap, and returns. Not re-armed on the way
 		// down: the swap has just shown that capture, and warm would make it transparent again.
+		dualTimer_.stop();
+		dualDir_ = 0;
+		if (!on)
+			sw.dualK = 0.02; // back up: it grows in again as the screen uncovers
 		sw.applyDual(cfg, !on, false);
+		sw.dualK = 1.0;
+		if (!on)
+			dualAnimate(1, cfg.povStinger ? 500 : 0); // as SWITCHING POV uncovers
+	}
 	sendPov(on ? "downed" : "up");
 	// the events list names why: downed, the inventory, a voice or Stream Deck command, a button
 	{
@@ -4600,6 +4681,37 @@ QString Engine::chatReplay(const QString &who)
 	return "";
 }
 
+void Engine::dualAnimate(int dir, int delayMs)
+{
+	dualDir_ = dir;
+	dualClock_.start();
+	dualDelayMs_ = delayMs;
+	dualTimer_.start(16);
+}
+
+void Engine::dualTick()
+{
+	qint64 t = dualClock_.elapsed() - dualDelayMs_;
+	if (t < 0)
+		return;
+	int ms = dualDir_ > 0 ? kDualInMs : kDualOutMs;
+	double p = std::min(1.0, t / (double)ms), c = 1.5, k;
+	if (dualDir_ > 0) // ease out with a small overshoot: it lands, a touch past full size, and settles
+		k = 1 + (c + 1) * std::pow(p - 1, 3) + c * std::pow(p - 1, 2);
+	else // a small lift first, then away into its centre
+		k = 1 - ((c + 1) * p * p * p - c * p * p);
+	sw.dualScale(cfg, std::max(0.001, k));
+	if (p < 1.0)
+		return;
+	dualTimer_.stop();
+	int was = dualDir_;
+	dualDir_ = 0;
+	if (was < 0 && !dualOn_) {
+		sw.applyDual(cfg, false); // gone: taken down (and re-armed warm)
+		sw.dualScale(cfg, 1.0);
+	}
+}
+
 void Engine::showInDual(int idx, const QString &why)
 {
 	if (idx < 0 || idx >= (int)cfg.friends.size())
@@ -4629,11 +4741,25 @@ void Engine::setDual(bool on, const QString &why)
 	// turned on by hand it stays on; only a window the vehicle detector opened is its to close
 	if (on)
 		dualAutoOn_ = false;
-	std::string e = sw.applyDual(cfg, on && !applied_);
-	if (!e.empty()) {
-		log("Dual POV: " + QString::fromStdString(e));
-		if (on)
-			return;
+	bool show = on && !applied_;
+	if (!on && dualOn_ && !applied_) {
+		// shrinks away first; the window is taken down when it has gone
+		dualOn_ = false;
+		dualAnimate(-1);
+	} else {
+		dualTimer_.stop();
+		dualDir_ = 0;
+		if (show)
+			sw.dualK = 0.02; // placed tiny, then grown in
+		std::string e = sw.applyDual(cfg, show);
+		sw.dualK = 1.0;
+		if (!e.empty()) {
+			log("Dual POV: " + QString::fromStdString(e));
+			if (on)
+				return;
+		}
+		if (show)
+			dualAnimate(1);
 	}
 	dualOn_ = on;
 	pushAppConfig(); // ClipHound watches the vehicle corner while the window is up
