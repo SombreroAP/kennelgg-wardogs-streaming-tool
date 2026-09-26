@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.23.1
+- **The session bar steps aside during an instant replay.** A replay is past footage and its "INSTANT REPLAY" tag sits top left, where the bar does: the bar now slides out as a replay starts and slides back in after "BACK TO LIVE". Found running the replay and bar together in OBS.
+
 ## 0.23.0
 - **The leaderboards are tied to your kennel.gg account.** Taking part needs the same kennel.gg account as wagers and the Cash Cup: tick "Share my session stats" (Setup, the dock or Settings) and the plugin asks kennel.gg for a link code and opens its sign-in page, where you sign in with Discord, Steam, Twitch or Google as usual; the plugin picks the link up by itself. Each stream's stats then go to your account, never to an anonymous PC. Nothing is sent from a PC that is not linked; its sessions wait on the PC until it is.
 - **Your account on the dock and in Settings**: "Linked as ..." with whatever is still to connect (Discord, Steam, Twitch), a button to finish it on kennel.gg/account, and Unlink. Unlinking on the site (or /unlink in Discord) is noticed, and the plugin says so.

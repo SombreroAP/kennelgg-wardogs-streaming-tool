@@ -175,7 +175,8 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
   }
 
   // ---- on or off, where, and always or only when something changes; every change animated
-  var wrap = document.getElementById("wrap"), cur = { on: false, pos: "", shown: false }, popUntil = 0, popTimer = 0;
+  var wrap = document.getElementById("wrap"), cur = { on: false, pos: "", shown: false }, popUntil = 0, popTimer = 0,
+      replaying = false;
   function scale() {
     var k = window.innerHeight / 1080;
     wrap.style.transform = (wrap.classList.contains("bc") ? "translateX(-50%) " : "") + "scale(" + k + ")";
@@ -193,7 +194,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
     var now = Date.now();
     if (changed || !cur.on) popUntil = now + 20000;          // it just changed, or it just came on
     cur.on = on;
-    var want = on && (!pop || now < popUntil);
+    var want = on && !replaying && (!pop || now < popUntil);
     if (pos !== cur.pos) {
       if (cur.pos && cur.shown) {                           // a move: out where it was, in where it goes
         setShown(false);
@@ -215,7 +216,10 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
       if (typeof m.data !== "string") return;
       try {
         var o = JSON.parse(m.data);
-        if (o.type === "state" && o.session) draw(o.session);
+        if (o.type === "state" && o.session) {
+          replaying = !!o.replayPlaying;     // an instant replay is past footage: the bar steps aside for it
+          draw(o.session);
+        }
       } catch (e) {}
     };
     ws.onclose = function () { setTimeout(connect, 3000); };
