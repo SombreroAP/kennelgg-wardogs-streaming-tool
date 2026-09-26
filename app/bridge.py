@@ -234,6 +234,10 @@ class Bridge:
                 c["detection"]["series_window_s"] = float(v["series_window"])
             if "replay_chat" in v:
                 c.setdefault("replay", {})["chat"] = bool(v["replay_chat"])
+            if "chat_clips" in v:
+                c.setdefault("replay", {})["chat_clips"] = int(v["chat_clips"])     # 0 off, 1-3
+            if "twitch_markers" in v:
+                c.setdefault("twitch", {})["markers"] = bool(v["twitch_markers"])
             for k in ("clip_trim", "clip_trim_lead_s", "run_merge", "run_cut_gaps", "run_gap_s"):
                 if k in v:
                     key = {"clip_trim": "trim", "clip_trim_lead_s": "trim_lead_s", "run_merge": "merge",

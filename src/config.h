@@ -139,6 +139,9 @@ struct Config {
 	bool replayHwDecode = false; // the GPU decodes replay files (off: one PC's decoder refused 1440p60 at load)
 	int replayCooldownS = 60;    // chat may trigger it this often at most (30 s to 15 min)
 	bool replayChat = true;      // the trigger word from subscribers and moderators in chat plays it
+	int chatClips = 2;           // clip when chat goes wild: 0 off, 1 big moments only, 2 normal, 3 small ones too
+	bool twitchMarkers = true;   // a Twitch stream marker for every clip saved while live
+	bool ytChapters = true;      // a YouTube chapter list for the VOD, written when the stream stops
 	std::string replayWord = "!replay"; // what they type
 	std::string chatKick;               // your Kick channel, for the chat trigger (Twitch comes from the login)
 	std::string chatYouTube;            // your YouTube channel or @handle, for the chat trigger

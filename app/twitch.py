@@ -1,4 +1,5 @@
-"""Twitch Helix: create a clip. Title is recorded locally (see README on titles)."""
+"""Twitch Helix: create a clip, and mark the stream for the VOD. Title is recorded locally (see
+README on titles)."""
 import json
 import time
 import requests
@@ -13,6 +14,61 @@ class Twitch:
         self.on_tokens = on_tokens
         self.h = {"Client-Id": cfg["client_id"], "Authorization": f"Bearer {cfg['access_token']}"}
         self.broadcaster_id = cfg.get("broadcaster_id") or self._user_id(cfg["broadcaster_login"])
+        self.scopes = self._scopes()
+        self._mark_warned = ""
+
+    def _scopes(self) -> list:
+        """What the saved login may do (a login from before 0.20.0 cannot place markers)."""
+        try:
+            r = requests.get("https://id.twitch.tv/oauth2/validate",
+                             headers={"Authorization": f"OAuth {self.cfg['access_token']}"}, timeout=10)
+            if r.status_code == 401 and self.cfg.get("refresh_token"):
+                self._refresh()
+                r = requests.get("https://id.twitch.tv/oauth2/validate",
+                                 headers={"Authorization": f"OAuth {self.cfg['access_token']}"}, timeout=10)
+            if r.status_code == 200:
+                sc = list(r.json().get("scopes") or [])
+                self.cfg["scopes"] = sc
+                return sc
+        except Exception as e:
+            print(f"[twitch] could not check the login's permissions: {e}")
+        return list(self.cfg.get("scopes") or [])
+
+    @property
+    def can_mark(self) -> bool:
+        return "channel:manage:broadcast" in self.scopes
+
+    def create_marker(self, description: str) -> bool:
+        """A stream marker at this moment, for the VOD: Twitch lists them on the video's timeline and
+        in its Highlighter. Only while live, and only for the broadcaster or one of their editors."""
+        if not self.can_mark:
+            self._warn_mark("scope", "Twitch markers need one more permission: log in to Twitch again from the "
+                                     "plugin (Settings, Clips & replays, Twitch clips) once.")
+            return False
+        body = {"user_id": self.broadcaster_id, "description": (description or "")[:140]}
+        r = requests.post(f"{HELIX}/streams/markers", headers=self.h, json=body, timeout=10)
+        if r.status_code == 401 and self.cfg.get("refresh_token"):
+            self._refresh()
+            r = requests.post(f"{HELIX}/streams/markers", headers=self.h, json=body, timeout=10)
+        if r.status_code == 404:
+            self._warn_mark("offline", "[twitch] no marker: the channel is not live")
+            return False
+        if r.status_code in (401, 403):
+            self._warn_mark("editor", f"[twitch] no marker: {self.cfg.get('clipper_login', 'this account')} is not "
+                                      f"{self.cfg.get('broadcaster_login', 'the channel')} or one of its editors "
+                                      f"(make it an editor on Twitch, or log in as the channel)")
+            return False
+        if r.status_code >= 400:
+            self._warn_mark(str(r.status_code), f"[twitch] no marker: HTTP {r.status_code} {r.text[:120]}")
+            return False
+        self._mark_warned = ""
+        print(f"[twitch] marker: {body['description']}")
+        return True
+
+    def _warn_mark(self, key, text):
+        if self._mark_warned != key:        # once per kind of failure, not once per clip
+            self._mark_warned = key
+            print(text)
 
     def _get(self, path, **params):
         r = requests.get(f"{HELIX}/{path}", headers=self.h, params=params, timeout=10)

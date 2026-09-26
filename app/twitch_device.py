@@ -8,7 +8,7 @@ import time
 import requests
 
 KENNEL_TWITCH_CLIENT_ID = "bdtbcsrqxvjozcksvhm4eoy1ec0t3e"  # Kennel's public Twitch app (dev.twitch.tv, client type Public)
-SCOPES = "clips:edit chat:read"
+SCOPES = "clips:edit chat:read channel:manage:broadcast"   # the last one: stream markers (0.20.0)
 
 
 def client_id(cfg: dict) -> str:
@@ -42,6 +42,7 @@ def start_login(cfg: dict, on_status, save):
                     tw["client_id"] = cid
                     tw["access_token"] = tok["access_token"]
                     tw["refresh_token"] = tok.get("refresh_token", "")
+                    tw["scopes"] = list(tok.get("scope") or [])
                     tw["enabled"] = True
                     # who did we log in as?
                     u = requests.get("https://api.twitch.tv/helix/users", headers={"Client-Id": cid, "Authorization": f"Bearer {tok['access_token']}"}, timeout=10)
@@ -70,6 +71,7 @@ def logout(cfg: dict, save):
     tw = cfg.setdefault("twitch", {})
     for k in ("access_token", "refresh_token", "clipper_login"):
         tw[k] = ""
+    tw["scopes"] = []
     tw["enabled"] = False
     save(cfg)
 
@@ -78,4 +80,6 @@ def status(cfg: dict) -> dict:
     tw = cfg.get("twitch") or {}
     return {"type": "twitch_status", "state": "ok" if tw.get("access_token") else "out",
             "login": tw.get("clipper_login", ""), "enabled": bool(tw.get("enabled")),
-            "broadcaster": tw.get("broadcaster_login", ""), "has_app_id": bool(client_id(cfg))}
+            "broadcaster": tw.get("broadcaster_login", ""), "has_app_id": bool(client_id(cfg)),
+            # False for a login made before markers were asked for: the plugin says to log in again
+            "markers": "channel:manage:broadcast" in (tw.get("scopes") or [])}

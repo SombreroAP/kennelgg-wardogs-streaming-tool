@@ -332,6 +332,9 @@ public:
 	/// Ask now whether each Twitch / Kick / YouTube squad mate is live (it is asked every minute
 	/// anyway): a squad mate just added shows live or offline at once.
 	void webLiveTick();
+	/// The last stream's YouTube chapter list ("0:00 Start" and one line per clip), "" if none.
+	QString lastChapters() const { return lastChapters_; }
+	QString lastChaptersPath() const { return lastChaptersPath_; }
 
 private:
 	void askNearbyNow();
@@ -374,6 +377,13 @@ private:
 	QString replayWhat_;
 	Clips::Entry pendingReplay_;
 	QDateTime sessionStart_;
+	// YouTube chapters: every clip saved while streaming, as time into the stream and its title;
+	// written as a paste-ready list when the stream stops
+	QDateTime streamStart_;
+	QList<QPair<qint64, QString>> chapters_;
+	QString lastChapters_, lastChaptersPath_;
+	void noteChapter(const Clips::Entry &e);
+	void writeChapters();
 	bool highlightsBuilding_ = false, highlightsThenPlay_ = false;
 	QTimer healthTimer_; // OBS's dropped-frame counters to ClipHound, so segment work backs off
 	void sendObsHealth();

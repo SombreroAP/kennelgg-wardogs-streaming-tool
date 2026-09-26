@@ -183,6 +183,14 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		m->addAction("Setup...", this, [this]() { openWizard(); });
 		m->addAction("Logs...", this, [this]() { openLogs(); });
 		m->addAction("Clips: titles and tags...", this, [this]() { openClips(); });
+		auto *chap = m->addAction("Copy YouTube chapters (last stream)", this, [this]() {
+			QApplication::clipboard()->setText(e_->lastChapters());
+			e_->log("YouTube chapters copied: paste them into the VOD's description.");
+		});
+		connect(m, &QMenu::aboutToShow, this, [this, chap]() {
+			chap->setEnabled(!e_->lastChapters().isEmpty());
+			chap->setToolTip(e_->lastChaptersPath());
+		});
 		m->addSeparator();
 		appAct_ = m->addAction("Start ClipHound", this, [this]() {
 			QString st = e_->appState();

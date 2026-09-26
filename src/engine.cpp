@@ -146,6 +146,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 		o["title"] = e.title;
 		o["tags"] = QJsonArray::fromStringList(e.tags);
 		bridge.sendJson(o);
+		noteChapter(e);
 		if (replayAfterClip_ && e.tags.contains("manual")) {
 			// "hey kennel, clip replay": the clip is on disk; a moment for OBS to close it, then play
 			replayAfterClip_ = false;
@@ -763,6 +764,8 @@ void Engine::pushAppConfig()
 	set["run_cut_gaps"] = cfg.runCutGaps;
 	set["run_gap_s"] = cfg.runGapS;
 	set["replay_chat"] = cfg.replayChat; // "!replay" in chat plays the last highlight
+	set["chat_clips"] = std::clamp(cfg.chatClips, 0, 3);
+	set["twitch_markers"] = cfg.twitchMarkers;
 	set["replay_cooldown_s"] = cfg.replayCooldownS;
 	set["replay_word"] = QString::fromStdString(cfg.replayWord.empty() ? "!replay" : cfg.replayWord);
 	set["chat_kick"] = QString::fromStdString(cfg.chatKick);
@@ -3486,9 +3489,86 @@ void Engine::onStreaming(bool live)
 	bridge.sendJson(o);
 	if (live) {
 		sessionStart_ = QDateTime::currentDateTime();
+		streamStart_ = sessionStart_;
+		chapters_.clear();
 		log("Streaming: the highlights session starts here.");
-	} else if (cfg.highlightsAuto)
+		return;
+	}
+	writeChapters();
+	streamStart_ = QDateTime();
+	if (cfg.highlightsAuto)
 		requestHighlights("stream ended", false);
+}
+
+void Engine::noteChapter(const Clips::Entry &e)
+{
+	if (!cfg.ytChapters || !streamStart_.isValid() || e.title == "setup test")
+		return;
+	// the moment itself, not the save: the last kill's seconds-before-the-end when known, else
+	// a little before the save (a hotkey or a voice command comes just after the action)
+	double back = e.momentS > 0 ? e.momentS : 8.0;
+	qint64 at = e.when.toMSecsSinceEpoch() - (qint64)(back * 1000) - streamStart_.toMSecsSinceEpoch();
+	QString title = e.title == "manual" ? "Clip" : e.title == "downed" ? "Downed" : e.title;
+	title = title.simplified();
+	if (title.size() > 70)
+		title = title.left(67) + "...";
+	chapters_.append({std::max<qint64>(0, at), title});
+}
+
+/// YouTube makes chapters from timestamps in a video's description: the first at 0:00, at least
+/// three, each at least 10 s long. A live stream's VOD starts when the stream did, so the times
+/// into this stream are the times into its VOD (a Twitch VOD downloaded to YouTube too).
+void Engine::writeChapters()
+{
+	if (!cfg.ytChapters || !streamStart_.isValid())
+		return;
+	auto stamp = [](qint64 ms) {
+		qint64 s = ms / 1000;
+		return s >= 3600 ? QString("%1:%2:%3")
+					   .arg(s / 3600)
+					   .arg(s / 60 % 60, 2, 10, QChar('0'))
+					   .arg(s % 60, 2, 10, QChar('0'))
+				 : QString("%1:%2").arg(s / 60).arg(s % 60, 2, 10, QChar('0'));
+	};
+	auto list = chapters_;
+	std::sort(list.begin(), list.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+	QStringList lines{"0:00 Start"};
+	qint64 prev = 0;
+	for (const auto &c : list) {
+		if (c.first - prev < 10000)
+			continue; // closer than 10 s to the one before: YouTube would drop every chapter
+		lines << stamp(c.first) + " " + c.second;
+		prev = c.first;
+	}
+	if (lines.size() < 3) {
+		log(QString("YouTube chapters: %1 moment%2 this stream - YouTube needs at least two after 0:00, so no "
+			    "list was written.")
+			    .arg(lines.size() - 1)
+			    .arg(lines.size() == 2 ? "" : "s"));
+		return;
+	}
+	lastChapters_ = lines.join("\n") + "\n";
+	// next to the clips, where the VOD's other material is
+	QString dir;
+	for (auto it = clips.history().rbegin(); it != clips.history().rend() && dir.isEmpty(); ++it)
+		if (!it->path.isEmpty())
+			dir = QFileInfo(it->path).absolutePath();
+	if (dir.isEmpty())
+		dir = QDir::homePath() + "/Videos";
+	QString path = dir + "/YouTube chapters " + streamStart_.toString("yyyy-MM-dd HH-mm") + ".txt";
+	QFile f(path);
+	if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		f.write(lastChapters_.toUtf8());
+		f.close();
+		lastChaptersPath_ = path;
+		log(QString("YouTube chapters: %1 for this stream saved to %2 - paste them into the VOD's description "
+			    "(the dock's menu has Copy YouTube chapters).")
+			    .arg(lines.size())
+			    .arg(QDir::toNativeSeparators(path)));
+	} else
+		log("YouTube chapters: could not write " + QDir::toNativeSeparators(path) +
+		    " - the dock's menu still has Copy YouTube chapters.");
+	emit stateChanged();
 }
 
 void Engine::requestHighlights(const QString &why, bool thenPlay)

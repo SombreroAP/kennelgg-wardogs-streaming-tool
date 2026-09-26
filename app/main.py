@@ -132,7 +132,7 @@ def main():
           f"({det.min_reads} if it goes away early)   dry-run={DRY}")
 
     tw = ob = None
-    if not DRY and cfg["twitch"]["enabled"] and cfg["twitch"].get("access_token"):
+    if not DRY and cfg["twitch"].get("access_token"):
         try:
             from twitch import Twitch
             tw = Twitch(cfg["twitch"], lambda _sec: save_config(cfg))
@@ -171,7 +171,7 @@ def main():
         if hasattr(cap, "set_roi"):
             cap.set_roi(c["capture"].get("roi"))
         try:
-            if not DRY and c["twitch"].get("enabled") and c["twitch"].get("access_token"):
+            if not DRY and c["twitch"].get("access_token"):
                 from twitch import Twitch
                 state["tw"] = Twitch(c["twitch"], lambda _sec: save_config(c))
                 print(f"[twitch] ready as {c['twitch'].get('clipper_login', '?')} for channel {c['twitch'].get('broadcaster_login', '?')}")
@@ -190,17 +190,52 @@ def main():
             state["tw"] = None
     chat = {"c": None}
 
+    def mark_clip(o):
+        """Every clip saved while live gets a Twitch stream marker named after it, so the VOD can be
+        scrubbed from moment to moment (Twitch shows them on the video's timeline and Highlighter)."""
+        tw = state["tw"]
+        if not tw or not cfg["twitch"].get("markers", True):
+            return
+        title = str(o.get("title") or "").strip()
+        if title in ("setup test",):
+            return
+        title = {"manual": "Clip", "downed": "Downed", "": "Clip"}.get(title, title)
+        threading.Thread(target=lambda: _safe(tw.create_marker, title), daemon=True).start()
+
     def start_chat(c):
         if bridge is None:
             return
+        # a settings change from the plugin lands here every time: keep the connection unless the
+        # login or the channel changed (the switches are read live from c)
+        key = (c["twitch"].get("access_token"), c["twitch"].get("broadcaster_login"))
+        if chat["c"] is not None and chat.get("key") == key:
+            return
+        chat["key"] = key
         if chat["c"] is not None:
             chat["c"].stop()
             chat["c"] = None
-        if c["twitch"].get("enabled") and c["twitch"].get("access_token"):
+        if c["twitch"].get("access_token"):
             from twitch_chat import TwitchChat
+            from chat_hype import ChatHype
+            hype = ChatHype(lambda: int((c.get("replay") or {}).get("chat_clips", 2) or 0), chat_clip,
+                            me=c["twitch"].get("broadcaster_login", ""))
             chat["c"] = TwitchChat(c["twitch"], bridge, lambda: bool((c.get("replay") or {}).get("chat", True)),
-                                   lambda: str((c.get("replay") or {}).get("word") or "!replay"))
+                                   lambda: str((c.get("replay") or {}).get("word") or "!replay"), hype=hype)
             chat["c"].start()
+
+    def chat_clip(title, tags, moment, info):
+        """Chat went wild: the replay buffer is saved like a kill-feed clip (and a Twitch clip made
+        when Twitch clips are on), so it is named, indexed, trimmed and in the highlights."""
+        print(f"\n*** CHAT: {title}   ({info.get('description', '')}) ***\n")
+        if bridge is not None:
+            bridge.event(f"{title}  [chat]", "trigger")
+        ob, tw = state["ob"], state["tw"]
+        if ob is not None and hasattr(ob, "trigger"):
+            ob.trigger(title, tags, info)
+        elif bridge is not None:
+            bridge.clip(title, tags, "chat", info=info)
+        if tw and cfg["twitch"].get("enabled"):
+            threading.Thread(target=lambda: _safe(tw.create_clip, title, tags), daemon=True).start()
 
     try:
         start_chat(cfg)
@@ -221,6 +256,7 @@ def main():
             def _on_clip(path, o):
                 hl.on_clip_saved(path, o)
                 runs.on_clip_saved(path, o)
+                mark_clip(o)
             bridge.on_clip_saved = _on_clip
         except Exception as e:
             print(f"[highlights] not available: {e}")
@@ -252,7 +288,7 @@ def main():
         run["n"] = run["n"] + 1 if now - run["last"] <= window else 1
         run["last"] = now
         twitch_title = trig.headline() + (f" - part {run['n']}" if run["n"] > 1 else "")
-        if tw:
+        if tw and cfg["twitch"].get("enabled"):    # the login is also there for markers and chat
             threading.Timer(cfg["twitch"]["clip_delay_s"], lambda: _safe(tw.create_clip, twitch_title, trig.tags)).start()
         if ob:
             ev = trig.events[-1] if trig.events else None

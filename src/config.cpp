@@ -85,6 +85,9 @@ void Config::load()
 	DEFI(activeFriend);
 	DEFB(bringToFront);
 	DEFB(keepWarm);
+	DEFI(chatClips);
+	DEFB(twitchMarkers);
+	DEFB(ytChapters);
 	DEFB(pictureCheck);
 	DEFB(preloadFeeds);
 	DEFB(friendAudio);
@@ -256,6 +259,9 @@ void Config::load()
 	GETI(activeFriend);
 	GETB(bringToFront);
 	GETB(keepWarm);
+	GETI(chatClips);
+	GETB(twitchMarkers);
+	GETB(ytChapters);
 	GETB(pictureCheck);
 	GETB(preloadFeeds);
 	GETB(friendAudio);
@@ -612,6 +618,9 @@ void Config::save() const
 	SETI(activeFriend);
 	SETB(bringToFront);
 	SETB(keepWarm);
+	SETI(chatClips);
+	SETB(twitchMarkers);
+	SETB(ytChapters);
 	SETB(pictureCheck);
 	SETB(preloadFeeds);
 	SETB(friendAudio);

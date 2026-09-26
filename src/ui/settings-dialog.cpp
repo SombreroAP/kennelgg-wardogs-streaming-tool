@@ -1719,6 +1719,16 @@ QWidget *SettingsDialog::buildClipsTab()
 	chatRow->addWidget(new QLabel("Cooldown", gi));
 	chatRow->addWidget(replayCool_, 1);
 	fi->addRow("Chat trigger", chatRow);
+	chatClips_ = new QComboBox(gi);
+	chatClips_->addItems({"Off", "Only big moments", "Normal", "Small moments too"});
+	chatClips_->setCurrentIndex(std::clamp(e_->cfg.chatClips, 0, 3));
+	chatClips_->setToolTip(
+		"ClipHound watches your Twitch chat. When several different people write at once - a few times "
+		"the chat's usual pace - or a few of them ask for a clip (\"clip it\"), the last moments are saved "
+		"as a clip called \"Chat went wild\" with the word they spammed (\"KEKW\"). Commands, bots and "
+		"your own lines never count. At most one a minute. Needs the Twitch login under Twitch clips.");
+	fi->addRow("Clip when chat goes wild", chatClips_);
+	connect(chatClips_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) { saveAndApply(); });
 	chatKick_ = new QLineEdit(QString::fromStdString(e_->cfg.chatKick), gi);
 	chatKick_->setPlaceholderText("your Kick channel (optional)");
 	chatYouTube_ = new QLineEdit(QString::fromStdString(e_->cfg.chatYouTube), gi);
@@ -1733,6 +1743,15 @@ QWidget *SettingsDialog::buildClipsTab()
 	highlightsAuto_ = new QCheckBox("Build the session's highlights compilation when the stream stops", gi);
 	highlightsAuto_->setChecked(e_->cfg.highlightsAuto);
 	fi->addRow(highlightsAuto_);
+	ytChapters_ = new QCheckBox("Write YouTube chapters for the VOD when the stream stops", gi);
+	ytChapters_->setChecked(e_->cfg.ytChapters);
+	ytChapters_->setToolTip(
+		"Every clip saved while you stream becomes a line such as \"1:02:14 Triple kill with the Galil\", "
+		"timed from when the stream started. When it stops, the list is saved next to your clips and the "
+		"dock's menu has Copy YouTube chapters: paste it into the VOD's description and YouTube turns it "
+		"into chapters.");
+	fi->addRow(ytChapters_);
+	connect(ytChapters_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	highlightsMax_ = spin(3, 30, e_->cfg.highlightsMax, " clips at most");
 	fi->addRow("Compilation", highlightsMax_);
 	fi->addRow(muted(
@@ -1940,6 +1959,15 @@ QWidget *SettingsDialog::buildAppTab()
 	tRow->addWidget(twitchLogin_);
 	tRow->addWidget(twitchLogout_);
 	ft->addRow("Clipping account", tRow);
+	twitchMarkers_ = new QCheckBox("Add a Twitch stream marker for every clip, so the VOD can be scrubbed moment "
+				       "to moment",
+				       gt);
+	twitchMarkers_->setChecked(e_->cfg.twitchMarkers);
+	twitchMarkers_->setToolTip(
+		"Twitch shows markers on the VOD's timeline and in its Highlighter. The account logged in here must be "
+		"the channel itself or one of its editors, and a login from before 0.20.0 has to be made again once.");
+	ft->addRow(twitchMarkers_);
+	connect(twitchMarkers_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	ft->addRow(muted(
 		"Log in as the account that should own the clips (a bot account such as InfoKennel works). A code appears and is copied; twitch.tv/activate opens, paste the code, done. Needs ClipHound running.",
 		gt));
@@ -2400,7 +2428,10 @@ void SettingsDialog::refreshAppTab()
 		twitchLbl_->setText("Go to " + t.value("verification_uri").toString() + " and enter code  " +
 				    t.value("user_code").toString());
 	else if (st == "ok" && !t.value("login").toString().isEmpty())
-		twitchLbl_->setText("Logged in as " + t.value("login").toString());
+		twitchLbl_->setText("Logged in as " + t.value("login").toString() +
+				    (t.contains("markers") && !t.value("markers").toBool() && e_->cfg.twitchMarkers
+					     ? " - log in again once so stream markers can be added"
+					     : ""));
 	else if (st == "error")
 		twitchLbl_->setText("Login failed: " + t.value("error").toString());
 	else if (t.contains("has_app_id") && !t.value("has_app_id").toBool())
@@ -3193,6 +3224,12 @@ void SettingsDialog::collect()
 		c.replayVolume = replayVol_->value();
 		c.replayCooldownS = replayCool_->value();
 		c.replayChat = replayChat_->isChecked();
+		if (chatClips_)
+			c.chatClips = chatClips_->currentIndex();
+		if (twitchMarkers_)
+			c.twitchMarkers = twitchMarkers_->isChecked();
+		if (ytChapters_)
+			c.ytChapters = ytChapters_->isChecked();
 		c.replayWord = replayWord_->text().trimmed().isEmpty() ? "!replay"
 								       : replayWord_->text().trimmed().toStdString();
 		c.replaySound = replaySound_->isChecked();
@@ -3291,4 +3328,7 @@ void SettingsDialog::saveAndApply()
 	collect();
 	e_->cfg.save();
 	e_->reloadConfig();
+	// and to ClipHound at once: chat replays, chat clips and markers are its to act on, and it heard
+	// of a change only at the next unrelated push before
+	e_->pushAppConfig();
 }

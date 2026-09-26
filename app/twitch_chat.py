@@ -1,4 +1,4 @@
-"""Twitch chat, read over IRC, for the "!replay" trigger.
+"""Twitch chat, read over IRC, for the "!replay" trigger and for clips when chat goes wild.
 
 One TLS socket to irc.chat.twitch.tv, logged in with the same token the clips use (it needs the
 chat:read scope, so a login made before 0.13.2 has to be redone once), joined to the broadcaster's
@@ -34,11 +34,14 @@ def _parse(line: str):
 
 
 class TwitchChat:
-    def __init__(self, cfg_twitch: dict, bridge, enabled_fn, word_fn=lambda: "!replay"):
+    def __init__(self, cfg_twitch: dict, bridge, enabled_fn, word_fn=lambda: "!replay", hype=None):
         self.tw = cfg_twitch
         self.b = bridge
-        self.enabled = enabled_fn        # () -> bool: the plugin's "chat may trigger replays" switch
+        self.replay_on = enabled_fn      # () -> bool: the plugin's "chat may trigger replays" switch
         self.word = word_fn              # () -> str: what they type (Settings, Clips), "!replay" by default
+        self.hype = hype                 # ChatHype, or None: clips when chat goes wild
+        # chat is read while either of them wants it
+        self.enabled = lambda: bool(self.replay_on() or (self.hype is not None and self.hype.level()))
         self._stop = False
         self._sock = None
         self._thread = threading.Thread(target=self._run, daemon=True, name="twitch-chat")
@@ -118,7 +121,7 @@ class TwitchChat:
                 elif cmd == "PRIVMSG":
                     self._message(tags, user, msg)
                 if not self.enabled():
-                    self._say("chat trigger turned off; leaving chat")
+                    self._say("chat replays and chat clips both turned off; leaving chat")
                     s.close()
                     return
 
@@ -130,6 +133,13 @@ class TwitchChat:
         time.sleep(seconds)
 
     def _message(self, tags: dict, user: str, msg: str):
+        if self.hype is not None:
+            try:
+                self.hype.feed(tags.get("display-name") or user, msg)
+            except Exception as e:
+                self._say(f"chat clip check failed: {e}")
+        if not self.replay_on():
+            return
         m = msg.strip().lower()
         w = (self.word() or "!replay").strip().lower()
         if not (m == w or m.startswith(w + " ")):
