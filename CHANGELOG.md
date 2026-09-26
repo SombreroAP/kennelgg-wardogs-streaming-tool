@@ -2,6 +2,14 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.19.11
+- **Adding a squad mate who is not sharing in Discord takes one box.** Paste their Twitch, Kick or YouTube link, or a VDO.Ninja link, or type their channel name, and press Add. Several at once is fine ("pup, twitch.tv/gazreyn, kick.com/moriar"). A link picks its own platform; for a bare name, pick the platform next to the box. Each one is ticked as playing and shows live or offline straight away. For VDO.Ninja the link to send them is copied for you. The box is in the Squad window and in Setup. The full Add window is still there for a source already in OBS or a chosen Discord window.
+- **Setup shows you each step working instead of describing it.**
+  - Your game: a live picture of the source you pick, so you can see it is WARDOGS. It says so when the picture is black and what to do about it.
+  - Your squad: two clear paths. A, squad mates sharing in Discord: your username, the Kennel.gg voice-channel automation, and a button that adds the pop-outs open now, saying what it found. B, squad mates on Twitch, Kick, YouTube or VDO.Ninja: the new box. Below both, your squad with who is live.
+  - Clips: **Save a test clip now**, which starts OBS's replay buffer if it is off and shows the file name and folder the clip was saved to.
+  - Check: **Show them for 5 s** puts your squad mate's POV on your stream exactly as when you are downed, then brings yours back.
+
 ## 0.19.10
 - **Fixed: squad mates who were streaming could vanish from the dock.** Two causes, both fixed:
   - When you are in a Kennel.gg voice channel, the voice list saying someone is live is now enough to offer them. Since 0.19.7 the game-picture check could overrule it: a squad mate watched through your main Discord window was hidden whenever that window was on the call screen, for example while you watched their stream in a pop-out. The picture check now decides only for people the voice list cannot vouch for (you are not in a Kennel.gg voice channel). It still takes a feed off screen within two seconds if what it shows turns out to be the call screen.

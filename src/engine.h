@@ -329,6 +329,9 @@ public:
 	/// The best squad mate to show when nothing nearer is known: the active one if not Off, else
 	/// any Live one, else -1 when everyone is known to be off.
 	int anyLiveFriend() const;
+	/// Ask now whether each Twitch / Kick / YouTube squad mate is live (it is asked every minute
+	/// anyway): a squad mate just added shows live or offline at once.
+	void webLiveTick();
 
 private:
 	void askNearbyNow();
@@ -342,7 +345,6 @@ private:
 	QTimer webLiveTimer_;
 	QHash<QString, Feed> webLive_; // "kind:channel" -> Live / Off (Unknown = not asked or no answer)
 	QSet<QString> webLiveBusy_;    // keys with a request in flight
-	void webLiveTick();
 	static QString webLiveKey(const Friend &f);
 	// The picture check: every Discord capture that is on (warm or on screen) is looked at every
 	// second or two, and a squad mate whose capture holds no game picture is not offered or shown

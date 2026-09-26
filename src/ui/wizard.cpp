@@ -11,6 +11,8 @@
 #include <QInputDialog>
 #include <obs-module.h>
 #include <algorithm>
+#include <QPixmap>
+#include "ui/quick-add.h"
 
 static QLabel *note(const QString &t, QWidget *p)
 {
@@ -47,6 +49,11 @@ SetupWizard::SetupWizard(Engine *engine, QWidget *parent) : QWizard(parent), e_(
 	connect(this, &QWizard::currentIdChanged, this, [this](int id) {
 		if (id == PageGame)
 			fillGame();
+		e_->wantPreview(id == PageGame);
+		if (id == PageGame)
+			previewTick_.start();
+		else
+			previewTick_.stop();
 		if (id == PageSquad)
 			fillSquad();
 		if (id == PageCheck) {
@@ -56,6 +63,9 @@ SetupWizard::SetupWizard(Engine *engine, QWidget *parent) : QWizard(parent), e_(
 		} else
 			checkTick_.stop();
 	});
+	previewTick_.setInterval(1000);
+	connect(&previewTick_, &QTimer::timeout, this, &SetupWizard::showPreview);
+	connect(this, &QDialog::finished, this, [this](int) { e_->wantPreview(false); });
 	checkTick_.setInterval(1500);
 	connect(&checkTick_, &QTimer::timeout, this, &SetupWizard::fillChecks);
 }
@@ -117,7 +127,21 @@ QWizardPage *SetupWizard::pageGame()
 	v->addWidget(note("Pick the scene that is live while you play. If you use several, pick the main gameplay "
 			  "one; it can be changed later under Settings, General.",
 			  p));
+	auto *ph = new QLabel("<b>What the plugin sees</b> - you should see WARDOGS here:", p);
+	v->addWidget(ph);
+	preview_ = new QLabel(p);
+	preview_->setFixedSize(320, 180);
+	preview_->setAlignment(Qt::AlignCenter);
+	preview_->setStyleSheet("background:#111; color:#888; border:1px solid #333;");
+	v->addWidget(preview_);
+	previewNote_ = note("", p);
+	v->addWidget(previewNote_);
 	v->addStretch(1);
+	// the preview follows the source picked here at once, before Next saves it
+	connect(game_, &QComboBox::currentTextChanged, this, [this](const QString &t) {
+		if (!t.isEmpty())
+			e_->cfg.gameSource = t.toStdString();
+	});
 	connect(mk, &QPushButton::clicked, this, [this]() {
 		std::string e = e_->sw.createGameCapture(e_->cfg);
 		gameHint_->setText(e.empty() ? "Added a Game Capture (any fullscreen game) at the bottom of your scene."
@@ -125,6 +149,33 @@ QWizardPage *SetupWizard::pageGame()
 		fillGame();
 	});
 	return p;
+}
+
+void SetupWizard::showPreview()
+{
+	if (!preview_)
+		return;
+	QImage img = e_->lastFrame();
+	if (img.isNull()) {
+		preview_->setText("waiting for a frame...");
+		previewNote_->setText(game_->count() ? "" : "No source to look at yet.");
+		return;
+	}
+	preview_->setPixmap(
+		QPixmap::fromImage(img.scaled(preview_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation)));
+	// mostly black: the game is not running, or the source is not capturing it
+	QImage small = img.scaled(64, 36).convertToFormat(QImage::Format_Grayscale8);
+	long sum = 0;
+	for (int y = 0; y < small.height(); ++y) {
+		const uchar *row = small.constScanLine(y);
+		for (int x = 0; x < small.width(); ++x)
+			sum += row[x];
+	}
+	double mean = (double)sum / (small.width() * small.height());
+	previewNote_->setText(
+		mean < 6 ? "<span style=\"color:#ce6050\">Black.</span> Start WARDOGS, or pick another source. A Game "
+			   "Capture set to \"any fullscreen application\" picks the game up once you click into it."
+			 : "If that is WARDOGS, press Next. If it is something else, pick another source above.");
 }
 
 void SetupWizard::fillGame()
@@ -174,18 +225,11 @@ QWizardPage *SetupWizard::pageSquad()
 {
 	auto *p = new QWizardPage(this);
 	p->setTitle("Your squad");
-	p->setSubTitle("Whose POV viewers see while you are down: the squad mates streaming in your Discord call.");
+	p->setSubTitle("Whose POV goes on your stream while you are down. Add them whichever way they stream to you.");
 	auto *v = new QVBoxLayout(p);
-	v->addWidget(
-		note("<b>Each session, for each squad mate:</b>"
-		     "<ol style=\"margin-top:2px\">"
-		     "<li>In Discord, right-click their stream and choose <b>Pop Out</b>.</li>"
-		     "<li>Right-click it again and <b>Mute</b> it, or their game sound goes out on your stream.</li>"
-		     "<li>Press <b>Add pop-outs</b> on the dock.</li>"
-		     "</ol>"
-		     "Keep pop-outs open but never minimised: a minimised window stops drawing and their "
-		     "picture freezes. The dock warns you if one is.",
-		     p));
+
+	// A. Discord
+	v->addWidget(new QLabel("<b>A. Squad mates sharing their screen in Discord</b>", p));
 	auto *form = new QFormLayout();
 	me_ = new QLineEdit(QString::fromStdString(e_->cfg.myDiscord), p);
 	me_->setPlaceholderText("the lower-case one under your display name");
@@ -203,22 +247,49 @@ QWizardPage *SetupWizard::pageSquad()
 	});
 	if (me_->text().trimmed().isEmpty())
 		e_->detectDiscordUser(false);
-	rosterOn_ = new QCheckBox("Add squad mates by themselves when they go live in my voice channel", p);
+	rosterOn_ = new QCheckBox("In a Kennel.gg voice channel: add whoever goes live there by themselves", p);
 	rosterOn_->setChecked(true);
-	rosterOn_->setToolTip(
-		"The Kennel Ops bot in the Kennel.gg Discord publishes who is in voice and who is "
-		"streaming. With this on the plugin follows your channel, shows only people who are live, "
-		"and drops anyone who leaves.");
+	rosterOn_->setToolTip("The Kennel Ops bot in the Kennel.gg Discord publishes who is in voice and who is "
+			      "streaming. With this on the plugin follows your channel and offers only people who "
+			      "are live.");
 	v->addWidget(rosterOn_);
-	v->addWidget(note("Squad automation is for members of the <b>Kennel.gg Discord</b>: the Kennel Ops bot "
-			  "checks your username there, then follows whichever of its voice channels you are in. "
-			  "Not a member yet? <a href=\"" +
-				  e_->discordUrl() +
-				  "\">Join here</a>. Without it, Add pop-outs still works in any Discord server.",
+	v->addWidget(note("Not a member of the Kennel.gg Discord yet? <a href=\"" + e_->discordUrl() +
+				  "\">Join here</a>. In any other server: in Discord, right-click their stream, "
+				  "<b>Pop Out</b>, right-click it again and <b>Mute</b> it, then press:",
 			  p));
-	v->addWidget(note("Squad mates on Twitch, Kick, YouTube or VDO.Ninja: Settings, Squad &amp; POV, Add.", p));
+	auto *popRow = new QHBoxLayout();
+	auto *pop = new QPushButton("Add the pop-outs open now", p);
+	popRow->addWidget(pop);
+	popResult_ = note("", p);
+	popRow->addWidget(popResult_, 1);
+	v->addLayout(popRow);
+	connect(pop, &QPushButton::clicked, this, [this]() {
+		QStringList added;
+		QString what = e_->addPopouts(&added);
+		popResult_->setText(added.isEmpty() ? (what.isEmpty() ? "No popped-out stream found. Pop one out in "
+									"Discord first (not minimised)."
+								      : what.toHtmlEscaped())
+						    : "Added " + added.join(", ").toHtmlEscaped() + ".");
+		fillSquad();
+	});
+
+	// B. everything else
+	v->addSpacing(8);
+	v->addWidget(new QLabel("<b>B. Squad mates streaming on Twitch, Kick or YouTube, or sending a VDO.Ninja "
+				"link</b>",
+				p));
+	v->addWidget(note("Paste their channel link, or type their channel name (several at once is fine). "
+			  "Nothing for them to set up; VDO.Ninja is quickest (under half a second) and gives you a "
+			  "link to send them.",
+			  p));
+	auto *quick = new QuickAdd(e_, p);
+	v->addWidget(quick);
+	connect(quick, &QuickAdd::added, this, [this]() { fillSquad(); });
+
+	v->addSpacing(8);
+	v->addWidget(new QLabel("<b>Your squad now</b>", p));
 	squad_ = new QListWidget(p);
-	squad_->setMaximumHeight(90);
+	squad_->setMaximumHeight(110);
 	v->addWidget(squad_);
 	v->addStretch(1);
 	connect(e_, &Engine::stateChanged, this, [this]() { fillSquad(); });
@@ -236,10 +307,12 @@ void SetupWizard::fillSquad()
 			       : f.kind == FriendKind::VdoNinja ? "VDO.Ninja"
 			       : f.kind == FriendKind::Discord  ? "Discord"
 								: "OBS source";
-		squad_->addItem(QString::fromStdString(f.name) + "  ·  " + kind);
+		QString st = e_->feedStateText(f);
+		squad_->addItem(QString::fromStdString(f.name) + "  ·  " + kind + (st.isEmpty() ? "" : "  ·  " + st));
 	}
 	if (squad_->count() == 0)
-		squad_->addItem("(nobody yet: that is normal, they come from pop-outs as you play)");
+		squad_->addItem("(nobody yet - fine if they share in a Kennel.gg voice channel: they are added as they "
+				"go live)");
 }
 
 QWizardPage *SetupWizard::pageClips()
@@ -271,6 +344,29 @@ QWizardPage *SetupWizard::pageClips()
 	f->addRow(note("The dock's <b>Save clip</b> button and the hotkey \"Kennel.gg Wardogs: save a clip now\" "
 		       "save one by hand.",
 		       p));
+	clipTest_ = new QPushButton("Save a test clip now", p);
+	clipResult_ = note("", p);
+	auto *tr = new QHBoxLayout();
+	tr->addWidget(clipTest_);
+	tr->addWidget(clipResult_, 1);
+	f->addRow(tr);
+	connect(clipTest_, &QPushButton::clicked, this, [this]() {
+		if (replaySecs_->value() != e_->cfg.replaySeconds)
+			e_->setReplaySecondsByUser(replaySecs_->value());
+		if (!obs_frontend_replay_buffer_active()) {
+			obs_frontend_replay_buffer_start();
+			clipResult_->setText("Starting OBS's replay buffer... press again in five seconds.");
+			return;
+		}
+		QString err = e_->clips.request("setup test", {"test"}, "manual");
+		clipResult_->setText(err.isEmpty() ? "Saving..." : err.toHtmlEscaped());
+	});
+	connect(&e_->clips, &Clips::saved, this, [this](const Clips::Entry &en) {
+		if (clipResult_ && en.title == "setup test")
+			clipResult_->setText("<span style=\"color:#8f9c5a\">Saved</span> " +
+					     QFileInfo(en.path).fileName().toHtmlEscaped() + "<br>in " +
+					     QFileInfo(en.path).absolutePath().toHtmlEscaped());
+	});
 	return p;
 }
 
@@ -298,18 +394,45 @@ QWizardPage *SetupWizard::pageCheck()
 		eg->addWidget(note(text, p), row, 0);
 		eg->addWidget(btn, row, 1, Qt::AlignTop);
 	};
-	voiceBtn_ = new QPushButton(p);
+	swapTest_ = new QPushButton("Show them for 5 s", p);
 	extra(0,
+	      "<b>Try the swap</b>: puts your squad mate's POV on your stream for five seconds, exactly as when "
+	      "you are downed, then your own comes back. Viewers see it if you are live.",
+	      swapTest_);
+	swapResult_ = note("", p);
+	eg->addWidget(swapResult_, 1, 0, 1, 2);
+	connect(swapTest_, &QPushButton::clicked, this, [this]() {
+		if (!e_->cfg.active()) {
+			swapResult_->setText("Add a squad mate on the Squad page first.");
+			return;
+		}
+		if (e_->applied())
+			return;
+		QString who = QString::fromStdString(e_->cfg.active()->name);
+		e_->applyNow(true, "setup test");
+		swapResult_->setText("Showing " + who.toHtmlEscaped() +
+				     " now. Look at OBS's preview: their picture should fill your scene.");
+		swapTest_->setEnabled(false);
+		QTimer::singleShot(5000, this, [this]() {
+			if (e_->applied())
+				e_->applyNow(false, "setup test over");
+			swapTest_->setEnabled(true);
+			swapResult_->setText("Back to your POV. Did their picture show? If it was black, their stream "
+					     "has not started or their pop-out is minimised.");
+		});
+	});
+	voiceBtn_ = new QPushButton(p);
+	extra(2,
 	      "<b>Voice control</b> (beta, English): say \"hey kennel, clip that\", \"instant replay\", \"show "
 	      "gazreyn\". Listens to your OBS mic through ClipHound; nothing is recorded.",
 	      voiceBtn_);
 	auto *vert = new QPushButton("Set it up...", p);
-	extra(1,
+	extra(3,
 	      "<b>Vertical canvas</b> (beta): the swap and the instant replay on a portrait canvas as well (Aitum "
 	      "Stream Suite).",
 	      vert);
 	auto *deck = new QPushButton("Get it...", p);
-	extra(2, "<b>Stream Deck plugin</b>: keys for each squad mate, cycle, clip, replay, voice and Dual POV.", deck);
+	extra(4, "<b>Stream Deck plugin</b>: keys for each squad mate, cycle, clip, replay, voice and Dual POV.", deck);
 	v->addLayout(eg);
 	v->addStretch(1);
 	auto showVoice = [this]() {

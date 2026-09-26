@@ -31,6 +31,13 @@ private:
 	QComboBox *game_ = nullptr;
 	QComboBox *scene_ = nullptr;
 	QLabel *gameHint_ = nullptr;
+	QLabel *preview_ = nullptr, *previewNote_ = nullptr; // what the plugin sees of the game source
+	QTimer previewTick_;
+	void showPreview();
+	QLabel *popResult_ = nullptr;
+	QLabel *clipResult_ = nullptr;
+	QPushButton *clipTest_ = nullptr, *swapTest_ = nullptr;
+	QLabel *swapResult_ = nullptr;
 	QListWidget *squad_ = nullptr;
 	QLineEdit *me_ = nullptr;
 	QCheckBox *rosterOn_ = nullptr;

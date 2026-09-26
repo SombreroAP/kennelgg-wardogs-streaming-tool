@@ -1,4 +1,5 @@
 #include "ui/squad.h"
+#include "ui/quick-add.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
@@ -32,11 +33,18 @@ SquadPanel::SquadPanel(Engine *engine, QWidget *parent) : QDialog(parent), e_(en
 	add_->setDefault(true);
 	v->addWidget(add_);
 	connect(add_, &QPushButton::clicked, this, &SquadPanel::addPopouts);
-	auto *byHand = new QPushButton(
-		"Add a squad mate another way: Twitch, Kick, YouTube, VDO.Ninja, an OBS source...", this);
-	byHand->setToolTip(
-		"The same window as Settings, Squad & POV, Add: a squad mate whose feed is a Twitch, Kick or "
-		"YouTube stream, a VDO.Ninja link, or any source already in OBS.");
+	auto *webHead = new QLabel("<b>Not sharing in Discord?</b> Paste their Twitch, Kick or YouTube link (or a "
+				   "VDO.Ninja link), or type their channel name:",
+				   this);
+	webHead->setWordWrap(true);
+	v->addWidget(webHead);
+	auto *quick = new QuickAdd(e_, this);
+	v->addWidget(quick);
+	connect(quick, &QuickAdd::added, this, [this]() { refresh(); });
+	auto *byHand =
+		new QPushButton("Other ways: a source already in OBS, one Discord window, quality settings...", this);
+	byHand->setToolTip("The full Add window, as in Settings, Squad & POV: any source already in OBS (a capture "
+			   "card, a second PC), a chosen Discord window, VDO.Ninja quality.");
 	v->addWidget(byHand);
 	connect(byHand, &QPushButton::clicked, this, [this]() {
 		if (addFriendByHand(e_, this))

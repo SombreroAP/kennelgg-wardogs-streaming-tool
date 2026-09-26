@@ -1,4 +1,5 @@
 #include "ui/settings-dialog.h"
+#include "ui/quick-add.h"
 #include "voice-phrases.h"
 #include <QTextBrowser>
 #include <QListView>
@@ -308,63 +309,6 @@ private:
 	QLabel *pickLbl_, *hint_, *err_;
 	QCheckBox *trim_ = nullptr;
 	FriendKind kind() const { return (FriendKind)kind_->currentIndex(); }
-	/// "kick.com/pup", "@pup", "PUP" -> "pup"
-	static std::string kickSlug(QString v)
-	{
-		v = v.trimmed();
-		int i = v.lastIndexOf('/');
-		if (i >= 0)
-			v = v.mid(i + 1);
-		v = v.section('?', 0, 0).remove('@').toLower();
-		return v.toStdString();
-	}
-	/// Whatever they pasted -> a channel ID (UC...), an @handle to look up, or a video ID.
-	static std::string youTubeId(QString v)
-	{
-		v = v.trimmed();
-		if (v.isEmpty())
-			return "";
-		QRegularExpression rxCh("(UC[A-Za-z0-9_-]{20,})"),
-			rxVid("(?:v=|/live/|youtu\\.be/|/embed/)([A-Za-z0-9_-]{11})"),
-			rxHandle("@([A-Za-z0-9._-]{3,})");
-		QRegularExpressionMatch m;
-		if ((m = rxCh.match(v)).hasMatch())
-			return m.captured(1).toStdString();
-		if ((m = rxVid.match(v)).hasMatch())
-			return m.captured(1).toStdString();
-		if ((m = rxHandle.match(v)).hasMatch())
-			return ("@" + m.captured(1)).toStdString();
-		if (v.contains("youtube.com") || v.contains("youtu.be"))
-			return ""; // a link we do not understand
-		if (QRegularExpression("^[A-Za-z0-9_-]{11}$").match(v).hasMatch())
-			return v.toStdString(); // a bare video ID
-		return ("@" + v).toStdString(); // a bare name: treat as a handle
-	}
-	/// The channel page carries its ID; one blocking fetch with a short timeout.
-	static QString resolveYouTubeHandle(const QString &handle)
-	{
-		QNetworkAccessManager nam;
-		QNetworkRequest req(QUrl("https://www.youtube.com/" + handle));
-		req.setHeader(QNetworkRequest::UserAgentHeader, "Mozilla/5.0 (Kennel.gg Wardogs Streaming Tool)");
-		req.setRawHeader("Accept-Language", "en");
-		QNetworkReply *rep = nam.get(req);
-		QEventLoop loop;
-		QTimer::singleShot(8000, &loop, &QEventLoop::quit);
-		QObject::connect(rep, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-		loop.exec();
-		QString id;
-		if (rep->isFinished() && rep->error() == QNetworkReply::NoError) {
-			QString page = QString::fromUtf8(rep->readAll());
-			QRegularExpressionMatch m =
-				QRegularExpression("\"(?:channelId|externalId)\":\"(UC[A-Za-z0-9_-]{20,})\"")
-					.match(page);
-			if (m.hasMatch())
-				id = m.captured(1);
-		}
-		rep->abort();
-		rep->deleteLater();
-		return id;
-	}
 	Friend draft() const
 	{
 		Friend f = result;
@@ -379,9 +323,9 @@ private:
 		if (f.kind == FriendKind::Twitch)
 			f.channel = twitch_->text().trimmed().toLower().remove('@').toStdString();
 		else if (f.kind == FriendKind::Kick)
-			f.channel = kickSlug(kick_->text());
+			f.channel = SquadInput::kickSlug(kick_->text());
 		else if (f.kind == FriendKind::YouTube)
-			f.channel = youTubeId(yt_->text());
+			f.channel = SquadInput::youTubeId(yt_->text());
 		else if (f.kind == FriendKind::VdoNinja)
 			f.channel = streamId_->text().trimmed().toStdString();
 		else if (f.kind == FriendKind::ObsSource)
@@ -506,7 +450,7 @@ private:
 			// a handle is only a name; the player needs the channel's ID, which the channel page
 			// carries. One fetch, here, once.
 			err_->setText("Looking up the channel ID for " + QString::fromStdString(f.channel) + "...");
-			QString id = resolveYouTubeHandle(QString::fromStdString(f.channel));
+			QString id = SquadInput::resolveYouTubeHandle(QString::fromStdString(f.channel));
 			if (id.isEmpty()) {
 				err_->setText("Could not find the channel ID for that handle (no internet, or YouTube "
 					      "changed its page). Paste the channel ID (starts UC...) or a link to "

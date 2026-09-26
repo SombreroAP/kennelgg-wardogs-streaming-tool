@@ -57,6 +57,7 @@ target_sources(
     src/ui/dock.cpp
     src/ui/clips-dialog.cpp
     src/ui/squad.cpp
+    src/ui/quick-add.cpp
     src/ui/wizard.cpp
     src/ui/settings-dialog.cpp
 )
