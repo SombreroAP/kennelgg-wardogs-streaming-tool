@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Kennel.gg instant replay stinger. A full-canvas, transparent browser source that sits on top of
+     everything. The plugin sends {"type":"stinger","dir":"in"|"out","label":"..."} over its local
+     bridge; the screen is fully covered from COVER_AT to COVER_END ms, when the plugin switches the
+     replay on (in) or off (out) underneath, then the stinger wipes away.
+     Query: port (the bridge), sound=0 (no whoosh), t=<ms>&dir=in|out (freeze one frame, for previews). -->
+<style>
+@font-face { font-family: "Chakra Petch"; src: url("ChakraPetch-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: "Chakra Petch"; src: url("ChakraPetch-SemiBold.ttf"); font-weight: 600; }
+:root { --graphite: #121518; --graphite2: #1c2024; --amber: #c99a3b; --amber2: #e0b457; --olive: #8f9c5a;
+        --bone: #e8e5dd; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
+#st { position: absolute; inset: 0; overflow: hidden; visibility: hidden; }
+.slab { position: absolute; top: -20%; height: 140%; will-change: transform; }
+#s1 { background: var(--amber); width: 38%; }
+#s2 { background: var(--olive); width: 30%; }
+#s3 { background: var(--graphite); width: 150%; }
+#s4 { background: var(--amber2); width: 4%; }
+/* the card on the graphite slab while it covers the screen */
+#card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; will-change: transform, opacity; }
+#mark { height: 17vh; filter: drop-shadow(0 0 2.4vh rgba(201, 154, 59, .35)); }
+#title { margin-top: 3vh; color: var(--bone); font-weight: 700; font-size: 11vh; line-height: 1;
+         letter-spacing: .06em; white-space: nowrap; }
+#title b { color: var(--amber); font-weight: 700; }
+#sub { margin-top: 2.2vh; color: var(--amber); font-weight: 600; font-size: 2.4vh; letter-spacing: .5em;
+       white-space: nowrap; text-transform: uppercase; }
+#rule { position: absolute; left: 0; height: .5vh; width: 100%; background: var(--amber); top: 50%; }
+.lines { position: absolute; left: 0; width: 100%; height: 100%; pointer-events: none;
+         background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 2px, transparent 2px 5px); }
+.chev { position: absolute; top: 50%; font-weight: 700; font-size: 16vh; color: var(--amber);
+        line-height: 1; margin-top: -8vh; opacity: .9; }
+</style>
+</head>
+<body>
+<div id="st">
+  <div class="slab" id="s1"></div>
+  <div class="slab" id="s2"></div>
+  <div class="slab" id="s3"><div class="lines"></div></div>
+  <div class="slab" id="s4"></div>
+  <!-- everything on the graphite panel, clipped to its slanted shape so it only exists on it -->
+  <div id="inner" style="position:absolute;inset:0">
+    <div id="rule"></div>
+    <div class="chev" id="cl">&#x276F;&#x276F;</div>
+    <div class="chev" id="cr">&#x276F;&#x276F;</div>
+    <div id="card">
+      <img id="mark" src="hound_mark.png" alt="">
+      <div id="title">INSTANT <b>REPLAY</b></div>
+      <div id="sub">kennel.gg</div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var port = q.get("port") || "47821", sound = q.get("sound") !== "0";
+  var D = 1300, COVER_AT = 480, COVER_END = 760;      // ms: total, fully covered from .. to
+  var $ = function (id) { return document.getElementById(id); };
+  var st = $("st"), s1 = $("s1"), s2 = $("s2"), s3 = $("s3"), s4 = $("s4"), card = $("card"),
+      title = $("title"), sub = $("sub"), rule = $("rule"), cl = $("cl"), cr = $("cr"), inner = $("inner");
+  var clamp = function (x) { return Math.max(0, Math.min(1, x)); };
+  var seg = function (t, a, b) { return clamp((t - a) / (b - a)); };          // 0..1 over [a, b]
+  var inOut = function (x) { return x < .5 ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2; };
+  var outExpo = function (x) { return x >= 1 ? 1 : 1 - Math.pow(2, -10 * x); };
+  var outBack = function (x) { var c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+
+  // One frame of the stinger at t ms. dir "in" sweeps left to right, "out" right to left.
+  function frame(t, dir) {
+    var sgn = dir === "out" ? -1 : 1;
+    st.style.visibility = t <= 0 || t >= D ? "hidden" : "visible";
+    // a slab crosses the screen: from off one side (p=0), over it, off the other side (p=1)
+    function slab(el, start, end, width) {
+      var p = inOut(seg(t, start, end));
+      var from = -width - 25, to = 100 + 25;                                  // in % of the screen
+      var x = from + (to - from) * p;
+      if (sgn < 0) x = 100 - x - width;
+      el.style.left = "0";
+      el.style.transform = "translateX(" + x + "vw) skewX(" + (-18 * sgn) + "deg)";
+      return x;
+    }
+    slab(s1, 0, 1080, 38);
+    slab(s2, 40, 1120, 30);
+    var x3 = slab(s3, 80, 1180, 150);
+    slab(s4, 150, 1230, 4);
+    // clip the card to the graphite slab's slanted outline: skewX about the slab's centre moves its
+    // top edge by +k and its bottom edge by -k (k = tan 18deg x half the screen height)
+    var W = innerWidth, H = innerHeight, L = x3 * W / 100, R = L + 1.5 * W, k = 0.3249 * sgn * H / 2;
+    inner.style.clipPath = "polygon(" + (L + k) + "px 0, " + (R + k) + "px 0, " + (R - k) + "px " + H + "px, " +
+                           (L - k) + "px " + H + "px)";
+    // the card itself settles as it is revealed, and drifts on as it leaves
+    var cin = outExpo(seg(t, 260, 620)), cout = seg(t, COVER_END - 40, COVER_END + 300);
+    card.style.opacity = "1";
+    card.style.transform = "translateX(" + ((1 - cin) * -4 * sgn + cout * 4 * sgn) + "vw) scale(" + (0.94 + 0.06 * outBack(cin)) + ")";
+    title.style.letterSpacing = (0.3 - 0.24 * outExpo(seg(t, 320, 700))) + "em";
+    sub.style.opacity = String(seg(t, 440, 620) * (1 - cout));
+    // an amber rule shoots across the middle behind the card
+    var r = outExpo(seg(t, 260, 620));
+    rule.style.transform = "scaleX(" + (r * (1 - cout)) + ")";
+    rule.style.transformOrigin = sgn > 0 ? "left center" : "right center";
+    rule.style.opacity = String(0.9 * (1 - cout));
+    // chevrons fly through on each side while it is covered
+    var c = seg(t, 340, 900);
+    cl.style.left = (sgn > 0 ? -20 + 60 * outExpo(c) : 80 - 60 * outExpo(c)) + "vw";
+    cr.style.left = (sgn > 0 ? 60 + 60 * outExpo(c) : 20 - 60 * outExpo(c)) + "vw";
+    cl.style.opacity = cr.style.opacity = String(Math.sin(Math.PI * c) * 0.55);
+    cl.style.transform = cr.style.transform = sgn > 0 ? "none" : "scaleX(-1)";
+  }
+
+  // a short whoosh made on the spot: filtered noise sweeping up then away (no sound file needed)
+  var ac = null;
+  function whoosh() {
+    if (!sound) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var len = 0.9, n = Math.floor(ac.sampleRate * len), buf = ac.createBuffer(1, n, ac.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = ac.createBufferSource(); src.buffer = buf;
+      var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.2;
+      var g = ac.createGain(), t0 = ac.currentTime;
+      bp.frequency.setValueAtTime(300, t0);
+      bp.frequency.exponentialRampToValueAtTime(3200, t0 + 0.42);
+      bp.frequency.exponentialRampToValueAtTime(500, t0 + len);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.38);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+      src.connect(bp); bp.connect(g); g.connect(ac.destination);
+      src.start(t0); src.stop(t0 + len);
+    } catch (e) {}
+  }
+
+  var running = 0;
+  function play(dir, label) {
+    $("title").innerHTML = label === "live" ? "BACK TO <b>LIVE</b>" : "INSTANT <b>REPLAY</b>";
+    var t0 = performance.now(), id = ++running;
+    whoosh();
+    (function step(now) {
+      if (id !== running) return;
+      var t = now - t0;
+      frame(t, dir);
+      if (t < D) requestAnimationFrame(step);
+    })(t0);
+  }
+  window.__play = play;
+
+  if (q.has("t")) {                                    // a still, for previews
+    var dir = q.get("dir") || "in";
+    $("title").innerHTML = dir === "out" ? "BACK TO <b>LIVE</b>" : "INSTANT <b>REPLAY</b>";
+    frame(parseFloat(q.get("t")), dir);
+    return;
+  }
+  frame(0, "in");
+  function connect() {
+    var ws;
+    try { ws = new WebSocket("ws://127.0.0.1:" + port); } catch (e) { setTimeout(connect, 3000); return; }
+    ws.onopen = function () { ws.send(JSON.stringify({ type: "subscribe", frames: false })); };
+    ws.onmessage = function (m) {
+      if (typeof m.data !== "string") return;
+      try {
+        var o = JSON.parse(m.data);
+        if (o.type === "stinger") play(o.dir === "out" ? "out" : "in", o.dir === "out" ? "live" : "replay");
+      } catch (e) {}
+    };
+    ws.onclose = function () { setTimeout(connect, 3000); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+  }
+  connect();
+})();
+</script>
+</body>
+</html>

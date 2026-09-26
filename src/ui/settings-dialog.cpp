@@ -1693,6 +1693,18 @@ QWidget *SettingsDialog::buildClipsTab()
 	fi->addRow("Starts", replayPre_);
 	fi->addRow("Ends", replayPost_);
 	fi->addRow("Size", replayScale_);
+	replayStinger_ = new QCheckBox(
+		"Stinger: an animated \"INSTANT REPLAY\" wipe into each replay, and \"BACK TO LIVE\" out of it", gi);
+	replayStinger_->setChecked(e_->cfg.replayStinger);
+	replayStinger_->setToolTip(
+		"A transparent browser source on top of your scene (Kennel.gg · Replay stinger) plays it; the "
+		"replay switches on and off while it covers the screen, so there is never a cut or a black frame.");
+	fi->addRow(replayStinger_);
+	replayStingerSound_ = new QCheckBox("With a whoosh (goes out on stream)", gi);
+	replayStingerSound_->setChecked(e_->cfg.replayStingerSound);
+	fi->addRow(replayStingerSound_);
+	connect(replayStinger_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	connect(replayStingerSound_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	replaySound_ = new QCheckBox("Play the clip's sound (it carries your mic and the game from a minute ago)", gi);
 	replaySound_->setChecked(e_->cfg.replaySound);
 	fi->addRow(replaySound_);
@@ -1765,6 +1777,78 @@ QWidget *SettingsDialog::buildClipsTab()
 		"stops. A new session starts when you go live, or from the dock's Reset.");
 	fi->addRow(sessionTrack_);
 	connect(sessionTrack_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	sessionShow_ = new QListWidget(gi);
+	sessionShow_->setDragDropMode(QAbstractItemView::InternalMove);
+	sessionShow_->setMaximumHeight(150);
+	sessionShow_->setToolTip("Tick what the \"This session\" bar shows on stream; drag to change the order. "
+				 "It changes on stream at once.");
+	{
+		QStringList chosen = QString::fromStdString(e_->cfg.sessionShow).split(',', Qt::SkipEmptyParts);
+		auto add = [this](const QString &id, const QString &label, bool on) {
+			auto *it = new QListWidgetItem(label, sessionShow_);
+			it->setData(Qt::UserRole, id);
+			it->setFlags(it->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
+			it->setCheckState(on ? Qt::Checked : Qt::Unchecked);
+		};
+		// the chosen ones first, in their order, then the rest
+		for (const QString &id : chosen)
+			for (const auto &el : Session::elements())
+				if (el.first == id.trimmed())
+					add(el.first, el.second, true);
+		for (const auto &el : Session::elements())
+			if (!chosen.contains(el.first))
+				add(el.first, el.second, false);
+	}
+	sessionOverlayOn_ = new QCheckBox("Show the \"This session\" bar on stream (it slides in and out)", gi);
+	sessionOverlayOn_->setChecked(e_->cfg.sessionOverlayOn);
+	fi->addRow(sessionOverlayOn_);
+	sessionOverlayPos_ = new QComboBox(gi);
+	sessionOverlayPos_->addItem("Top left, under the game's team emblem", "tl");
+	sessionOverlayPos_->addItem("Bottom centre, between the score and your weapon", "bc");
+	sessionOverlayPos_->setCurrentIndex(
+		std::max(0, sessionOverlayPos_->findData(QString::fromStdString(e_->cfg.sessionOverlayPos))));
+	fi->addRow("Where", sessionOverlayPos_);
+	sessionOverlayMode_ = new QComboBox(gi);
+	sessionOverlayMode_->addItem("Always on", "always");
+	sessionOverlayMode_->addItem("Slides in when a number changes, out 20 s later", "pop");
+	sessionOverlayMode_->setCurrentIndex(
+		std::max(0, sessionOverlayMode_->findData(QString::fromStdString(e_->cfg.sessionOverlayMode))));
+	fi->addRow("When", sessionOverlayMode_);
+	connect(sessionOverlayOn_, &QCheckBox::toggled, this, [this](bool on) {
+		saveAndApply();
+		if (on && !e_->hasSessionOverlay())
+			e_->addSessionOverlay(); // first time on: put it in the scene
+	});
+	for (auto *cb : {sessionOverlayPos_, sessionOverlayMode_})
+		connect(cb, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) { saveAndApply(); });
+	fi->addRow("On-stream bar shows", sessionShow_);
+	statsShare_ = new QCheckBox("Share my session stats with kennel.gg for the public leaderboards", gi);
+	statsShare_->setChecked(e_->cfg.statsConsent == 1);
+	statsShare_->setToolTip(
+		"At the end of each stream: your in-game name, Discord and Twitch names, and the session's kills, deaths, "
+		"assists, revives, headshots, vehicles, downs, money earned and spent, time in game, longest kill and "
+		"top weapon. Never your clips, video, voice or chat. Off until you tick it.");
+	auto *delStats = new QPushButton("Delete what I have shared", gi);
+	auto *shareRow = new QHBoxLayout();
+	shareRow->addWidget(statsShare_, 1);
+	shareRow->addWidget(delStats);
+	fi->addRow("Leaderboards", shareRow);
+	connect(statsShare_, &QCheckBox::toggled, this, [this](bool on) {
+		if (!building_)
+			e_->setStatsConsent(on);
+	});
+	connect(delStats, &QPushButton::clicked, this, [this]() {
+		if (QMessageBox::question(
+			    this, "Kennel.gg Wardogs",
+			    "Delete every session this PC has shared with kennel.gg? Sharing is also turned off.") !=
+		    QMessageBox::Yes)
+			return;
+		statsShare_->setChecked(false);
+		e_->setStatsConsent(false);
+		e_->deleteSharedStats();
+	});
+	connect(sessionShow_, &QListWidget::itemChanged, this, [this](QListWidgetItem *) { saveAndApply(); });
+	connect(sessionShow_->model(), &QAbstractItemModel::rowsMoved, this, [this]() { saveAndApply(); });
 	highlightsMax_ = spin(3, 30, e_->cfg.highlightsMax, " clips at most");
 	fi->addRow("Compilation", highlightsMax_);
 	fi->addRow(muted(
@@ -2814,7 +2898,7 @@ QWidget *SettingsDialog::buildAboutTab()
 		"</ol>"
 		"<p><b>Ways to control it.</b> The dock's buttons. OBS hotkeys (Settings → Hotkeys, \"Kennel.gg "
 		"Wardogs\"): swap, Dual POV, save a clip, instant replay, highlights. The Stream Deck plugin, from "
-		"<a href=\"https://kennel.gg/obs/\">kennel.gg/obs</a>: squad mate, cycle, clip, replay, clip and "
+		"<a href=\"https://kennel.gg/streaming/\">kennel.gg/streaming</a>: squad mate, cycle, clip, replay, clip and "
 		"replay, voice, Dual POV, back to me. Voice (beta): \"hey kennel\" and a command. Chat: "
 		"subscribers, VIPs and moderators type <code>!replay</code> (Clips &amp; replays).</p>"
 		"<p><b>Squad mate feeds.</b> Twitch: nothing for them to do, ~2 s behind with low-latency mode, includes their mic. "
@@ -3239,12 +3323,29 @@ void SettingsDialog::collect()
 		c.replayChat = replayChat_->isChecked();
 		if (chatClips_)
 			c.chatClips = chatClips_->currentIndex();
+		if (replayStinger_)
+			c.replayStinger = replayStinger_->isChecked();
+		if (replayStingerSound_)
+			c.replayStingerSound = replayStingerSound_->isChecked();
 		if (twitchMarkers_)
 			c.twitchMarkers = twitchMarkers_->isChecked();
 		if (ytChapters_)
 			c.ytChapters = ytChapters_->isChecked();
 		if (sessionTrack_)
 			c.sessionTrack = sessionTrack_->isChecked();
+		if (sessionOverlayOn_)
+			c.sessionOverlayOn = sessionOverlayOn_->isChecked();
+		if (sessionOverlayPos_)
+			c.sessionOverlayPos = sessionOverlayPos_->currentData().toString().toStdString();
+		if (sessionOverlayMode_)
+			c.sessionOverlayMode = sessionOverlayMode_->currentData().toString().toStdString();
+		if (sessionShow_) {
+			QStringList ids;
+			for (int i = 0; i < sessionShow_->count(); ++i)
+				if (sessionShow_->item(i)->checkState() == Qt::Checked)
+					ids << sessionShow_->item(i)->data(Qt::UserRole).toString();
+			c.sessionShow = ids.join(',').toStdString();
+		}
 		c.replayWord = replayWord_->text().trimmed().isEmpty() ? "!replay"
 								       : replayWord_->text().trimmed().toStdString();
 		c.replaySound = replaySound_->isChecked();
@@ -3346,4 +3447,5 @@ void SettingsDialog::saveAndApply()
 	// and to ClipHound at once: chat replays, chat clips and markers are its to act on, and it heard
 	// of a change only at the next unrelated push before
 	e_->pushAppConfig();
+	emit e_->stateChanged(); // the session bar and the Stream Deck redraw from the new settings
 }

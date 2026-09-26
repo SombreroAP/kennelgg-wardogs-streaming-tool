@@ -23,4 +23,4 @@ Close OBS and delete:
 For a fresh start also delete config\obs-studio\plugin_config\kennelgg. Your recorded clips are
 never inside any of these.
 
-Needs Windows 10 or 11 (64-bit) and OBS 30 or newer. https://kennel.gg/obs
+Needs Windows 10 or 11 (64-bit) and OBS 30 or newer. https://kennel.gg/streaming

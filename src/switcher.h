@@ -132,6 +132,10 @@ private:
 public:
 	static std::vector<std::pair<std::string, std::string>> inputs(); // name, id
 	static std::string webUrl(const Friend &f);
+	/// The replay stinger: a full-canvas browser source on top of the plugin's scene (and the
+	/// vertical one), transparent until the bridge tells it to play. Kept on so it is loaded and
+	/// instant; off (on=false) takes it out.
+	std::string ensureStinger(const Config &cfg, bool on);
 	static std::string vdoPushUrl(const Friend &f);
 	static std::string overlayUrl(const Config &cfg, const std::string &friendName);
 

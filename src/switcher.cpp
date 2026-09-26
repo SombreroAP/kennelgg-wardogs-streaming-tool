@@ -1437,6 +1437,51 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 	return "";
 }
 
+std::string Switcher::ensureStinger(const Config &cfg, bool on)
+{
+	if (!on) {
+		hideEverywhere(Config::stingerName());
+		hideEverywhere(Config::stingerNameV());
+		return "";
+	}
+	char *pp = obs_module_file("overlay/stinger.html");
+	std::string page = pp ? pp : "";
+	bfree(pp);
+	if (page.empty())
+		return "the stinger page is missing from the plugin's data folder";
+	std::replace(page.begin(), page.end(), '\\', '/');
+	std::string url = "file:///" + page + "?port=" + std::to_string(cfg.bridgePort) +
+			  (cfg.replayStingerSound ? "" : "&sound=0");
+	auto put = [&](obs_source_t *ss, const char *name, int w, int h) -> std::string {
+		obs_scene_t *scene = ss ? obs_scene_from_source(ss) : nullptr;
+		if (!scene)
+			return "no scene";
+		// its whoosh goes out with the stream (reroute_audio), not only to this PC's speakers
+		std::string e = ensureBrowserSource(scene, name, url, true, w, h);
+		if (!e.empty())
+			return e;
+		if (obs_sceneitem_t *it = obs_scene_find_source(scene, name)) {
+			obs_sceneitem_set_visible(it, true); // transparent while idle
+			moveToTop(it);
+		}
+		return "";
+	};
+	std::string err;
+	if (obs_source_t *ss = sceneSource(cfg)) {
+		err = put(ss, Config::stingerName(), 0, 0);
+		obs_source_release(ss);
+	}
+	if (cfg.verticalOn())
+		if (obs_source_t *vs = verticalSceneSource(cfg)) {
+			uint32_t cw = obs_source_get_width(vs), ch = obs_source_get_height(vs);
+			std::string ev = put(vs, Config::stingerNameV(), cw ? (int)cw : 1080, ch ? (int)ch : 1920);
+			if (!ev.empty() && log)
+				log("Replay stinger (vertical): " + ev);
+			obs_source_release(vs);
+		}
+	return err;
+}
+
 std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool frame, const std::string &pathV)
 {
 	obs_source_t *ss = verticalSceneSource(cfg);

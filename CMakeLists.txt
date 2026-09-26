@@ -46,6 +46,7 @@ target_sources(
     src/capture.cpp
     src/picture.cpp
     src/session.cpp
+    src/stats-image.cpp
     src/hudocr/image.cpp
     src/hudocr/model.cpp
     src/hudocr/reader.cpp
@@ -64,6 +65,7 @@ target_sources(
     src/ui/clips-dialog.cpp
     src/ui/squad.cpp
     src/ui/quick-add.cpp
+    src/ui/stats-dialog.cpp
     src/ui/wizard.cpp
     src/ui/settings-dialog.cpp
 )

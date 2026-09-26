@@ -385,6 +385,16 @@ QWizardPage *SetupWizard::pageCheck()
 	checkSummary_ = note("", p);
 	v->addWidget(checkSummary_);
 
+	statsShare_ = new QCheckBox("Share my session stats with kennel.gg for the public leaderboards", p);
+	statsShare_->setChecked(e_->cfg.statsConsent == 1);
+	v->addSpacing(6);
+	v->addWidget(statsShare_);
+	v->addWidget(
+		note("At the end of each stream: your in-game name, Discord and Twitch names, and the session's "
+		     "kills, deaths, assists, revives, headshots, vehicles, downs, money earned and spent, time in "
+		     "game, longest kill and top weapon. Never your clips, video, voice or chat. Off unless you tick "
+		     "it; stop and delete any time in Settings.",
+		     p));
 	auto *extras = new QLabel("<b>Optional extras</b>", p);
 	v->addSpacing(8);
 	v->addWidget(extras);
@@ -449,7 +459,7 @@ QWizardPage *SetupWizard::pageCheck()
 	});
 	connect(vert, &QPushButton::clicked, this, [this]() { emit openSettingsPage("vertical"); });
 	connect(deck, &QPushButton::clicked, this,
-		[]() { QDesktopServices::openUrl(QUrl("https://kennel.gg/obs/#streamdeck")); });
+		[]() { QDesktopServices::openUrl(QUrl("https://kennel.gg/streaming/#streamdeck")); });
 	return p;
 }
 
@@ -551,6 +561,9 @@ void SetupWizard::commit()
 void SetupWizard::accept()
 {
 	commit();
+	// finishing Setup is the answer: ticked is yes, left unticked is no (Settings can change it)
+	if (statsShare_ && (statsShare_->isChecked() ? 1 : 2) != e_->cfg.statsConsent)
+		e_->setStatsConsent(statsShare_->isChecked());
 	e_->cfg.setupDone = true;
 	e_->cfg.save();
 	e_->log("Setup done. Get downed once to see it work.");

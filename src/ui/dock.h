@@ -30,6 +30,8 @@ public slots:
 	void openLogs();
 	void openSquad();
 	void openClips(const QString &focusPath = QString());
+	/// "Get stats image": the session as a picture for social media.
+	void openStatsImage();
 	/// A health or banner action: the engine's own, or a window the dock opens.
 	void runFix(const QString &id);
 

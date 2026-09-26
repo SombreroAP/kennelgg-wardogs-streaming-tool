@@ -129,6 +129,9 @@ public:
 	/// OBS started or stopped streaming: the session boundary for the compilation.
 	void onStreaming(bool live);
 	void stopReplay(const QString &why = "dock");
+	/// Stop a replay the way it ends by itself: behind the stinger's "back to live" wipe when
+	/// the stinger is on, at once otherwise. For the dock, hotkeys and the end of the clip.
+	void endReplay(const QString &why = "dock");
 	/// A "!replay" from chat: plays if the cooldown has passed. Returns "" or why not.
 	QString chatReplay(const QString &who);
 	bool replaying() const { return replayLengthMs_ > 0; }
@@ -341,6 +344,12 @@ public:
 	QString cashStatus() const;
 	/// The session stats overlay (a browser source) into the plugin's scene; "" or why not.
 	QString addSessionOverlay();
+	bool hasSessionOverlay() const; // the bar's browser source exists
+	/// The leaderboards: yes sends each stream's session stats to kennel.gg from now on; no sends
+	/// nothing. deleteSharedStats() removes everything this PC has sent.
+	void setStatsConsent(bool yes);
+	void deleteSharedStats();
+	static const char *statsUrl() { return "https://kennel.gg/api/stats"; }
 	/// The last stream's YouTube chapter list ("0:00 Start" and one line per clip), "" if none.
 	QString lastChapters() const { return lastChapters_; }
 	QString lastChaptersPath() const { return lastChaptersPath_; }
@@ -395,10 +404,20 @@ private:
 		bool amt;
 	};
 	QList<Tallied> tallied_; // reward lines counted in the last few seconds
+	// a drop in the balance waiting to be counted as spent: it counts once it has lasted 5 s, so a
+	// misread that comes straight back up is never spending
+	qint64 lastCashAt_ = 0, lastPerMinEmit_ = 0; // for the time in game, and redrawing $/min as it moves
+	bool dropPending_ = false;
+	int64_t dropFrom_ = 0, dropTo_ = 0;
+	qint64 dropAt_ = 0;
 	void cashTick();
 	void onCashReading(const hud::Reading &r, qint64 t);
 	void onTally(const QJsonObject &o);
 	void writeSessionSummary();
+	QDateTime sessionEndedAt_; // the stream stopped with something to show: offer the stats image
+	void queueSessionUpload(); // this stream's stats, onto the upload queue (only with consent)
+	void flushStatsQueue();    // send what is queued; what fails stays for next time
+	bool statsFlushing_ = false;
 	QHash<QString, QDateTime> unpoppedSince_;
 	QStringList unpopped_;
 	void checkUnpopped();
@@ -408,6 +427,9 @@ private:
 	qint64 replayStartMs_ = 0, replayEndMs_ = 0, replayLengthMs_ = 0;
 	QElapsedTimer replayClock_;
 	bool replaySought_ = false, replayShown_ = false;
+	bool replayOutSent_ = false; // the "back to live" stinger is playing; the replay stops under its cover
+	static constexpr int kStingerCoverMs = 560; // the stinger fully covers the screen this long after it starts
+	void sendStinger(const char *dir);
 	int replaySeekChecks_ = 0;
 	QString replayWhat_;
 	Clips::Entry pendingReplay_;

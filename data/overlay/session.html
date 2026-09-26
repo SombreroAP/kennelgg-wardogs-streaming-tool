@@ -2,73 +2,210 @@
 <html>
 <head>
 <meta charset="utf-8">
-<!-- Kennel.gg session stats: a browser source (1200 x 110) the plugin adds on request. It connects to
-     the plugin's local bridge like the Stream Deck does, and redraws on every state message.
-     Query: port (the bridge port), hide=revives,earned (cells to leave out). -->
+<!-- Kennel.gg session stats: a full-canvas browser source the plugin adds on request. It connects to
+     the plugin's local bridge like the Stream Deck does, and redraws on every state message. What it
+     shows, in what order, where, whether it is on at all, and always or only when a number changes,
+     all come from the plugin (Settings, Clips & replays) in state.session, so a change shows at once
+     and every appearance, disappearance and move is animated.
+     Query: port (the bridge port). -->
 <style>
-@font-face { font-family: "Saira Condensed"; src: url("SairaCondensed-Bold.ttf"); font-weight: 700; }
-@font-face { font-family: "IBM Plex Mono"; src: url("IBMPlexMono-SemiBold.ttf"); font-weight: 600; }
+@font-face { font-family: "Chakra Petch"; src: url("ChakraPetch-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: "Chakra Petch"; src: url("ChakraPetch-SemiBold.ttf"); font-weight: 600; }
 :root { --graphite: rgba(18, 21, 24, 0.86); --line: rgba(232, 229, 221, 0.16); --bone: #e8e5dd;
         --dim: #9a978f; --amber: #c99a3b; --olive: #8f9c5a; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-body { font-family: "Saira Condensed", "Segoe UI", sans-serif; color: var(--bone); }
-#bar { position: absolute; left: 0; top: 0; display: flex; align-items: stretch; background: var(--graphite);
-       border: 1px solid var(--line); border-left: 4px solid var(--amber); opacity: 0; transition: opacity .4s; }
-#bar.on { opacity: 1; }
+body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; color: var(--bone); }
+/* where it sits (1080p units, scaled to the canvas by #wrap's transform) */
+#wrap { position: absolute; transform-origin: 0 0; }
+#wrap.tl { left: 40px; top: 100px; }
+#wrap.bc { left: 50%; bottom: 56px; }
+#bar { position: relative; display: flex; align-items: stretch; background: var(--graphite);
+       border: 1px solid var(--line); border-left: 4px solid var(--amber); }
+/* in: the amber edge first, the panel wipes open, the cells rise in one after another.
+   out: the cells drop away, then the panel wipes shut. Top left wipes from its left edge, bottom
+   centre from its middle. */
+#bar { clip-path: inset(0 100% 0 0); transition: clip-path .42s cubic-bezier(.7, 0, .84, 0) .16s; }
+.bc #bar { clip-path: inset(0 50% 0 50%); }
+#wrap.shown #bar { clip-path: inset(0 0 0 0); transition: clip-path .62s cubic-bezier(.16, 1, .3, 1) 0s; }
+#edge { position: absolute; left: -4px; top: -1px; bottom: -1px; width: 4px; background: var(--amber);
+        transform: scaleY(0); transition: transform .25s ease-in .45s; }
+.bc #edge { display: none; }
+#wrap.shown #edge { transform: scaleY(1); transition: transform .28s cubic-bezier(.16, 1, .3, 1) 0s; }
+.c, .tag { opacity: 0; transform: translateY(14px); transition: opacity .18s ease-in, transform .22s ease-in;
+           transition-delay: calc(var(--i, 0) * 30ms); }
+#wrap.shown .c, #wrap.shown .tag { opacity: 1; transform: none;
+           transition: opacity .35s ease-out, transform .55s cubic-bezier(.16, 1, .3, 1);
+           transition-delay: calc(160ms + var(--i, 0) * 70ms); }
 .tag { display: flex; align-items: center; gap: 10px; padding: 0 18px 0 14px; border-right: 1px solid var(--line); }
 .tag img { height: 44px; }
-.tag span { font-family: "IBM Plex Mono", monospace; font-size: 13px; letter-spacing: 2px; color: var(--amber);
+.tag span { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 2px; color: var(--amber);
             text-transform: uppercase; line-height: 1.25; }
 .c { padding: 10px 20px 12px; border-right: 1px solid var(--line); min-width: 70px; text-align: left; }
 .c:last-child { border-right: 0; }
-.c b { display: block; font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: .5px;
+.c b { display: block; font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: .5px; white-space: nowrap;
        transition: color .3s; }
-.c small { display: block; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 2px;
+.c small { display: block; white-space: nowrap; font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 2px;
            color: var(--dim); text-transform: uppercase; margin-top: 6px; }
 .c.up b { color: var(--amber); }
 .c.money b { color: var(--olive); }
 .c.money.up b { color: var(--amber); }
+.c.spent b { color: #ce6050; }
+.c { position: relative; }
+/* what just changed ("+1 K", "+$1,000"): a tag that drops out just under the cell, then fades */
+.c i { position: absolute; left: 16px; top: 100%; margin-top: 6px; font-style: normal; font-weight: 700; font-size: 20px;
+       line-height: 1; padding: 6px 10px 5px; background: var(--graphite); border-left: 3px solid var(--amber);
+       color: var(--amber); white-space: nowrap; opacity: 0; transform: translateY(-8px); pointer-events: none; }
+.c i:empty { display: none; }
+.c i.go { animation: drop 2.8s ease-out forwards; }
+.c.spent i { color: #e07a6a; border-left-color: #ce6050; }
+.c.money i { color: #a9b86e; border-left-color: #8f9c5a; }
+@keyframes drop { 0% { opacity: 0; transform: translateY(-10px); } 10% { opacity: 1; transform: translateY(0); }
+                  75% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(4px); } }
+.c.spent.up b { color: var(--amber); }
+/* at the bottom the increases rise above the bar instead */
+.bc .c i { top: auto; bottom: 100%; margin: 0 0 6px 0; }
 </style>
 </head>
 <body>
-<div id="bar">
+<div id="wrap" class="tl"><div id="bar">
+  <div id="edge"></div>
   <div class="tag"><img src="hound_mark.png" alt=""><span>This<br>session</span></div>
-  <div class="c" id="kills"><b>0</b><small>Kills</small></div>
-  <div class="c" id="deaths"><b>0</b><small>Deaths</small></div>
-  <div class="c" id="kd"><b>0.0</b><small>K/D</small></div>
-  <div class="c" id="assists"><b>0</b><small>Assists</small></div>
-  <div class="c" id="revives"><b>0</b><small>Revives</small></div>
-  <div class="c money" id="earned"><b>$0</b><small>Earned</small></div>
-</div>
+</div></div>
 <script>
 (function () {
   var q = new URLSearchParams(location.search);
   var port = q.get("port") || "47821";
-  (q.get("hide") || "").split(",").forEach(function (id) {
-    var el = document.getElementById(id.trim());
-    if (el) el.style.display = "none";
-  });
-  var last = {};
-  function set(id, text) {
-    var el = document.getElementById(id);
+  // what each cell shows: its label, its class, and its value from the plugin's session object
+  var CELLS = {
+    kda:       ["K / D / A", "",      function (s) { return s.kdaText || "0 / 0 / 0"; }],
+    kills:     ["Kills", "",          function (s) { return String(s.kills || 0); }],
+    deaths:    ["Deaths", "",         function (s) { return String(s.deaths || 0); }],
+    assists:   ["Assists", "",        function (s) { return String(s.assists || 0); }],
+    kd:        ["K/D", "",            function (s) { return (s.kd || 0).toFixed(s.kd >= 10 ? 0 : 1); }],
+    downs:     ["Downs", "",          function (s) { return String(s.downs || 0); }],
+    revives:   ["Revives", "",        function (s) { return String(s.revives || 0); }],
+    headshots: ["Headshots", "",      function (s) { return String(s.headshots || 0); }],
+    vehicles:  ["Vehicles", "",       function (s) { return String(s.vehicles || 0); }],
+    earned:    ["Earned", "money",    function (s) { return s.earnedText || "$0"; }],
+    spent:     ["Spent", "spent",     function (s) { return s.spentText || "$0"; }],
+    permin:    ["$ / min", "money",   function (s) { return s.perMinText || "-"; }],
+    balance:   ["Balance", "money",   function (s) { return s.balanceChangeText || "-"; }],
+    longest:   ["Longest", "",        function (s) { return s.longest ? s.longest + " m" : "-"; }]
+  };
+  var bar = document.getElementById("bar"), shown = "";
+  function build(ids) {
+    Array.prototype.slice.call(bar.querySelectorAll(".c")).forEach(function (n) { n.remove(); });
+    ids.forEach(function (id) {
+      var def = CELLS[id];
+      if (!def) return;
+      var c = document.createElement("div");
+      c.className = "c " + def[1];
+      c.id = "c-" + id;
+      c.style.setProperty("--i", String(bar.querySelectorAll(".c").length + 1));
+      c.innerHTML = "<b></b><small></small><i></i>";
+      c.querySelector("small").textContent = def[0];
+      bar.appendChild(c);
+    });
+  }
+  function money(n) { return (n < 0 ? "-$" : "$") + Math.abs(Math.round(n)).toLocaleString("en-US"); }
+  // money counts up to its new figure instead of jumping (the numbers go up in front of viewers)
+  var rolling = {};
+  function roll(id, from, to) {
+    var el = document.getElementById("c-" + id);
     if (!el) return;
-    var b = el.querySelector("b");
-    if (b.textContent === text) return;
-    b.textContent = text;
-    if (last[id] !== undefined) {            // a change, not the first draw: flash it
-      el.classList.add("up");
-      setTimeout(function () { el.classList.remove("up"); }, 1600);
-    }
-    last[id] = text;
+    var b = el.querySelector("b"), t0 = performance.now(), dur = 900;
+    rolling[id] = t0;
+    (function step(now) {
+      if (rolling[id] !== t0) return;           // a newer change took over
+      var k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      b.textContent = money(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+  function badge(id, text) {
+    var el = document.getElementById("c-" + id);
+    if (!el || !text) return;
+    var i = el.querySelector("i");
+    i.textContent = text;
+    i.classList.remove("go");
+    void i.offsetWidth;                         // restart the animation
+    i.classList.add("go");
+  }
+  var prev = null;
+  function deltas(s) {
+    var out = {};
+    if (!prev) return out;
+    var n = function (k) { return (s[k] || 0) - (prev[k] || 0); };
+    var parts = [];
+    if (n("kills") > 0) parts.push("+" + n("kills") + " K");
+    if (n("deaths") > 0) parts.push("+" + n("deaths") + " D");
+    if (n("assists") > 0) parts.push("+" + n("assists") + " A");
+    out.kda = parts.join("  ");
+    ["kills", "deaths", "assists", "revives", "downs", "headshots", "vehicles"].forEach(function (k) {
+      if (n(k) > 0) out[k] = "+" + n(k);
+    });
+    if (n("earned") > 0) out.earned = "+" + money(n("earned"));
+    if (n("spent") > 0) out.spent = "+" + money(n("spent"));
+    return out;
   }
   function draw(s) {
-    set("kills", String(s.kills || 0));
-    set("deaths", String(s.deaths || 0));
-    set("kd", (s.kd || 0).toFixed(s.kd >= 10 ? 0 : 1));
-    set("assists", String(s.assists || 0));
-    set("revives", String(s.revives || 0));
-    set("earned", s.earnedText || "$0");
-    document.getElementById("bar").classList.add("on");
+    var ids = (s.show && s.show.length ? s.show : ["kda", "revives", "earned", "spent", "permin"]);
+    if (ids.join(",") !== shown) { shown = ids.join(","); build(ids); }
+    var d = deltas(s);
+    ids.forEach(function (id) {
+      var el = document.getElementById("c-" + id);
+      if (!el) return;
+      var text = CELLS[id][2](s), b = el.querySelector("b");
+      if ((id === "earned" || id === "spent") && prev && (s[id] || 0) > (prev[id] || 0)) {
+        roll(id, prev[id] || 0, s[id] || 0);
+      } else if (b.textContent !== text && !rolling[id]) {
+        b.textContent = text;
+      } else if (b.textContent !== text && rolling[id] && performance.now() - rolling[id] > 1000) {
+        b.textContent = text;
+      }
+      if (d[id]) {
+        badge(id, d[id]);
+        el.classList.add("up");
+        setTimeout(function () { el.classList.remove("up"); }, 1600);
+      }
+    });
+    var changed = Object.keys(d).length > 0;
+    prev = s;
+    place(s.overlay || {}, changed);
+  }
+
+  // ---- on or off, where, and always or only when something changes; every change animated
+  var wrap = document.getElementById("wrap"), cur = { on: false, pos: "", shown: false }, popUntil = 0, popTimer = 0;
+  function scale() {
+    var k = window.innerHeight / 1080;
+    wrap.style.transform = (wrap.classList.contains("bc") ? "translateX(-50%) " : "") + "scale(" + k + ")";
+    wrap.style.transformOrigin = wrap.classList.contains("bc") ? "50% 100%" : "0 0";
+  }
+  window.addEventListener("resize", scale);
+  function setShown(v) {
+    if (cur.shown === v) return;
+    cur.shown = v;
+    wrap.classList.toggle("shown", v);
+  }
+  function place(o, changed) {
+    var on = o.on !== false && bar.querySelectorAll(".c").length > 0;
+    var pos = o.pos === "bc" ? "bc" : "tl", pop = o.mode === "pop";
+    var now = Date.now();
+    if (changed || !cur.on) popUntil = now + 20000;          // it just changed, or it just came on
+    cur.on = on;
+    var want = on && (!pop || now < popUntil);
+    if (pos !== cur.pos) {
+      if (cur.pos && cur.shown) {                           // a move: out where it was, in where it goes
+        setShown(false);
+        setTimeout(function () { wrap.className = pos; scale(); cur.pos = pos; place(o, false); }, 700);
+        return;
+      }
+      wrap.className = pos; scale(); cur.pos = pos;
+      void wrap.offsetWidth;
+    }
+    setShown(want);
+    clearTimeout(popTimer);
+    if (pop && want) popTimer = setTimeout(function () { place(o, false); }, popUntil - now + 50);
   }
   function connect() {
     var ws;
@@ -85,6 +222,8 @@ body { font-family: "Saira Condensed", "Segoe UI", sans-serif; color: var(--bone
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
   }
   connect();
+  window.__draw = draw; // for previewing the page by hand
+  scale();
 })();
 </script>
 </body>

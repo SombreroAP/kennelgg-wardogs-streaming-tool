@@ -133,7 +133,7 @@ struct Config {
 	// Instant replay: the last highlight played back on the stream, cut down to the action.
 	int replayPreS = 3;          // seconds before the first kill
 	int replayPostS = 5;         // seconds after the last kill
-	int replayScale = 75;        // percent of the canvas it takes, centred, under the always-on-top list
+	int replayScale = 100;       // percent of the canvas it takes, centred, under the always-on-top list
 	int replayVolume = 40;       // the clip's own sound on the stream, percent, when replaySound is on
 	bool replaySound = false;    // off by default: the clip carries your mic and the game from a minute ago
 	bool replayHwDecode = false; // the GPU decodes replay files (off: one PC's decoder refused 1440p60 at load)
@@ -142,11 +142,24 @@ struct Config {
 	int chatClips = 2;           // clip when chat goes wild: 0 off, 1 big moments only, 2 normal, 3 small ones too
 	bool twitchMarkers = true;   // a Twitch stream marker for every clip saved while live
 	bool ytChapters = true;      // a YouTube chapter list for the VOD, written when the stream stops
-	bool sessionTrack = true;    // count this session's kills, deaths, assists, revives and money
-	std::string replayWord = "!replay"; // what they type
-	std::string chatKick;               // your Kick channel, for the chat trigger (Twitch comes from the login)
-	std::string chatYouTube;            // your YouTube channel or @handle, for the chat trigger
-	std::string highlightsFolder;       // where the highlights compilations live ("" = <clip folder>/highlights)
+	bool replayStinger = true;   // the animated "INSTANT REPLAY" wipe into and out of each replay
+	bool replayStingerSound = true; // with its whoosh
+	bool replayFull1 = false;       // one-time move to full-screen replays (0.22.0)
+	bool sessionTrack = true;
+	// the kennel.gg leaderboards: 0 not asked yet, 1 yes (each stream's stats are sent), 2 no.
+	// Nothing leaves this PC until it is 1.
+	int statsConsent = 0;
+	std::string statsInstall,
+		statsToken; // made at the first yes: this PC's id, and the key only it knows    // count this session's kills, deaths, assists, revives and money
+	bool sessionOverlayOn = true;              // the on-stream bar shown (it animates out when off)
+	std::string sessionOverlayPos = "tl";      // tl: top left under the team emblem, bc: bottom centre
+	std::string sessionOverlayMode = "always"; // always, or "pop": slides in when a number changes, out 20 s later
+	std::string sessionShow =
+		"kda,revives,earned,spent,permin"; // what the on-stream bar shows, in order (Session::elements)
+	std::string replayWord = "!replay";        // what they type
+	std::string chatKick;         // your Kick channel, for the chat trigger (Twitch comes from the login)
+	std::string chatYouTube;      // your YouTube channel or @handle, for the chat trigger
+	std::string highlightsFolder; // where the highlights compilations live ("" = <clip folder>/highlights)
 	std::string replayLabel = "Instant replay"; // the tag on the replay's frame
 	bool highlightsAuto = false;                // build the session's highlights compilation when the stream stops
 	int highlightsMax = 12;                     // at most this many clips in it
@@ -283,6 +296,8 @@ struct Config {
 	}
 	static const char *overlaySourceName() { return "Kennel.gg look"; }
 	static const char *sessionOverlayName() { return "Kennel.gg · Session stats"; }
+	static const char *stingerName() { return "Kennel.gg · Replay stinger"; }
+	static const char *stingerNameV() { return "Kennel.gg · Replay stinger (vertical)"; }
 	static const char *overlaySourceNameV() { return "Kennel.gg look (vertical)"; }
 	static const char *hideFilterName() { return "Kennel.gg hide"; }
 	/// Source names as builds before 0.7.0 made them; renamed once on start.

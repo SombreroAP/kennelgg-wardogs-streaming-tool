@@ -55,7 +55,7 @@ static void hotkeyReplay(void *, obs_hotkey_id, obs_hotkey_t *, bool pressed)
 			g_engine,
 			[] {
 				if (g_engine)
-					g_engine->replaying() ? g_engine->stopReplay("hotkey")
+					g_engine->replaying() ? g_engine->endReplay("hotkey")
 							      : g_engine->playReplay("hotkey");
 			},
 			Qt::QueuedConnection);
@@ -68,7 +68,7 @@ static void hotkeyHighlights(void *, obs_hotkey_id, obs_hotkey_t *, bool pressed
 			g_engine,
 			[] {
 				if (g_engine)
-					g_engine->replaying() ? g_engine->stopReplay("hotkey")
+					g_engine->replaying() ? g_engine->endReplay("hotkey")
 							      : g_engine->playCompilation("hotkey");
 			},
 			Qt::QueuedConnection);

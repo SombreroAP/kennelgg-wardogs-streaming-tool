@@ -2,6 +2,20 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.22.0
+- **Instant replay goes full screen, with a stinger.** An animated "INSTANT REPLAY" wipe - amber, olive and graphite panels sweeping across with the hound and the title riding on them, and a whoosh - covers the screen, the replay switches on full screen underneath, and the wipe carries on off to reveal it. When the replay ends, "BACK TO LIVE" wipes back the other way to your game. Nothing ever cuts or goes black: the switch happens while the screen is covered. It runs from a transparent browser source on top of your scene (Kennel.gg · Replay stinger), loaded when OBS starts so the first one is instant, on the vertical canvas too. Stopping a replay early from the dock or a hotkey plays the way out as well. Settings, Clips & replays turns the stinger or its whoosh off. Existing setups move to full-screen replays once.
+- **The session bar, your way.**
+  - **Pick what it shows**, and in what order: K / D / A, kills, deaths, assists, K/D, downs, revives, headshots, vehicles, money earned, money spent, $ per minute in game, balance change, longest kill (Settings, Clips & replays; tick and drag). The default is K / D / A, revives, earned, spent and $ per minute.
+  - **Where**: top left under the game's team emblem, or bottom centre between the score and your weapon - both clear of every part of the game's HUD. **When**: always, or sliding in when a number changes and out 20 seconds later.
+  - **Animated in and out**: the amber edge draws, the panel wipes open, the numbers rise in one after another; off, it drops them and wipes shut; moving it slides it out of one place and into the other. **Hide from stream** / **Show on stream** on the dock.
+  - **Increases as they happen**: "+1 K", "+$1,000" tags drop out under the number that changed, and money counts up to its new figure instead of jumping.
+  - It is now a full-canvas source that places itself; the 0.21.0 strip is converted the next time you press Show on stream.
+- **Money spent** (drops in your balance that last five seconds, so a misread is never spending) and **$ per minute in game** (counting only time your balance is on screen, not menus, the map or loading) are counted and shown.
+- **Get stats image.** A 1920 x 1080 picture of the session for X, Instagram or Discord: your name, K / D / A, K/D, revives, earned, spent, $ per minute, headshots, longest kill, vehicles and your top gun, on one of 15 WARDOGS press-kit shots picked at random ("Another background" for a new one). Save it next to your clips or Copy it straight into a post. On the dock's session line, and offered on the dock when the stream ends.
+- **The bar and the image are set in Chakra Petch.**
+- **Leaderboards, only with your consent.** Nothing leaves your PC unless you say yes (the dock asks once, Setup has a tick box, and so do Settings). With it on, at the end of each stream kennel.gg receives that session's numbers with your in-game name, Discord and Twitch names, for the public leaderboards - never your clips, video, voice or chat. A session that cannot be sent waits on your PC for the next time. Untick to stop; **Delete what I have shared** removes everything your PC has sent. Details: kennel.gg/streaming/#leaderboards.
+- The tool's page is now **kennel.gg/streaming** (kennel.gg/obs and every old link still land there).
+
 ## 0.21.0
 - **Session stats.** The plugin counts your session: kills, deaths, K/D, downs, assists, revives, headshots, vehicles destroyed and money earned, with your balance change, longest kill and the gun you got most kills with.
   - Kills and deaths come from the kill feed (ClipHound), downs from the downed screen, and assists, revives, headshots, vehicles and money from the reward lines under your balance, top right ("ASSIST +$...", "REVIVED TEAMMATE +$500"). Those are read by the same cash-HUD reader as the Kennel.gg Cash Cup, four times a second, and a line counts once however long it stays up. A reward's XP line never counts it twice.

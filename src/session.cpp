@@ -33,6 +33,10 @@ QString Session::line() const
 		p << QString("%1 revive%2").arg(revives).arg(revives == 1 ? "" : "s");
 	if (earned)
 		p << money(earned) + " earned";
+	if (spent)
+		p << money(spent) + " spent";
+	if (perMinute() >= 0)
+		p << money(perMinute()) + "/min";
 	return p.join("  ·  ");
 }
 
@@ -52,7 +56,10 @@ QString Session::summary() const
 			.arg(revives)
 			.arg(headshotCount())
 			.arg(vehicles);
-	l << "Earned " + money(earned) + (zoneEarned ? " (" + money(zoneEarned) + " from the zone)" : "");
+	l << "Earned " + money(earned) + (zoneEarned ? " (" + money(zoneEarned) + " from the zone)" : "") +
+			"   Spent " + money(spent);
+	if (perMinute() >= 0)
+		l << QString("%1 a minute over %2 min in game").arg(money(perMinute())).arg(activeMs / 60000);
 	if (haveBalance)
 		l << "Balance " + money(balanceStart) + " -> " + money(balanceNow) + " (" +
 				money(balanceNow - balanceStart, true) + ")";
@@ -61,6 +68,18 @@ QString Session::summary() const
 	if (!topWeapon().isEmpty())
 		l << QString("Most kills with the %1 (%2)").arg(topWeapon()).arg(weapons.value(topWeapon()));
 	return l.join("\n") + "\n";
+}
+
+const QList<QPair<QString, QString>> &Session::elements()
+{
+	static const QList<QPair<QString, QString>> list = {
+		{"kda", "K / D / A"},          {"kills", "Kills"},          {"deaths", "Deaths"},
+		{"assists", "Assists"},        {"kd", "K/D ratio"},         {"downs", "Downs"},
+		{"revives", "Revives"},        {"headshots", "Headshots"},  {"vehicles", "Vehicles destroyed"},
+		{"earned", "Money earned"},    {"spent", "Money spent"},    {"permin", "$ per minute in game"},
+		{"balance", "Balance change"}, {"longest", "Longest kill"},
+	};
+	return list;
 }
 
 QJsonObject Session::json() const
@@ -77,6 +96,12 @@ QJsonObject Session::json() const
 	o["earned"] = (double)earned;
 	o["earnedText"] = money(earned);
 	o["zoneEarned"] = (double)zoneEarned;
+	o["spent"] = (double)spent;
+	o["spentText"] = money(spent);
+	o["perMin"] = (double)perMinute();
+	o["perMinText"] = perMinute() < 0 ? QString("-") : money(perMinute());
+	o["activeMin"] = (double)activeMs / 60000.0;
+	o["kdaText"] = QString("%1 / %2 / %3").arg(killCount()).arg(deaths).arg(assists);
 	o["balance"] = haveBalance ? (double)balanceNow : QJsonValue();
 	o["balanceChange"] = haveBalance ? (double)(balanceNow - balanceStart) : QJsonValue();
 	o["balanceChangeText"] = haveBalance ? money(balanceNow - balanceStart, true) : QString();

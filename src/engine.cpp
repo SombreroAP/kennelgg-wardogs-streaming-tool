@@ -24,6 +24,7 @@
 #include <QUrl>
 #include "http.h"
 #include "picture.h"
+#include <QRandomGenerator>
 #include <QDateTime>
 
 #ifdef _WIN32
@@ -734,6 +735,22 @@ void Engine::start()
 	sw.stopMedia(cfg); // the replay source forgets last session's file (it was decoding it at load)
 	timer_.start(std::max(100, cfg.pollMs));
 	cashTimer_.start();
+	if (!cfg.replayFull1) {
+		// 0.22.0: instant replays fill the screen, framed by the stinger
+		cfg.replayFull1 = true;
+		cfg.replayScale = 100;
+		cfg.save();
+	}
+	// sessions left on this PC by a stream that ended offline go now (with consent)
+	QTimer::singleShot(20000, this, [this]() {
+		if (!stopping_)
+			flushStatsQueue();
+	});
+	// the stinger page loaded well before the first replay, so its first wipe is not missed
+	QTimer::singleShot(3000, this, [this]() {
+		if (!stopping_)
+			sw.ensureStinger(cfg, cfg.replayStinger);
+	});
 	if (!hudModel_)
 		log("Session stats: the cash reader could not start (" + QString::fromStdString(hudModelErr_) +
 		    ") - kills and deaths are still counted.");
@@ -1704,6 +1721,9 @@ void Engine::watchPopouts()
 
 void Engine::reloadConfig()
 {
+	if (!stopping_)
+		sw.ensureStinger(cfg,
+				 cfg.replayStinger); // on or off as Settings say; back after a scene-collection change
 	if (paused_ && !stopping_) {
 		// after a scene-collection change: sceneCleanup() let go of everything, so start again
 		paused_ = false;
@@ -2033,7 +2053,19 @@ QJsonObject Engine::stateJson() const
 	o["voiceStatus"] = voiceStatus_;
 	o["replayPlaying"] = replayTimer_.isActive();
 	o["inVoice"] = rosterLive();
-	o["session"] = session_.json();
+	{
+		QJsonObject sj = session_.json();
+		QJsonArray show;
+		for (const QString &id : QString::fromStdString(cfg.sessionShow).split(',', Qt::SkipEmptyParts))
+			show.append(id.trimmed());
+		sj["show"] = show; // what the on-stream bar draws, in order: Settings, Clips & replays
+		QJsonObject ov;
+		ov["on"] = cfg.sessionOverlayOn;
+		ov["pos"] = QString::fromStdString(cfg.sessionOverlayPos);
+		ov["mode"] = QString::fromStdString(cfg.sessionOverlayMode);
+		sj["overlay"] = ov; // the page animates every change of these
+		o["session"] = sj;
+	}
 	QJsonArray fr;
 	for (size_t i = 0; i < cfg.friends.size(); i++) {
 		const Friend &f = cfg.friends[i];
@@ -2063,6 +2095,8 @@ void Engine::resetSession(const QString &why)
 	session_.reset();
 	cashStab_ = tourney::Stabilizer();
 	tallied_.clear();
+	dropPending_ = false;
+	lastCashAt_ = 0;
 	log("Session stats: counting from now (" + why + ").");
 	emit stateChanged();
 }
@@ -2136,6 +2170,16 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 			if (!session_.haveBalance) {
 				session_.haveBalance = true;
 				session_.balanceStart = e.v;
+			} else if (dropPending_) {
+				if (e.v >= dropFrom_)
+					dropPending_ = false; // it came back: a misread, not a purchase
+				else if (e.v < dropTo_)
+					dropTo_ = e.v; // bought more before the first drop settled
+			} else if (e.v < session_.balanceNow) {
+				dropPending_ = true;
+				dropFrom_ = session_.balanceNow;
+				dropTo_ = e.v;
+				dropAt_ = t;
 			}
 			if (session_.balanceNow != e.v || e.v == session_.balanceStart) {
 				session_.balanceNow = e.v;
@@ -2178,6 +2222,20 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 			changed = true;
 		}
 	}
+	// time in game: only while the balance is on screen. A gap longer than two seconds between reads
+	// (OBS busy, the source gone) is not counted
+	if (cashStab_.hudVisible(t) && lastCashAt_ && t - lastCashAt_ < 2000)
+		session_.activeMs += t - lastCashAt_;
+	lastCashAt_ = t;
+	if (t - lastPerMinEmit_ >= 5000 && session_.perMinute() >= 0) {
+		lastPerMinEmit_ = t; // $/min moves with the clock: the dock and the bar follow every 5 s
+		changed = true;
+	}
+	if (dropPending_ && t - dropAt_ >= 5000) {
+		session_.spent += dropFrom_ - dropTo_;
+		dropPending_ = false;
+		changed = true;
+	}
 	if (changed)
 		emit stateChanged();
 }
@@ -2207,6 +2265,9 @@ void Engine::writeSessionSummary()
 	if (!cfg.sessionTrack)
 		return;
 	QString text = session_.summary();
+	if (session_.killCount() || session_.earned || session_.deaths)
+		sessionEndedAt_ = QDateTime::currentDateTime();
+	queueSessionUpload();
 	for (const auto &l : text.split('\n', Qt::SkipEmptyParts))
 		log("Session stats: " + l);
 	QString dir;
@@ -2218,6 +2279,146 @@ void Engine::writeSessionSummary()
 	QFile f(dir + "/Session stats " + session_.start.toString("yyyy-MM-dd HH-mm") + ".txt");
 	if (f.open(QIODevice::WriteOnly | QIODevice::Text))
 		f.write(text.toUtf8());
+}
+
+// ----- the leaderboards (opt-in)
+
+static QString statsQueuePath()
+{
+	return QString::fromStdString(Config::configFile("stats-queue.jsonl"));
+}
+
+void Engine::setStatsConsent(bool yes)
+{
+	cfg.statsConsent = yes ? 1 : 2;
+	if (yes && (cfg.statsInstall.size() != 32 || cfg.statsToken.size() < 32)) {
+		auto hex = [](int bytes) {
+			QString s;
+			for (int i = 0; i < bytes; ++i)
+				s += QString("%1").arg(QRandomGenerator::system()->bounded(256), 2, 16, QChar('0'));
+			return s.toStdString();
+		};
+		cfg.statsInstall = hex(16);
+		cfg.statsToken = hex(32);
+	}
+	cfg.save();
+	log(yes ? "Leaderboards: your session stats will be shared with kennel.gg at the end of each stream "
+		  "(Settings, Clips & replays, to stop)."
+		: "Leaderboards: nothing is shared.");
+	if (yes)
+		flushStatsQueue();
+	emit stateChanged();
+}
+
+void Engine::queueSessionUpload()
+{
+	if (cfg.statsConsent != 1 || !cfg.sessionTrack || session_.activeMs < 60000)
+		return; // no consent, or under a minute in game: nothing worth a leaderboard row
+	QJsonObject s;
+	s["started"] = session_.start.toString(Qt::ISODate);
+	s["active_s"] = (double)(session_.activeMs / 1000);
+	s["kills"] = session_.killCount();
+	s["deaths"] = session_.deaths;
+	s["assists"] = session_.assists;
+	s["revives"] = session_.revives;
+	s["headshots"] = session_.headshotCount();
+	s["vehicles"] = session_.vehicles;
+	s["downs"] = session_.downs;
+	s["earned"] = (double)session_.earned;
+	s["spent"] = (double)session_.spent;
+	s["longest_m"] = session_.longestKillM;
+	s["top_weapon"] = session_.topWeapon();
+	QJsonObject o;
+	o["session"] = s;
+	o["version"] = PLUGIN_VERSION;
+	QFile f(statsQueuePath());
+	if (f.open(QIODevice::Append | QIODevice::Text))
+		f.write(QJsonDocument(o).toJson(QJsonDocument::Compact) + "\n");
+	flushStatsQueue();
+}
+
+/// Sends the queue one line at a time; a line leaves the file only once kennel.gg took it. The
+/// name, Discord and Twitch go with each send, as they are now.
+void Engine::flushStatsQueue()
+{
+	if (statsFlushing_ || stopping_ || cfg.statsConsent != 1 || cfg.statsInstall.empty())
+		return;
+	QFile f(statsQueuePath());
+	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+		return;
+	QList<QByteArray> lines = f.readAll().split('\n');
+	f.close();
+	lines.removeAll(QByteArray());
+	if (lines.isEmpty())
+		return;
+	QJsonObject o = QJsonDocument::fromJson(lines.first()).object();
+	o["install"] = QString::fromStdString(cfg.statsInstall);
+	o["token"] = QString::fromStdString(cfg.statsToken);
+	o["name"] = QString::fromStdString(cfg.appPlayerName);
+	o["discord"] = QString::fromStdString(cfg.myDiscord);
+	o["twitch"] = QString::fromStdString(cfg.appBroadcaster);
+	statsFlushing_ = true;
+	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
+	Http::requestAsync(
+		this, "POST", QString(statsUrl()) + "/session", QJsonDocument(o).toJson(QJsonDocument::Compact),
+		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
+			statsFlushing_ = false;
+			bool taken = r.ok && r.status == 200;
+			bool refused = r.status == 400 || r.status == 403; // never going to be taken
+			if (taken || refused) {
+				QFile q(statsQueuePath());
+				if (q.open(QIODevice::ReadOnly | QIODevice::Text)) {
+					QList<QByteArray> rest = q.readAll().split('\n');
+					q.close();
+					rest.removeAll(QByteArray());
+					if (!rest.isEmpty())
+						rest.removeFirst();
+					if (q.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+						for (const auto &l : rest)
+							q.write(l + "\n");
+				}
+				log(taken ? "Leaderboards: this stream's stats were shared with kennel.gg."
+					  : QString("Leaderboards: kennel.gg refused a session (HTTP %1); it was dropped.")
+						    .arg(r.status));
+				if (taken)
+					QTimer::singleShot(1500, this, [this]() { flushStatsQueue(); });
+			} else
+				log("Leaderboards: could not reach kennel.gg (" +
+				    (r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error) +
+				    "); the stats wait on this PC and go next time.");
+		});
+}
+
+void Engine::deleteSharedStats()
+{
+	if (cfg.statsInstall.empty()) {
+		log("Leaderboards: this PC has never shared anything.");
+		return;
+	}
+	QJsonObject o;
+	o["install"] = QString::fromStdString(cfg.statsInstall);
+	o["token"] = QString::fromStdString(cfg.statsToken);
+	QFile::remove(statsQueuePath());
+	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
+	Http::requestAsync(
+		this, "POST", QString(statsUrl()) + "/delete", QJsonDocument(o).toJson(QJsonDocument::Compact),
+		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
+			QJsonObject a = QJsonDocument::fromJson(r.body).object();
+			log(r.ok && a.value("ok").toBool()
+				    ? QString("Leaderboards: deleted from kennel.gg (%1 sessions).")
+					      .arg(a.value("deleted").toInt())
+				    : "Leaderboards: the delete did not go through (" +
+					      (r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error) +
+					      "); try again in a minute.");
+		});
+}
+
+bool Engine::hasSessionOverlay() const
+{
+	obs_source_t *s = obs_get_source_by_name(Config::sessionOverlayName());
+	if (s)
+		obs_source_release(s);
+	return s != nullptr;
 }
 
 QString Engine::addSessionOverlay()
@@ -2237,35 +2438,37 @@ QString Engine::addSessionOverlay()
 	}
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	const char *name = Config::sessionOverlayName();
+	// the whole canvas: the page places the bar itself (top left or bottom centre) and animates
+	// its moves, so the source never needs moving by hand
+	struct obs_video_info ovi;
+	obs_get_video_info(&ovi);
 	obs_source_t *src = obs_get_source_by_name(name);
-	if (!src) {
-		obs_data_t *st = obs_data_create();
-		obs_data_set_string(st, "url", url.c_str());
-		obs_data_set_int(st, "width", 1200);
-		obs_data_set_int(st, "height", 110);
-		obs_data_set_bool(st, "shutdown", false);
+	obs_data_t *st = obs_data_create();
+	obs_data_set_string(st, "url", url.c_str());
+	obs_data_set_int(st, "width", ovi.base_width);
+	obs_data_set_int(st, "height", ovi.base_height);
+	obs_data_set_bool(st, "shutdown", false);
+	if (!src)
 		src = obs_source_create("browser_source", name, st, nullptr);
-		obs_data_release(st);
-	} else {
-		obs_data_t *st = obs_data_create();
-		obs_data_set_string(st, "url", url.c_str());
-		obs_source_update(src, st);
-		obs_data_release(st);
-	}
+	else
+		obs_source_update(src, st); // 0.21.0 made a 1920 x 110 strip: now the full canvas
+	obs_data_release(st);
 	if (!src) {
 		obs_source_release(ss);
 		return "could not create a browser source (is the Browser Source available in this OBS?)";
 	}
-	if (!obs_scene_find_source(scene, name)) {
-		obs_sceneitem_t *item = obs_scene_add(scene, src);
-		struct obs_video_info ovi;
-		obs_get_video_info(&ovi);
-		struct vec2 pos;
-		pos.x = 40;
-		pos.y = (float)ovi.base_height - 150;
-		if (item)
-			obs_sceneitem_set_pos(item, &pos);
+	obs_sceneitem_t *item = obs_scene_find_source(scene, name);
+	if (!item)
+		item = obs_scene_add(scene, src);
+	if (item) {
+		struct vec2 pos = {0, 0}, bounds = {(float)ovi.base_width, (float)ovi.base_height};
+		obs_sceneitem_set_pos(item, &pos);
+		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
+		obs_sceneitem_set_bounds(item, &bounds);
+		obs_sceneitem_set_visible(item, true);
 	}
+	cfg.sessionOverlayOn = true;
+	cfg.save();
 	obs_source_release(src);
 	obs_source_release(ss);
 	log("Session stats: the overlay is in your scene (" + QString(name) + "); move and size it like any source.");
@@ -3750,6 +3953,9 @@ void Engine::playReplay(const QString &why)
 	replayLengthMs_ = 1; // "playing, not yet sought"
 	replaySought_ = false;
 	replayShown_ = false;
+	replayOutSent_ = false;
+	if (cfg.replayStinger)
+		sw.ensureStinger(cfg, true); // loaded long before; this puts it back on top of everything
 	replayClock_.start();
 	replayTimer_.start(150);
 	addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  REPLAY " + replayWhat_);
@@ -4013,6 +4219,10 @@ void Engine::replayTick()
 			return;
 		}
 		replayWindow(pendingReplay_, dur, cfg.replayPreS, cfg.replayPostS, &replayStartMs_, &replayEndMs_);
+		// the first half second plays under the stinger's cover: start that much earlier, so the
+		// viewer still sees the whole lead-in
+		if (cfg.replayStinger && replayStartMs_ > 0)
+			replayStartMs_ = std::max<qint64>(0, replayStartMs_ - kStingerCoverMs);
 		if (replayStartMs_ > 0)
 			sw.seekMedia(replayStartMs_);
 		replaySought_ = true;
@@ -4039,16 +4249,56 @@ void Engine::replayTick()
 		bool there = replayStartMs_ == 0 || t >= replayStartMs_ - 300 || replayClock_.elapsed() > 1500;
 		if (!there || st != OBS_MEDIA_STATE_PLAYING)
 			return;
-		sw.showMedia(cfg);
 		replayShown_ = true;
 		replayClock_.restart();
+		if (cfg.replayStinger) {
+			// "INSTANT REPLAY" wipes across; the replay goes on full screen while it covers everything
+			sendStinger("in");
+			QTimer::singleShot(kStingerCoverMs, this, [this]() {
+				if (replaying() && !replayOutSent_) {
+					sw.showMedia(cfg);
+					sw.ensureStinger(cfg, true); // over the camera and alerts showMedia raised
+				}
+			});
+		} else
+			sw.showMedia(cfg);
 		return;
 	}
-	bool pastEnd = replayEndMs_ > 0 && t >= replayEndMs_;
+	if (replayOutSent_)
+		return; // "back to live" is playing: the replay stops under its cover
+	// with the stinger, it starts just before the end so its cover lands on the last frame
+	bool pastEnd = replayEndMs_ > 0 && t >= replayEndMs_ - (cfg.replayStinger ? kStingerCoverMs : 0);
 	bool ended = replayClock_.elapsed() > 800 && (st == OBS_MEDIA_STATE_ENDED || st == OBS_MEDIA_STATE_STOPPED);
 	bool safety = replayClock_.elapsed() > replayLengthMs_ + 4000; // the clock never lies, the state might
 	if (pastEnd || ended || safety)
-		stopReplay("finished");
+		endReplay("finished");
+}
+
+void Engine::sendStinger(const char *dir)
+{
+	QJsonObject o;
+	o["type"] = "stinger";
+	o["dir"] = dir;
+	bridge.sendJson(o);
+}
+
+void Engine::endReplay(const QString &why)
+{
+	if (!replaying())
+		return;
+	if (replayOutSent_)
+		return; // already on its way out
+	if (!cfg.replayStinger || !replayShown_) {
+		stopReplay(why);
+		return;
+	}
+	replayOutSent_ = true;
+	sw.ensureStinger(cfg, true);
+	sendStinger("out");
+	QTimer::singleShot(kStingerCoverMs, this, [this, why]() {
+		if (replaying())
+			stopReplay(why);
+	});
 }
 
 void Engine::stopReplay(const QString &why)

@@ -8,7 +8,7 @@
   "Category": "Kennel.gg Wardogs",
   "CategoryIcon": "imgs/plugin/category",
   "CodePath": "bin/plugin.js",
-  "URL": "https://kennel.gg/obs",
+  "URL": "https://kennel.gg/streaming",
   "SDKVersion": 2,
   "Software": {
     "MinimumVersion": "6.4"

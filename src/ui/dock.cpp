@@ -1,4 +1,5 @@
 #include "ui/dock.h"
+#include "ui/stats-dialog.h"
 #include "ui/clips-dialog.h"
 #include "ui/settings-dialog.h"
 #include "ui/wizard.h"
@@ -386,13 +387,13 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 			"again to stop.");
 		connect(replay_, &QPushButton::clicked, this, [this]() {
 			if (e_->replaying())
-				e_->stopReplay("dock");
+				e_->endReplay("dock");
 			else
 				e_->playReplay("dock");
 		});
 		connect(highlights_, &QPushButton::clicked, this, [this]() {
 			if (e_->replaying())
-				e_->stopReplay("dock");
+				e_->endReplay("dock");
 			else
 				e_->playCompilation("dock");
 		});
@@ -422,10 +423,15 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		if (href == "kennel:reset")
 			e_->resetSession("reset from the dock");
 		else if (href == "kennel:overlay") {
-			QString err = e_->addSessionOverlay();
+			QString err = e_->addSessionOverlay(); // adds it if missing, and turns it on
 			if (!err.isEmpty())
 				e_->log("Session stats overlay: " + err);
-		}
+		} else if (href == "kennel:overlayoff") {
+			e_->cfg.sessionOverlayOn = false; // it animates out; the source stays for next time
+			e_->cfg.save();
+			emit e_->stateChanged();
+		} else if (href == "kennel:image")
+			openStatsImage();
 		refresh();
 	});
 	v->addWidget(session_);
@@ -521,6 +527,8 @@ void Dock::runFix(const QString &id)
 		openLogs();
 	else if (id == "squad")
 		openSquad();
+	else if (id == "statsimage")
+		openStatsImage();
 	else if (id == "discord:type") {
 		bool ok = false;
 		QString v = QInputDialog::getText(
@@ -859,7 +867,11 @@ void Dock::refresh()
 			(cash.isEmpty() || cash == "off" ? QString()
 							 : "<br><span style=\"color:#7c8076\">Money and assists: " +
 								   cash.toHtmlEscaped() + "</span>") +
-			"<br>" + gold + "kennel:overlay\">Show on stream</a>  ·  " + gold + "kennel:reset\">Reset</a>");
+			"<br>" +
+			(e_->cfg.sessionOverlayOn && e_->hasSessionOverlay()
+				 ? gold + "kennel:overlayoff\">Hide from stream</a>"
+				 : gold + "kennel:overlay\">Show on stream</a>") +
+			"  ·  " + gold + "kennel:image\">Stats image</a>  ·  " + gold + "kennel:reset\">Reset</a>");
 		session_->setToolTip(e_->session().summary());
 	}
 
@@ -936,6 +948,13 @@ static QString tailOf(const QString &path, int lines)
 	if (all.size() > lines)
 		all = all.mid(all.size() - lines);
 	return all.join('\n');
+}
+
+void Dock::openStatsImage()
+{
+	auto *d = new StatsDialog(e_, this);
+	d->show();
+	d->raise();
 }
 
 void Dock::openLogs()

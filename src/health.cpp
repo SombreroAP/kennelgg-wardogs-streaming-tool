@@ -251,6 +251,29 @@ QList<Engine::Banner> Engine::banners() const
 		b.dismissable = false;
 		add(b);
 	}
+	if (cfg.statsConsent == 0 && cfg.setupDone) {
+		// asked once, plainly, never as a pop-up: nothing is sent until the answer is yes
+		Banner b;
+		b.id = "statsconsent";
+		b.level = 0;
+		b.text =
+			"<b>Leaderboards:</b> share your session stats with kennel.gg for the public leaderboards? At "
+			"the end of each stream: your in-game name, Discord and Twitch names, and the session's kills, "
+			"deaths, assists, revives, headshots, vehicles, downs, money earned and spent, time in game, "
+			"longest kill and top weapon. Never your clips, video, voice or chat. Stop and delete any time "
+			"in Settings.";
+		b.actions = {Fix("stats:yes", "Yes, share"), Fix("stats:no", "No thanks"), Fix("stats:about", "More")};
+		add(b);
+	}
+	if (sessionEndedAt_.isValid() && sessionEndedAt_.secsTo(QDateTime::currentDateTime()) < 3 * 3600) {
+		Banner b;
+		b.id = "statsimage:" + sessionEndedAt_.toString(Qt::ISODate);
+		b.level = 0;
+		b.text = "Stream over: <b>" + session_.line().toHtmlEscaped() +
+			 "</b>. Make a picture of it for X, Instagram or Discord?";
+		b.actions = {Fix("statsimage", "Get stats image")};
+		add(b);
+	}
 	if (!unpopped_.isEmpty()) {
 		Banner b;
 		b.id = "pop:" + unpopped_.join(","); // dismissed until somebody else joins the list
@@ -396,6 +419,14 @@ void Engine::noteClosestNeedsApp()
 
 bool Engine::runAction(const QString &id)
 {
+	if (id == "stats:yes" || id == "stats:no") {
+		setStatsConsent(id == "stats:yes");
+		return true;
+	}
+	if (id == "stats:about") {
+		QDesktopServices::openUrl(QUrl("https://kennel.gg/streaming/#leaderboards"));
+		return true;
+	}
 	if (id == "scene:switch") {
 		obs_source_t *sc = obs_get_source_by_name(cfg.sceneName.c_str());
 		if (sc) {
