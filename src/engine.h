@@ -447,10 +447,10 @@ private:
 	QElapsedTimer replayClock_;
 	bool replaySought_ = false, replayShown_ = false;
 	bool replayOutSent_ = false; // the "back to live" stinger is playing; the replay stops under its cover
-	// stinger.html's clock: "in" (2180 ms) covers the screen from 480 ms and holds its title until
-	// about 1640 ms; "out" (1300 ms, no words) covers it from 480 to 760 ms. The switch underneath
-	// happens a little after each cover starts.
-	static constexpr int kStingerInCoverMs = 560, kStingerInRevealMs = 1640, kStingerOutCoverMs = 560;
+	// stinger.html's clock, measured at 16:9 (every panel over every pixel): "in" (2240 ms) covers
+	// the screen from ~620 to ~1580 ms, "out" (1540 ms, no words) from ~620 to ~880 ms, "pov" (1750
+	// ms) from ~620 to ~1100 ms. The switch underneath happens well inside each window.
+	static constexpr int kStingerInCoverMs = 900, kStingerInRevealMs = 1580, kStingerOutCoverMs = 750;
 	void sendStinger(const char *dir);
 	// the picture-in-picture: the game shrinks into the bottom-right corner over the replay, and
 	// grows back at the end, a moment before the "out" stinger covers the switch back
@@ -505,7 +505,7 @@ private:
 	static bool loadLangTemplate(Detector &d, const std::string &lang);
 	bool dualOn_ = false, dualAutoOn_ = false;
 	// the POV stinger (stinger.html "pov": covered from 480 ms)
-	static constexpr int kPovCoverMs = 560;
+	static constexpr int kPovCoverMs = 820;
 	bool povPending_ = false, povTarget_ = false;
 	QString povWhy_;
 	int povShown_ = -1; // the squad mate on screen while applied_

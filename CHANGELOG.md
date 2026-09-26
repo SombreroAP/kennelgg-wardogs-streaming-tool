@@ -2,6 +2,11 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.25.1
+- **A Session Stats button on the dock.** Under Save clip, Instant replay and Highlights there is now a full-size **Session Stats** button that puts the "This session" bar on your stream or takes it off (it lights up while the bar is showing; the first press adds it to your scene), with smaller **Reset** and **Stats image** buttons beside it. They replace the small links under the session line.
+- Fixed: the stingers switched what was underneath a moment before they covered the whole screen, so a thin strip at the edge could show the cut (going to a squad mate's POV, into an instant replay and back to live). Each stinger now slows inside the moment every panel covers the screen and the switch happens well inside it. The way back to live is about a quarter of a second longer.
+- Fixed: after a SWITCHING POV swap, the squad mate's feed, their name plate or your camera could end up over the rest of the stinger's wipe. The stinger goes back on top as soon as the swap is made.
+
 ## 0.25.0
 - **A "SWITCHING POV" stinger over every POV swap.** The same animated panels as the instant replay sweep across saying SWITCHING POV, with whose view comes next underneath (a squad mate's name, or "your POV"). The swap happens while they cover the screen, so viewers never see a cut. When you go down, the squad mate is on screen at the same moment as before: the stinger's run-up comes out of the "show squad mate after" delay. If you are revived while it runs, it plays and nothing swaps. Settings, Squad & POV turns it off.
 - **Fewer swaps.** The wait between swaps from one squad mate to another is now 12 seconds (it was 4; the slider goes up to 30), and a POV stays on screen for at least 5 seconds before swapping back, so a damage log that flickers no longer swaps twice in a second. Settings, Squad & POV: "keep a POV up at least".

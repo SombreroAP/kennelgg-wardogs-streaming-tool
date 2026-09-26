@@ -2237,9 +2237,9 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 					session_.zoneEarned += e.amt;
 				// what it was for, in the words the bar has room for
 				QString why = reason == "REVIVED TEAMMATE" ? "REVIVE"
-					      : reason.contains("ZONE") ? "ZONE"
-					      : reason.isEmpty()        ? "REWARD"
-									: reason;
+					      : reason.contains("ZONE")    ? "ZONE"
+					      : reason.isEmpty()           ? "REWARD"
+									   : reason;
 				session_.noteMoney(e.amt, why.left(18));
 				changed = true;
 			}
@@ -4071,6 +4071,9 @@ void Engine::applyNow(bool on, const QString &why)
 			if (on && applied_ && povShown_ != cfg.activeFriend)
 				applySwitch(false, "switching squad mate");
 			applySwitch(on, povWhy_);
+			// the swap raised the squad mate's feed, their look and the camera: the stinger goes
+			// back over all of them for the rest of its wipe
+			sw.ensureStinger(cfg, true);
 		});
 	});
 }

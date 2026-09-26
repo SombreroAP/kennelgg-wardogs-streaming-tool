@@ -109,6 +109,7 @@ static const char *kDockStyle = R"(
 #kennelDock QFrame#banner[level="2"] { border-color: #6b3a30; background: #3a2622; }
 #kennelDock QFrame#banner QLabel { color: #e6e2d6; font-size: 8.5pt; }
 #kennelDock QFrame#banner QPushButton { min-height: 20px; padding: 1px 8px; font-size: 8.5pt; }
+#kennelDock QPushButton#mini { min-height: 18px; padding: 1px 8px; font-size: 8pt; color: #c9c5b8; }
 #kennelDock QFrame#banner QToolButton { border: none; background: transparent; color: #9a9e93; }
 #kennelDock QCheckBox { color: #c9c5b8; spacing: 4px; font-size: 8.5pt; }
 #kennelDock QListWidget { border: 1px solid #2e3230; border-radius: 3px; background: #202321; color: #c9c5b8;
@@ -401,6 +402,49 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		row->addWidget(replay_, 1);
 		row->addWidget(highlights_, 1);
 		v->addLayout(row);
+
+		// Session Stats: the "This session" bar on stream, as big as the buttons above (one column
+		// of them), lit while it shows; Reset and Stats image small beside it
+		sessionRow_ = new QWidget(this);
+		auto *srow = new QHBoxLayout(sessionRow_);
+		srow->setContentsMargins(0, 0, 0, 0);
+		sessionBtn_ = new QPushButton("Session Stats", sessionRow_);
+		sessionBtn_->setCheckable(true);
+		sessionBtn_->setToolTip(
+			"Show or hide the \"This session\" bar on your stream: K/D/A, revives, the "
+			"session balance and more (pick them in Settings, Clips & replays). It slides in "
+			"and out. The first press adds it to your scene.");
+		sessionReset_ = new QPushButton("Reset", sessionRow_);
+		sessionReset_->setObjectName("mini");
+		sessionReset_->setToolTip("Start the session again from zero (it also starts again when you go live).");
+		sessionImage_ = new QPushButton("Stats image", sessionRow_);
+		sessionImage_->setObjectName("mini");
+		sessionImage_->setToolTip("This session's stats as a picture for social media.");
+		connect(sessionBtn_, &QPushButton::clicked, this, [this]() {
+			if (e_->cfg.sessionOverlayOn && e_->hasSessionOverlay()) {
+				e_->cfg.sessionOverlayOn = false; // it animates out; the source stays for next time
+				e_->cfg.save();
+				emit e_->stateChanged();
+			} else {
+				QString err = e_->addSessionOverlay(); // adds it if missing, and turns it on
+				if (!err.isEmpty())
+					e_->log("Session stats overlay: " + err);
+			}
+			refresh();
+		});
+		connect(sessionReset_, &QPushButton::clicked, this, [this]() {
+			e_->resetSession("reset from the dock");
+			refresh();
+		});
+		connect(sessionImage_, &QPushButton::clicked, this, [this]() { openStatsImage(); });
+		auto *small = new QHBoxLayout();
+		small->setContentsMargins(0, 0, 0, 0);
+		small->addWidget(sessionReset_);
+		small->addWidget(sessionImage_);
+		small->addStretch(1);
+		srow->addWidget(sessionBtn_, 1);
+		srow->addLayout(small, 2);
+		v->addWidget(sessionRow_);
 	}
 	// ClipHound, said plainly: running or not, what it sees you holding, whether mag packing is watched
 	appLine_ = new QLabel(this);
@@ -860,18 +904,19 @@ void Dock::refresh()
 	// ----- this session
 	{
 		session_->setVisible(e_->cfg.sessionTrack);
-		QString gold = "<a style=\"color:#c99a3b\" href=\"";
+		sessionRow_->setVisible(e_->cfg.sessionTrack);
+		bool shown = e_->cfg.sessionOverlayOn && e_->hasSessionOverlay();
+		sessionBtn_->setChecked(shown);
+		sessionBtn_->setToolTip(
+			shown ? "The \"This session\" bar is on your stream. Press to slide it out."
+			      : "Show the \"This session\" bar on your stream (K/D/A, revives, the session "
+				"balance and more). The first press adds it to your scene.");
 		QString cash = e_->cashStatus();
-		session_->setText(
-			"<b>This session</b>  " + e_->session().line().toHtmlEscaped() +
-			(cash.isEmpty() || cash == "off" ? QString()
-							 : "<br><span style=\"color:#7c8076\">Money and assists: " +
-								   cash.toHtmlEscaped() + "</span>") +
-			"<br>" +
-			(e_->cfg.sessionOverlayOn && e_->hasSessionOverlay()
-				 ? gold + "kennel:overlayoff\">Hide from stream</a>"
-				 : gold + "kennel:overlay\">Show on stream</a>") +
-			"  ·  " + gold + "kennel:image\">Stats image</a>  ·  " + gold + "kennel:reset\">Reset</a>");
+		session_->setText("<b>This session</b>  " + e_->session().line().toHtmlEscaped() +
+				  (cash.isEmpty() || cash == "off"
+					   ? QString()
+					   : "<br><span style=\"color:#7c8076\">Money and assists: " +
+						     cash.toHtmlEscaped() + "</span>"));
 		session_->setToolTip(e_->session().summary());
 	}
 

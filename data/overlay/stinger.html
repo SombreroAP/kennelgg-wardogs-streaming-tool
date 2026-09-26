@@ -75,15 +75,14 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
 (function () {
   var q = new URLSearchParams(location.search);
   var port = q.get("port") || "47821", sound = q.get("sound") !== "0";
-  // One choreography of D ms, fully covered from COVER_AT to COVER_END. "out" (back to the action)
-  // plays it as it is, with no words. "in" (INSTANT REPLAY) sweeps in and out just as fast but eases
-  // almost to a stop while covered, so the title holds for about a second: its real clock runs
-  // through warp[], 2180 ms in all, covered from 480 to about 1640 ms. The plugin's timings
-  // (Engine::kStingerIn* / kStingerOut*) match these.
+  // One choreography of D ms. Every panel is over every pixel only from about 590 to 660 ms of it
+  // (measured at 16:9), so each mode eases almost to a stop inside that moment and its real clock
+  // runs through a warp[]: "in" (INSTANT REPLAY) holds its title about a second, 2240 ms in all,
+  // fully covered ~620-1580 ms; "pov" (SWITCHING POV) 1750 ms, covered ~620-1100 ms; "out" (back to
+  // the action, no words) a short hold, 1540 ms, covered ~620-880 ms. The plugin switches underneath
+  // well inside each window (Engine::kStingerInCoverMs, kStingerOutCoverMs, kPovCoverMs).
   var D = 1300, COVER_AT = 480, COVER_END = 760;
-  // "pov" (SWITCHING POV, between squad mates' views) holds for a shorter moment: 1720 ms, covered
-  // from 480 to about 1180 ms, so a swap still lands quickly.
-  var HOLD_AT = 500, RAMP = 160, VMIN = 0.08;       // real ms, and the slowest speed
+  var HOLD_AT = 524, RAMP = 160, VMIN = 0.02;       // real ms, and the slowest speed
   function makeWarp(hold) {                         // warp[real ms] = choreography ms
     var warp = [], c = 0;
     for (var r = 0; c < D; r++) {
@@ -97,7 +96,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
     }
     return warp;
   }
-  var WARPS = { "in": makeWarp(800), pov: makeWarp(300) };
+  var WARPS = { "in": makeWarp(800), pov: makeWarp(300), out: makeWarp(80) };
   var D_IN = WARPS["in"].length;
   function warpT(t, dir) {
     var w = WARPS[dir];
