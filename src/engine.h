@@ -429,6 +429,8 @@ private:
 	bool dropPending_ = false;
 	int64_t dropFrom_ = 0, dropTo_ = 0;
 	qint64 dropAt_ = 0;
+	int64_t gapSeen_ = 0; // the wallet vs the tallied lines: how far apart, and since when (ms)
+	qint64 gapSince_ = 0;
 	void cashTick();
 	void onCashReading(const hud::Reading &r, qint64 t);
 	void onTally(const QJsonObject &o);

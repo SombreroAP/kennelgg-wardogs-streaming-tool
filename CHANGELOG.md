@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.26.5
+- **The session balance always matches your wallet.** It used to be the reward lines added up, so a line the reader missed (white text on a white sky) or read wrong left the total out for the rest of the session. Now your balance on the HUD is the authority: whenever the wallet has held still for 4 seconds, the session balance is brought back to exactly how far it has moved since the session began. Anything the lines did not account for is added as REWARD (or SPENT when it went the other way), and money that moved while the HUD was hidden, such as a payout between matches, is counted the next time your balance is on screen. The log notes every correction.
+
 ## 0.26.4
 - **A setup video.** Sombrero installs the plugin and sets it up from start to finish on YouTube. It is one click away: at the top of Settings, Help, in the dock's ⋯ menu (Setup video) and on the first page of Setup.
 - **Vehicles: the dual window only opens for a squad mate who is live.** With "Auto in vehicles", getting into a vehicle opens the dual window only when your Dual POV squad mate is confirmed live - live in your Kennel.gg voice channel for Discord, or live on Twitch, Kick or YouTube. If they are not, it waits and opens as soon as they are while you are still in the vehicle, and a window it opened closes if they stop streaming.

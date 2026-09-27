@@ -2139,6 +2139,8 @@ void Engine::resetSession(const QString &why)
 	cashStab_ = tourney::Stabilizer();
 	tallied_.clear();
 	dropPending_ = false;
+	gapSeen_ = 0;
+	gapSince_ = 0;
 	lastCashAt_ = 0;
 	log("Session stats: counting from now (" + why + ").");
 	emit stateChanged();
@@ -2306,6 +2308,34 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 		session_.noteMoney(-(dropFrom_ - dropTo_), "PURCHASE"); // a loadout, a vehicle, a buy
 		dropPending_ = false;
 		changed = true;
+	}
+	// The wallet is the truth: the session balance (earned - spent) always comes back to how far the
+	// balance has moved since the session began. A reward line lost against a white sky, one read
+	// wrong, or money that moved while the HUD was hidden (a payout between matches) is made good
+	// once the wallet and the lines have held still for 4 s, so one missed line never leaves the
+	// running total wrong.
+	if (session_.haveBalance && !dropPending_) {
+		int64_t gap = (session_.balanceNow - session_.balanceStart) - session_.net();
+		if (gap == 0) {
+			gapSeen_ = 0;
+			gapSince_ = 0;
+		} else if (gap != gapSeen_) {
+			gapSeen_ = gap; // still moving (a line may be read a moment after the balance changed)
+			gapSince_ = t;
+		} else if (t - gapSince_ >= 4000) {
+			if (gap > 0) {
+				session_.earned += gap;
+				session_.noteMoney(gap, "REWARD");
+			} else {
+				session_.spent += -gap;
+				session_.noteMoney(gap, "SPENT");
+			}
+			log(QString("Session balance matched to your wallet: %1 the reward lines had not accounted for.")
+				    .arg(Session::money(gap, true)));
+			gapSeen_ = 0;
+			gapSince_ = 0;
+			changed = true;
+		}
 	}
 	if (changed)
 		emit stateChanged();
