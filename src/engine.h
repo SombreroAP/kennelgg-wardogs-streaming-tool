@@ -338,6 +338,8 @@ public:
 	/// The best squad mate to show when nothing nearer is known: the active one if not Off, else
 	/// any Live one, else -1 when everyone is known to be off.
 	int anyLiveFriend() const;
+	bool confirmedLive(const Friend &f) const;
+	int confirmedLiveFriend() const;
 	/// Ask now whether each Twitch / Kick / YouTube squad mate is live (it is asked every minute
 	/// anyway): a squad mate just added shows live or offline at once.
 	void webLiveTick();
@@ -522,6 +524,8 @@ private:
 	void dualTick();
 	int dualDelayMs_ = 0;
 	QString vehicleSeat_;
+	bool vehicleNotLiveLogged_ = false;
+	void vehicleDualCheck();
 	QString updateState_, newVersion_, newUrl_, newNotes_;
 	bool applied_ = false, detected_ = false, applying_ = false, lookPreview_ = false, previewWanted_ = false;
 	int downRun_ = 0, upRun_ = 0, tickN_ = 0;

@@ -97,6 +97,10 @@ QWizardPage *SetupWizard::pageYou()
 	lookName_ = new QCheckBox("Show a \"POV · NAME\" tag over the squad mate's feed", p);
 	lookName_->setChecked(e_->cfg.lookName);
 	f->addRow(lookName_);
+	auto *vid = new QPushButton(QString::fromUtf8("\u25B6  Watch the setup video"), p);
+	vid->setToolTip("Sombrero sets the plugin up from start to finish (YouTube)");
+	connect(vid, &QPushButton::clicked, this, []() { QDesktopServices::openUrl(QUrl(Config::setupVideoUrl())); });
+	f->addRow("Prefer to watch?", vid);
 	return p;
 }
 

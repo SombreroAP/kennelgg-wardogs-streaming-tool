@@ -183,6 +183,8 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 		m->addAction("Squad: who I am playing with...", this, [this]() { openSquad(); });
 		m->addAction("Settings...", this, [this]() { openSettings(); });
 		m->addAction("Setup...", this, [this]() { openWizard(); });
+		m->addAction("Setup video (YouTube)", this,
+			     []() { QDesktopServices::openUrl(QUrl(Config::setupVideoUrl())); });
 		m->addAction("Logs...", this, [this]() { openLogs(); });
 		m->addAction("Clips: titles and tags...", this, [this]() { openClips(); });
 		auto *chap = m->addAction("Copy YouTube chapters (last stream)", this, [this]() {

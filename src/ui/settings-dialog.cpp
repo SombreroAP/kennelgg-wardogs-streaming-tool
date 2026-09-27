@@ -3062,6 +3062,21 @@ QWidget *SettingsDialog::buildAboutTab()
 {
 	auto *w = new QWidget(this);
 	auto *v = new QVBoxLayout(w);
+	{
+		auto *gv = new QGroupBox("Stuck? Watch the setup video", w);
+		auto *hv = new QHBoxLayout(gv);
+		auto *lbl =
+			muted("Sombrero installs the plugin and sets it up from start to finish: the game source, your "
+			      "squad, clips and the dock.",
+			      gv);
+		auto *watch = new QPushButton(QString::fromUtf8("\u25B6  Watch the setup video"), gv);
+		watch->setToolTip(Config::setupVideoUrl());
+		connect(watch, &QPushButton::clicked, this,
+			[]() { QDesktopServices::openUrl(QUrl(Config::setupVideoUrl())); });
+		hv->addWidget(lbl, 1);
+		hv->addWidget(watch);
+		v->addWidget(gv);
+	}
 	auto *ver = new QGroupBox("This build", w);
 	auto *vf = new QFormLayout(ver);
 	auto *vl = new QLabel(QString("<b>Version %1</b>&nbsp; &nbsp;built for OBS 30+, Windows").arg(PLUGIN_VERSION),

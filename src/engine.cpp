@@ -62,6 +62,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&pipTimer_, &QTimer::timeout, this, &Engine::pipTick);
 	connect(&dualTimer_, &QTimer::timeout, this, &Engine::dualTick);
 	connect(&healthTimer_, &QTimer::timeout, this, &Engine::sendObsHealth);
+	connect(&healthTimer_, &QTimer::timeout, this, &Engine::vehicleDualCheck);
 	sessionStart_ = QDateTime::currentDateTime();
 	connect(&roster, &Roster::changed, this, &Engine::checkAccess);
 	connect(&roster, &Roster::polled, this, &Engine::checkAccess);
@@ -3240,6 +3241,27 @@ bool Engine::inSquadNow(const Friend &f) const
 	return f.playing && st != Feed::Off;
 }
 
+/// Someone worth putting up for a swap nobody asked for (the inventory, a vehicle): confirmed live,
+/// or a feed nothing can check (a VDO.Ninja link, an OBS source) - never a slot whose stream is off
+/// or cannot be vouched for.
+bool Engine::confirmedLive(const Friend &f) const
+{
+	Feed st = feedState(f);
+	if (st == Feed::Live)
+		return true;
+	return st == Feed::Unknown && (f.kind == FriendKind::VdoNinja || f.kind == FriendKind::ObsSource);
+}
+
+int Engine::confirmedLiveFriend() const
+{
+	if (cfg.active() && confirmedLive(*cfg.active()))
+		return cfg.activeFriend;
+	for (size_t i = 0; i < cfg.friends.size(); ++i)
+		if (confirmedLive(cfg.friends[i]))
+			return (int)i;
+	return -1;
+}
+
 int Engine::anyLiveFriend() const
 {
 	if (cfg.active() && feedState(*cfg.active()) != Feed::Off)
@@ -4810,14 +4832,15 @@ void Engine::onInventory(bool open)
 	}
 	if (!cfg.invSwitch || !cfg.enabled || applied_ || detected_ || !cfg.active())
 		return;
-	if (feedState(*cfg.active()) == Feed::Off) {
-		int alt = anyLiveFriend();
-		if (alt < 0) {
-			log("Inventory open, but none of the squad is streaming - staying on your own POV.");
-			return;
-		}
-		setActive(alt);
+	// only onto a squad mate who is actually streaming (0.26.4: a stream that could not be vouched
+	// for used to be enough)
+	int alt = confirmedLiveFriend();
+	if (alt < 0) {
+		log("Inventory open, but no squad mate is confirmed live - staying on your own POV.");
+		return;
 	}
+	if (alt != cfg.activeFriend)
+		setActive(alt);
 	invApplied_ = true;
 	applyNow(true, "inventory open (magazine packing)");
 }
@@ -4828,6 +4851,7 @@ void Engine::onVehicle(const QString &seat)
 	if (!cfg.dual())
 		return;
 	if (seat == "none") {
+		vehicleNotLiveLogged_ = false;
 		// out of the vehicle: a window the detector opened goes - unless asked to stay. One you
 		// turned on yourself is yours to turn off.
 		if (dualOn_ && dualAutoOn_ && !cfg.dualKeep) {
@@ -4857,11 +4881,38 @@ void Engine::onVehicle(const QString &seat)
 				cfg.save();
 			}
 	}
-	if (!dualOn_) {
-		setDual(true, "in a vehicle: " + seat);
-		dualAutoOn_ = dualOn_; // after the call: setDual clears it, and this one was the detector's
-	}
+	vehicleDualCheck();
 	emit stateChanged();
+}
+
+/// In a vehicle with "Auto in vehicles": the dual window opens only for a squad mate who is actually
+/// live - the roster (Discord) or the live check (Twitch, Kick, YouTube) says so - and a window it
+/// opened goes if they stop. Called when the seat changes and every 5 s, so a squad mate who goes
+/// live while you are still in the vehicle comes up then.
+void Engine::vehicleDualCheck()
+{
+	const Friend *f = cfg.dual();
+	if (!f || !cfg.dualAuto || vehicleSeat_.isEmpty() || vehicleSeat_ == "none" || applied_)
+		return;
+	Feed st = feedState(*f);
+	QString who = QString::fromStdString(f->name);
+	if (!dualOn_) {
+		if (!confirmedLive(*f)) {
+			if (!vehicleNotLiveLogged_) {
+				vehicleNotLiveLogged_ = true;
+				log("In a vehicle, but " + who +
+				    " is not confirmed live (Discord or Twitch), so the dual window stays closed until "
+				    "they are.");
+			}
+			return;
+		}
+		vehicleNotLiveLogged_ = false;
+		setDual(true, "in a vehicle: " + vehicleSeat_);
+		dualAutoOn_ = dualOn_; // after the call: setDual clears it, and this one was the detector's
+	} else if (dualAutoOn_ && st == Feed::Off) {
+		dualAutoOn_ = false;
+		setDual(false, who + " is not live any more");
+	}
 }
 
 void Engine::toggleDual()

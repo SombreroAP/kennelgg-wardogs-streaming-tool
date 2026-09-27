@@ -2,6 +2,11 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.26.4
+- **A setup video.** Sombrero installs the plugin and sets it up from start to finish on YouTube. It is one click away: at the top of Settings, Help, in the dock's ⋯ menu (Setup video) and on the first page of Setup.
+- **Vehicles: the dual window only opens for a squad mate who is live.** With "Auto in vehicles", getting into a vehicle opens the dual window only when your Dual POV squad mate is confirmed live - live in your Kennel.gg voice channel for Discord, or live on Twitch, Kick or YouTube. If they are not, it waits and opens as soon as they are while you are still in the vehicle, and a window it opened closes if they stop streaming.
+- **Inventory: a squad mate's POV only goes up if their stream is confirmed live.** Opening the inventory (magazine packing) used to swap to a squad mate whose stream could not be checked, which could put an empty feed on stream. Now it swaps only to someone confirmed live (VDO.Ninja and OBS-source squad mates, which cannot be checked, still count), and stays on your own POV otherwise.
+
 ## 0.26.3
 - **The dock is on screen from the start.** OBS starts a newly installed plugin's dock hidden, so it had to be found under View, Docks. Now the plugin puts it on screen once, docked on the right of the OBS window, the first time OBS starts with this version, including for anyone who installed an earlier one and never found it. Close it and it stays closed; View, Docks brings it back.
 

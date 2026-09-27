@@ -116,6 +116,8 @@ struct Config {
 	static const char *supportUrl() { return "https://streamlabs.com/sombrerogg/tip"; }
 	/// The Kennel.gg Discord, through the plugin's own invite (its joins are counted apart).
 	static const char *kennelDiscordUrl() { return "https://discord.gg/nDyJ7SSM8q"; }
+	// Sombrero's walkthrough: installing the plugin and setting it up, start to finish
+	static const char *setupVideoUrl() { return "https://www.youtube.com/watch?v=KAh9jvCI2HI"; }
 	static const char *kennelHomeGuild() { return "Kennel.gg"; }
 	static const char *botInviteUrl()
 	{
