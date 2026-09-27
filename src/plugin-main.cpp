@@ -22,6 +22,7 @@ GNU General Public License for more details.
 #include <QFontDatabase>
 #include "engine.h"
 #include "ui/dock.h"
+#include <QDockWidget>
 #include "ui/settings-dialog.h"
 
 OBS_DECLARE_MODULE()
@@ -156,9 +157,37 @@ static void saveHotkeys()
 	obs_data_release(d);
 }
 
+/// OBS starts a newly added plugin dock hidden, and people never found it under View, Docks. Once
+/// (after OBS has restored its saved layout, so this is not undone), put it on screen, docked on the
+/// right of the main window. Closed by hand after that, it stays closed.
+static void showDockOnce()
+{
+	if (!g_dock || !g_engine || g_engine->cfg.dockShown1)
+		return;
+	QDockWidget *dw = nullptr;
+	for (QWidget *w = g_dock; w && !dw; w = w->parentWidget())
+		dw = qobject_cast<QDockWidget *>(w);
+	auto *mw = qobject_cast<QMainWindow *>((QWidget *)obs_frontend_get_main_window());
+	if (!dw || !mw)
+		return;
+	if (!dw->isVisible()) {
+		if (dw->isFloating() || mw->dockWidgetArea(dw) == Qt::NoDockWidgetArea) {
+			dw->setFloating(false);
+			mw->addDockWidget(Qt::RightDockWidgetArea, dw);
+		}
+		dw->show();
+		dw->raise();
+		blog(LOG_INFO, "[kennelgg] dock shown (first start of a version that shows it)");
+	}
+	g_engine->cfg.dockShown1 = true;
+	g_engine->cfg.save();
+}
+
 static void onFrontendEvent(enum obs_frontend_event event, void *)
 {
 	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
+		// a moment after loading: OBS applies its saved dock layout on the way
+		QTimer::singleShot(500, [] { showDockOnce(); });
 		if (g_engine) {
 			g_engine->start();
 			// Setup opens by itself only when nobody is live: a window over OBS mid-stream can land

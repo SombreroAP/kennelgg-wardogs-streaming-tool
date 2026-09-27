@@ -108,6 +108,7 @@ struct Config {
 	std::string rosterChannel;    // only this voice channel ("" = whichever one people are in)
 	std::string rosterGuild;      // only this Discord server ("" = every one the bot can see)
 	bool setupDone = false;       // the setup ran once; an empty squad at start is normal with pop-outs
+	bool dockShown1 = false;      // the dock was put on screen once (OBS starts a new plugin dock hidden)
 	int startCount = 0;           // OBS starts with the plugin loaded, for the one-time support note
 	bool dockCompact = false;     // the dock shows only what is used mid-match
 	bool dockCompactLive = false; // ...but only while streaming or recording

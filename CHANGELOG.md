@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.26.3
+- **The dock is on screen from the start.** OBS starts a newly installed plugin's dock hidden, so it had to be found under View, Docks. Now the plugin puts it on screen once, docked on the right of the OBS window, the first time OBS starts with this version, including for anyone who installed an earlier one and never found it. Close it and it stays closed; View, Docks brings it back.
+
 ## 0.26.2
 - **The stinger whoosh is half as loud by default, with its own volume.** The whoosh on the instant replay and SWITCHING POV stingers now plays at 50 % of its old level. Settings, Clips & replays: "Whoosh sound on the stingers" turns it off, and "Whoosh volume" sets it anywhere from 0 to 100 % (100 % is the old level). It changes on stream at once.
 

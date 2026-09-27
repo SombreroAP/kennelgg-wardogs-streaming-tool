@@ -143,6 +143,7 @@ void Config::load()
 	DEFS(rosterChannel);
 	DEFS(rosterGuild);
 	DEFB(setupDone);
+	DEFB(dockShown1);
 	DEFI(startCount);
 	DEFB(supportAsked);
 	DEFB(dockCompact);
@@ -353,6 +354,7 @@ void Config::load()
 	GETS(rosterChannel);
 	GETS(rosterGuild);
 	GETB(setupDone);
+	GETB(dockShown1);
 	GETI(startCount);
 	GETB(supportAsked);
 	GETB(dockCompact);
@@ -748,6 +750,7 @@ void Config::save() const
 	SETS(rosterChannel);
 	SETS(rosterGuild);
 	SETB(setupDone);
+	SETB(dockShown1);
 	SETI(startCount);
 	SETB(supportAsked);
 	SETB(dockCompact);
