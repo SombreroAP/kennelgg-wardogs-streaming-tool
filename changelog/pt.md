@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.28.2
+- **Toda escolha rápida mostra $ por minuto.** O dinheiro ganho por minuto em jogo é a medida mais justa do quanto você faz pelo seu lado, seja qual for sua função, então as barras Fragger, Médico, Recon e Motorista agora também mostram (Logística, Construtor, Objetivo e Versátil já mostravam).
+
 ## 0.28.1
 - **O abate mais longo não está mais na barra de estatísticas da sessão.** Ele saiu das opções da barra e da escolha rápida "Fragger", que agora mostra o dinheiro de combate no lugar. Uma barra que o mostrava simplesmente o deixa de fora. Ele continua na imagem de estatísticas e no resumo do fim da live.
 

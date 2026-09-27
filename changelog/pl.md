@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.28.2
+- **Każdy szybki wybór pokazuje $ na minutę.** Kasa zarobiona na minutę w grze to najuczciwsza miara tego, ile robisz dla swojej strony, niezależnie od roli, więc paski Fragger, Medyk, Zwiadowca i Kierowca też ją teraz pokazują (Logistyk, Budowniczy, Cele i Uniwersalny już ją miały).
+
 ## 0.28.1
 - **Najdłuższego zabójstwa nie ma już na pasku statystyk sesji.** Zniknęło z opcji paska i z szybkiego wyboru „Fragger”, który zamiast niego pokazuje kasę z walki. Pasek, na którym było wybrane, po prostu je pomija. Nadal jest na obrazku ze statystykami i w podsumowaniu po zakończeniu streama.
 

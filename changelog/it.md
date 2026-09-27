@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.28.2
+- **Ogni scelta rapida mostra i $ al minuto.** I soldi guadagnati al minuto in gioco sono la misura più giusta di quanto fai per la tua squadra, qualunque sia il tuo ruolo, quindi ora li mostrano anche le barre Fragger, Medico, Recon e Pilota (Logistica, Costruttore, Obiettivo e Tuttofare li avevano già).
+
 ## 0.28.1
 - **L'uccisione più lunga non è più nella barra delle statistiche della sessione.** È stata tolta dalle scelte della barra e dalla scelta rapida "Fragger", che al suo posto mostra i soldi dal combattimento. Una barra che la mostrava semplicemente la salta. Resta nell'immagine delle statistiche e nel riepilogo di fine stream.
 

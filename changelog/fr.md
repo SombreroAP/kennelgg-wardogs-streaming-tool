@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.28.2
+- **Chaque choix rapide affiche le $ par minute.** L'argent gagné par minute en jeu est la mesure la plus juste de ce que tu apportes à ton camp, quel que soit ton rôle : les barres Fragger, Médic, Recon et Pilote l'affichent donc aussi (Logistique, Bâtisseur, Objectif et Polyvalent l'avaient déjà).
+
 ## 0.28.1
 - **Le kill le plus long n'est plus dans la barre des stats de session.** Il est retiré des choix de la barre et du choix rapide « Fragger », qui affiche à la place l'argent du combat. Une barre qui l'affichait l'omet simplement. Il reste sur l'image de stats et dans le résumé de fin de stream.
 

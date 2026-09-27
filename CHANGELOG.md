@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.28.2
+- **Every quick pick shows $ per minute.** Money earned per minute in game is the fairest measure of how much you do for your side, whatever your role, so the Fragger, Medic, Recon and Driver bars now include it too (Logistics, Builder, Objective and All-round already did).
+
 ## 0.28.1
 - **Longest kill is no longer on the session stats bar.** It is gone from the bar's choices and from the Fragger quick pick, which shows combat money in its place. A bar that had it simply leaves it out. It is still on the stats image and in the end-of-stream summary.
 

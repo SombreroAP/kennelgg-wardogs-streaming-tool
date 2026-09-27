@@ -164,12 +164,12 @@ QString Session::why(const QString &r)
 const QList<Session::Preset> &Session::presets()
 {
 	static const QList<Preset> list = {
-		{"fragger", TX_NOOP("Fragger"), "kda,kd,headshots,combatCash,net"},
-		{"medic", TX_NOOP("Medic"), "revives,heals,medicCash,net"},
-		{"recon", TX_NOOP("Recon"), "spots,reconCash,kda,net"},
+		{"fragger", TX_NOOP("Fragger"), "kda,kd,headshots,combatCash,net,permin"},
+		{"medic", TX_NOOP("Medic"), "revives,heals,medicCash,net,permin"},
+		{"recon", TX_NOOP("Recon"), "spots,reconCash,kda,net,permin"},
 		{"logistics", TX_NOOP("Logistics"), "supplies,logisticsCash,net,permin"},
 		{"builder", TX_NOOP("Builder"), "builds,buildCash,net,permin"},
-		{"driver", TX_NOOP("Driver"), "transports,transportCash,vehicles,net"},
+		{"driver", TX_NOOP("Driver"), "transports,transportCash,vehicles,net,permin"},
 		{"objective", TX_NOOP("Objective"), "objectiveCash,kda,net,permin"},
 		{"all-round", TX_NOOP("All-round"), "kda,revives,net,permin"},
 	};

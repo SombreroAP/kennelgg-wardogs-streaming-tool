@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.28.2
+- **Todas las selecciones rápidas muestran $ por minuto.** El dinero ganado por minuto de partida es la medida más justa de lo que aportas a tu bando, sea cual sea tu rol, así que las barras Fragger, Médico, Recon y Conductor también lo incluyen ahora (Logística, Constructor, Objetivo y Todoterreno ya lo tenían).
+
 ## 0.28.1
 - **La baja más lejana ya no está en la barra de estadísticas de la sesión.** Se ha quitado de las opciones de la barra y de la selección rápida «Fragger», que ahora muestra el dinero de combate en su lugar. Una barra que la tenía simplemente la omite. Sigue en la imagen de estadísticas y en el resumen del final del directo.
 

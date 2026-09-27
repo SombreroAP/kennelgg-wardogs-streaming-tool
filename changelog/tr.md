@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.28.2
+- **Her hızlı seçim dakika başına $ gösteriyor.** Oyunda dakika başına kazanılan para, rolün ne olursa olsun tarafın için ne kadar iş yaptığının en adil ölçüsü; bu yüzden Fragger, Medik, Keşifçi ve Sürücü çubukları da artık bunu gösteriyor (Lojistik, İnşaatçı, Hedef ve Çok yönlü zaten gösteriyordu).
+
 ## 0.28.1
 - **En uzak leş artık oturum istatistik çubuğunda yok.** Çubuğun seçeneklerinden ve "Fragger" hızlı seçiminden kaldırıldı; onun yerine çatışmadan kazanılan para gösteriliyor. Onu gösteren bir çubuk artık sadece atlıyor. İstatistik görselinde ve yayın sonu özetinde hâlâ var.
 

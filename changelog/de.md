@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.28.2
+- **Jede Schnellauswahl zeigt $ pro Minute.** Das pro Minute im Spiel verdiente Geld ist das fairste Maß dafür, wie viel du für dein Team leistest, egal in welcher Rolle. Darum zeigen jetzt auch die Leisten Fragger, Medic, Recon und Fahrer diesen Wert (Logistik, Builder, Ziele und Allrounder hatten ihn schon).
+
 ## 0.28.1
 - **Der weiteste Kill ist nicht mehr in der Session-Stats-Leiste.** Er ist aus den Auswahlmöglichkeiten der Leiste und aus der Schnellauswahl „Fragger“ entfernt, die stattdessen das Geld aus dem Kampf zeigt. Eine Leiste, in der er gewählt war, lässt ihn einfach weg. Im Statistikbild und in der Zusammenfassung am Ende des Streams ist er weiterhin enthalten.
 
