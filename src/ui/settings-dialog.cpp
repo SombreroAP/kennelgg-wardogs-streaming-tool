@@ -687,6 +687,28 @@ SettingsDialog::~SettingsDialog()
 		e_->previewLook(false);
 }
 
+void SettingsDialog::fillSessionShow(const QStringList &chosen)
+{
+	sessionShow_->clear();
+	auto add = [this](const QString &id, const QString &label, bool on) {
+		auto *it = new QListWidgetItem(txv(label), sessionShow_);
+		it->setData(Qt::UserRole, id);
+		it->setFlags(it->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
+		it->setCheckState(on ? Qt::Checked : Qt::Unchecked);
+	};
+	// the chosen ones first, in their order, then the rest
+	QStringList ids;
+	for (const QString &id : chosen)
+		ids << id.trimmed();
+	for (const QString &id : ids)
+		for (const auto &el : Session::elements())
+			if (el.first == id)
+				add(el.first, el.second, true);
+	for (const auto &el : Session::elements())
+		if (!ids.contains(el.first))
+			add(el.first, el.second, false);
+}
+
 void SettingsDialog::showPage(const QString &key)
 {
 	int i = tabKeys_.indexOf(key);
@@ -1840,23 +1862,7 @@ QWidget *SettingsDialog::buildClipsTab()
 	sessionShow_->setMaximumHeight(150);
 	sessionShow_->setToolTip(tx("Tick what the \"This session\" bar shows on stream; drag to change the order. "
 				    "It changes on stream at once."));
-	{
-		QStringList chosen = QString::fromStdString(e_->cfg.sessionShow).split(',', Qt::SkipEmptyParts);
-		auto add = [this](const QString &id, const QString &label, bool on) {
-			auto *it = new QListWidgetItem(txv(label), sessionShow_);
-			it->setData(Qt::UserRole, id);
-			it->setFlags(it->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
-			it->setCheckState(on ? Qt::Checked : Qt::Unchecked);
-		};
-		// the chosen ones first, in their order, then the rest
-		for (const QString &id : chosen)
-			for (const auto &el : Session::elements())
-				if (el.first == id.trimmed())
-					add(el.first, el.second, true);
-		for (const auto &el : Session::elements())
-			if (!chosen.contains(el.first))
-				add(el.first, el.second, false);
-	}
+	fillSessionShow(QString::fromStdString(e_->cfg.sessionShow).split(',', Qt::SkipEmptyParts));
 	sessionOverlayOn_ = new QCheckBox(tx("Show the \"This session\" bar on stream (it slides in and out)"), gi);
 	sessionOverlayOn_->setChecked(e_->cfg.sessionOverlayOn);
 	fi->addRow(sessionOverlayOn_);
@@ -1880,6 +1886,35 @@ QWidget *SettingsDialog::buildClipsTab()
 	for (auto *cb : {sessionOverlayPos_, sessionOverlayMode_})
 		connect(cb, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) { saveAndApply(); });
 	fi->addRow(tx("On-stream bar shows"), sessionShow_);
+	{
+		// one click to a bar that fits how you play: not everyone's stream is about K/D/A
+		auto *row = new QWidget(gi);
+		auto *fl = new FlowLayout(row, 6);
+		for (const Session::Preset &pr : Session::presets()) {
+			auto *b = new QPushButton(txv(pr.label), row);
+			QStringList what;
+			for (const QString &id : QString(pr.show).split(','))
+				for (const auto &el : Session::elements())
+					if (el.first == id)
+						what << txv(el.second);
+			b->setToolTip(tx("Show %1 on the bar").arg(what.join(", ")));
+			QString show = pr.show;
+			connect(b, &QPushButton::clicked, this, [this, show]() {
+				building_ = true;
+				fillSessionShow(show.split(','));
+				building_ = false;
+				saveAndApply();
+			});
+			fl->addWidget(b);
+		}
+		fi->addRow(tx("Quick pick"), row);
+		fi->addRow(
+			muted(tx("Medic, recon, logistics, builder and driver numbers come from the reward lines under "
+				 "your balance (heals, spots, supplies, builds, passengers), so they count in English "
+				 "games. A reward the plugin does not know yet is written to the log; send it in a "
+				 "ticket and it gets its role."),
+			      gi));
+	}
 	statsShare_ = new QCheckBox(tx("Share my session stats with kennel.gg for the public leaderboards"), gi);
 	statsShare_->setChecked(e_->cfg.statsConsent == 1);
 	statsShare_->setToolTip(tx(

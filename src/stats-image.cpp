@@ -1,4 +1,5 @@
 #include "stats-image.h"
+#include <algorithm>
 #include "i18n.h"
 #include <QFontDatabase>
 #include <QFileInfo>
@@ -132,10 +133,34 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 		{Session::money(s.earned), tx("Earned"), kOlive},
 		{Session::money(s.spent), tx("Spent"), kRed},
 		{s.perMinute() >= 0 ? Session::money(s.perMinute()) : QString("-"), tx("$ per minute"), kOlive},
+	};
+	// the bottom row: what you did for the squad when you did (a medic's night is heals, not headshots),
+	// the ones that earned most first, then headshots, longest kill and vehicles to fill it
+	struct Support {
+		int n;
+		int64_t cash;
+		QString label;
+	};
+	QList<Support> support = {
+		{s.heals, s.roleEarned[Session::Medical], tx("Heals")},
+		{s.spots, s.roleEarned[Session::Recon], tx("Enemies spotted")},
+		{s.supplies, s.roleEarned[Session::Logistics], tx("Supplies delivered")},
+		{s.builds, s.roleEarned[Session::Building], tx("Things built")},
+		{s.transports, s.roleEarned[Session::Transport], tx("Passengers transported")},
+	};
+	std::stable_sort(support.begin(), support.end(),
+			 [](const Support &a, const Support &b) { return a.cash > b.cash; });
+	for (const Support &x : support)
+		if (x.n > 0 && cells.size() < 9)
+			cells.append({num(x.n), x.label, kOlive});
+	QList<Cell> fill = {
 		{num(s.headshotCount()), tx("Headshots"), kBone},
 		{s.longestKillM ? tx("%1 m").arg(s.longestKillM) : QString("-"), tx("Longest kill"), kBone},
 		{num(s.vehicles), tx("Vehicles destroyed"), kBone},
 	};
+	for (const Cell &c : fill)
+		if (cells.size() < 9)
+			cells.append(c);
 	const int top = 430, colW = 390, rowH = 158;
 	for (int i = 0; i < cells.size(); ++i) {
 		int x = L + (i % 3) * colW, y = top + (i / 3) * rowH;

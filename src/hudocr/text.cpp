@@ -13,7 +13,10 @@ const std::vector<std::string> &knownReasons()
 		"CONTROL ZONE PRESENCE", "HOT ZONE PRESENCE", "REVIVED TEAMMATE", "HEADSHOT", "ASSIST",
 		"PURCHASE REFUNDED",
 		// reported from a real 1440p match (read as "CONTROL ZONE ENTEREO", ...)
-		"CONTROL ZONE ENTERED", "HOT ZONE ENTERED", "SUPPLIED PLAYER ASSIST"};
+		"CONTROL ZONE ENTERED", "HOT ZONE ENTERED", "SUPPLIED PLAYER ASSIST",
+		// every reason the tournament server has seen from real matches (224k lines, 27 Sep 2026)
+		"REVIVE", "TEAMMATE REVIVED", "HOT ZONE REVIVE", "PASSENGER TRANSPORT", "SUPPLIES DELIVERED",
+		"LONG RANGE KILL"};
 	return r;
 }
 
@@ -23,18 +26,20 @@ const std::vector<std::string> &knownWords()
 	// _HUD_WORDS and the category stems): a read word is only kept when it snaps to one of these.
 	static const std::vector<std::string> w = [] {
 		std::vector<std::string> v = {
-			"KILL",          "CONFIRMED", "REVENGE",   "CONTROL",    "ZONE",        "PRESENCE",
-			"HOT",           "ROTORS",    "DESTROYED", "VEHICLE",    "REVIVE",      "REVIVED",
-			"HEADSHOT",      "ASSIST",    "SUPPLY",    "SUPPLIES",   "SUPPLIED",    "DELIVERED",
-			"PASSENGER",     "TRANSPORT", "SPAWN",     "FOB",        "BUILT",       "REPAIR",
-			"REPAIRED",      "REFUNDED",  "PURCHASE",  "BRIBE",      "CAPTURE",     "CAPTURED",
-			"OBJECTIVE",     "ENEMY",     "DOWNED",    "EXECUTION",  "LONG",        "RANGE",
-			"SHOT",          "MULTI",     "DOUBLE",    "TRIPLE",     "BONUS",       "TEAMMATE",
-			"SQUAD",         "FRIENDLY",  "HEAL",      "HEALED",     "AMMO",        "RESUPPLY",
-			"DEFIBRILLATOR", "ENTERED",   "ENTERING",  "HELD",       "PLAYER",      "KILLED",
-			"ASSISTED",      "SECURED",   "DESTROY",   "ELIMINATED", "STREAK",      "EXTRACTED",
-			"SPOTTED",       "DAMAGED",   "DISABLED",  "BUILD",      "CRATE",       "PALLET",
-			"SECTOR",        "HOLD",      "REFUND",    "ZONES",      "TRANSPORTED", "RESUSCITATED"};
+			"KILL", "CONFIRMED", "REVENGE", "CONTROL", "ZONE", "PRESENCE", "HOT", "ROTORS", "DESTROYED",
+			"VEHICLE", "REVIVE", "REVIVED", "HEADSHOT", "ASSIST", "SUPPLY", "SUPPLIES", "SUPPLIED",
+			"DELIVERED", "PASSENGER", "TRANSPORT", "SPAWN", "FOB", "BUILT", "REPAIR", "REPAIRED",
+			"REFUNDED", "PURCHASE", "BRIBE", "CAPTURE", "CAPTURED", "OBJECTIVE", "ENEMY", "DOWNED",
+			"EXECUTION", "LONG", "RANGE", "SHOT", "MULTI", "DOUBLE", "TRIPLE", "BONUS", "TEAMMATE", "SQUAD",
+			"FRIENDLY", "HEAL", "HEALED", "AMMO", "RESUPPLY", "DEFIBRILLATOR", "ENTERED", "ENTERING",
+			"HELD", "PLAYER", "KILLED", "ASSISTED", "SECURED", "DESTROY", "ELIMINATED", "STREAK",
+			"EXTRACTED", "SPOTTED", "DAMAGED", "DISABLED", "BUILD", "CRATE", "PALLET", "SECTOR", "HOLD",
+			"REFUND", "ZONES", "TRANSPORTED", "RESUSCITATED",
+			// the words a medic's, recon's, builder's or supplier's reward is likely to use (0.28.0): a
+			// line in these words gets its role even before its exact wording is known
+			"SPOT", "SPOTTING", "MARKED", "RECON", "INTEL", "SCOUTED", "REVEALED", "DETECTED", "HEALING",
+			"STIM", "MEDKIT", "BANDAGE", "CONSTRUCTED", "CONSTRUCTION", "FORTIFICATION", "STRUCTURE",
+			"PLACED", "DEPLOYED", "RESUPPLIED", "REFUELED", "FUEL", "TEAMMATES", "ALLY"};
 		for (const std::string &r : knownReasons()) {
 			size_t a = 0;
 			while (a < r.size()) {

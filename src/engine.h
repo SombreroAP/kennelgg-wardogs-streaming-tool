@@ -566,8 +566,10 @@ private:
 	QDateTime voiceHeardAt_;
 	void setVoiceHeard(const QString &text, int kind);
 	QSet<QString> dismissed_;
-	bool langBanner_ = false;            // the damage log never matched a wording we have
-	QString oldCopy_;                    // an older copy of the plugin found installed
+	bool langBanner_ = false;
+	QSet<QString>
+		unknownReasons_; // reward lines already logged as not recognised (once each)            // the damage log never matched a wording we have
+	QString oldCopy_;        // an older copy of the plugin found installed
 	QHash<QString, quintptr> minimised_; // squad mates whose pop-out is minimised, and its window
 	QStringList muteNames_;              // pop-outs just added: mute them in Discord
 	QStringList nameCheck_;              // just added while Closest is on: check their in-game names

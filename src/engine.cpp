@@ -2325,22 +2325,17 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				session_.earned += e.amt;
 				if (reason.contains("ZONE"))
 					session_.zoneEarned += e.amt;
-				// what it was for, in the words the bar has room for: only a reason the reader knows
-				// (a game in another language, or letters it could not settle, is just REWARD - never
-				// letter salad on stream)
-				bool known = false;
-				for (const std::string &k : hud::knownReasons())
-					if (reason == QString::fromStdString(k))
-						known = true;
-				QString why = !known                          ? "REWARD"
-					      : reason.contains("KILL")       ? "KILL"
-					      : reason.contains("ASSIST")     ? "ASSIST"
-					      : reason == "REVIVED TEAMMATE"  ? "REVIVE"
-					      : reason == "HEADSHOT"          ? "HEADSHOT"
-					      : reason.contains("DESTROYED")  ? "VEHICLE"
-					      : reason.contains("ZONE")       ? "ZONE"
-					      : reason == "PURCHASE REFUNDED" ? "REFUND"
-									      : "REWARD";
+				session_.roleEarned[Session::role(reason)] += e.amt;
+				// what it was for, in the words the bar has room for: a code from the reason's words
+				// (KILL, REVIVE, HEAL, SPOT, SUPPLY...), translated on the page. A game in another language,
+				// or letters that could not settle, is just REWARD - never letter salad on stream
+				QString why = Session::why(reason);
+				if (why == "REWARD" && !reason.isEmpty() && !unknownReasons_.contains(reason)) {
+					// a reward line the plugin has no role for: in the log, so its wording can be added
+					unknownReasons_.insert(reason);
+					blog(LOG_INFO, "[kennelgg] reward line not recognised: \"%s\" +$%lld",
+					     reason.toUtf8().constData(), (long long)e.amt);
+				}
 				session_.noteMoney(e.amt, why);
 				changed = true;
 			}
@@ -2359,12 +2354,32 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				session_.hudKills++;
 			else if (reason == "ASSIST")
 				session_.assists++;
-			else if (reason == "REVIVED TEAMMATE")
-				session_.revives++;
+			else if (reason.contains("REVIV") || reason.contains("RESUSC"))
+				session_.revives++; // REVIVE, TEAMMATE REVIVED, HOT ZONE REVIVE (real matches, Sep 2026)
 			else if (reason == "HEADSHOT")
 				session_.headshots++;
 			else if (reason == "VEHICLE DESTROYED" || reason == "ROTORS DESTROYED")
 				session_.vehicles++;
+			else
+				switch (Session::role(reason)) {
+				case Session::Medical:
+					session_.heals++;
+					break;
+				case Session::Recon:
+					session_.spots++;
+					break;
+				case Session::Logistics:
+					session_.supplies++;
+					break;
+				case Session::Building:
+					session_.builds++;
+					break;
+				case Session::Transport:
+					session_.transports++;
+					break;
+				default:
+					break;
+				}
 			changed = true;
 		}
 	}
@@ -2418,10 +2433,14 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 					}
 				}
 				session_.earned += gap;
-				if (asKill > 0)
+				if (asKill > 0) {
 					session_.noteMoney(asKill, "KILL");
-				if (left > 0)
+					session_.roleEarned[Session::Combat] += asKill;
+				}
+				if (left > 0) {
 					session_.noteMoney(left, "REWARD");
+					session_.roleEarned[Session::Other] += left;
+				}
 				if (asKill > 0)
 					log(tx("Session balance: %1 of it the kill ticker shows as kill money.")
 						    .arg(Session::money(asKill, true)));

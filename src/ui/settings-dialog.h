@@ -62,6 +62,7 @@ public:
 	~SettingsDialog() override;
 	/// Bring a tab to the front: general, squad, dual, clips, vertical, voice, look, advanced, logs, help.
 	void showPage(const QString &key);
+	void fillSessionShow(const QStringList &chosen); // the bar's list: these ticked, in order, then the rest
 	QString currentPage() const { return tabs_ ? tabKeys_.value(tabs_->currentIndex()) : QString(); }
 
 private:

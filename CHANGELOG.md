@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.28.0
+- **Stats for every way to play, not just K/D/A.** The session stats bar can now show what medics, recon, logistics players, builders and drivers do: heals, enemies spotted, supplies delivered, things built and passengers transported, and the money each of those roles brought in (medic $, recon $, logistics $, builder $, transport $, objective $, combat $). Settings, Clips & replays: tick them in "On-stream bar shows", or use **Quick pick** for a ready-made bar: Fragger, Medic, Recon, Logistics, Builder, Driver, Objective or All-round. The reason beside your balance says HEAL, SPOT, SUPPLY, BUILD or TRANSPORT too, and the stats image swaps its bottom row for your support numbers when you have them.
+- **Fixed: revives were not counted.** The game writes REVIVE, TEAMMATE REVIVED and HOT ZONE REVIVE; the plugin only knew another wording, so the Revives number could stay at 0. It now uses the wording from real matches, as do passengers (PASSENGER TRANSPORT), supplies (SUPPLIES DELIVERED) and long-range kills.
+- Heals, spots and building are matched by their words, as their exact wording has not been seen in a match yet. A reward the plugin cannot place is written once to the log ("reward line not recognised"), so send it in a ticket and it gets its role. These are read from the English reward lines, like assists and revives.
+- **Longest kill** was already one of the bar's choices and is part of the Fragger pick.
+
 ## 0.27.0
 - **The plugin speaks your language.** Settings, the dock, Setup, the Squad panel and every message are now in 14 languages: English, Deutsch, Français, Español, Italiano, Português (Brasil), Polski, Türkçe, Русский, Українська, 日本語, 한국어, 简体中文 and 繁體中文, the same 14 the game has. It follows the language OBS is in unless you pick another: Settings, General, **Plugin language**. The change takes effect at once, with no restart.
 - **On stream too.** The INSTANT REPLAY and SWITCHING POV stingers, the LIVE frame, the replay tag, the name tag, the session stats bar and its reasons (KILL, REVIVE, PURCHASE...), the stats image and the highlights title cards are all in the chosen language. Japanese, Korean, Chinese and Cyrillic are drawn in the matching Windows fonts, and a long title shrinks to fit the screen. A replay label or name tag you typed yourself stays as you wrote it.

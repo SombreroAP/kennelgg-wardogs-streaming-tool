@@ -19,8 +19,19 @@ struct Session {
 	int assists = 0, revives = 0, headshots = 0, feedHeadshots = 0, vehicles = 0;
 	int64_t earned = 0;     // every +$ line added up
 	int64_t zoneEarned = 0; // of which control / hot zone presence
-	int64_t spent = 0;      // every drop in your balance that lasted (a loadout, a purchase)
-	int64_t activeMs = 0;   // time in game: only while your balance is on screen (not menus, map, loading)
+	/// What you did for the squad besides fighting, from the reward lines' wording (Session::role):
+	/// how many times, and the money each role brought in.
+	int heals = 0, spots = 0, supplies = 0, builds = 0, transports = 0;
+	enum Role { Combat, Medical, Recon, Logistics, Building, Transport, Objective, Refund, Other, RoleCount };
+	int64_t roleEarned[RoleCount] = {};
+	/// The role a reward line is for, by its (English) words; the same order as the tournament
+	/// server's categories (a HOT ZONE REVIVE is medical, not objective), with recon and building on
+	/// their own for the on-stream bar.
+	static Role role(const QString &reason);
+	/// The word the bar shows beside the balance for a reward line ("KILL", "HEAL", "SPOT"...).
+	static QString why(const QString &reason);
+	int64_t spent = 0;    // every drop in your balance that lasted (a loadout, a purchase)
+	int64_t activeMs = 0; // time in game: only while your balance is on screen (not menus, map, loading)
 	/// Money earned per minute in game; -1 until there is half a minute of it to go on.
 	int64_t perMinute() const { return activeMs >= 30000 ? earned * 60000 / activeMs : -1; }
 	bool haveBalance = false;
@@ -54,6 +65,11 @@ struct Session {
 	/// The labels are English (TX_NOOP): show them with txv().
 	static const QList<QPair<QString, QString>> &elements();
 	static QString defaultShow() { return "kda,revives,net,permin"; }
+	/// Ready-made choices for the bar, by the way you play: id, label (TX_NOOP), what it shows.
+	struct Preset {
+		const char *id, *label, *show;
+	};
+	static const QList<Preset> &presets();
 	int64_t net() const { return earned - spent; } // the session balance: up or down on the session
 	static QString money(int64_t v, bool sign = false);
 };

@@ -111,13 +111,27 @@ body { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-wei
     spent:     [t("Spent"), "spent",     function (s) { return s.spentText || "$0"; }],
     permin:    [t("$ / min"), "money",   function (s) { return s.perMinText || "-"; }],
     balance:   [t("Balance"), "money",   function (s) { return s.balanceChangeText || "-"; }],
-    longest:   [t("Longest"), "",        function (s) { return s.longest ? t("%1 m").replace("%1", s.longest) : "-"; }]
+    longest:   [t("Longest"), "",        function (s) { return s.longest ? t("%1 m").replace("%1", s.longest) : "-"; }],
+    // the squad's other jobs, from the reward lines' wording (Session::role)
+    heals:        [t("Heals"), "",             function (s) { return String(s.heals || 0); }],
+    spots:        [t("Spots"), "",             function (s) { return String(s.spots || 0); }],
+    supplies:     [t("Supplies"), "",          function (s) { return String(s.supplies || 0); }],
+    builds:       [t("Built"), "",             function (s) { return String(s.builds || 0); }],
+    transports:   [t("Passengers"), "",        function (s) { return String(s.transports || 0); }],
+    medicCash:    [t("Medic $"), "money",      function (s) { return money(s.medicCash || 0); }],
+    reconCash:    [t("Recon $"), "money",      function (s) { return money(s.reconCash || 0); }],
+    logisticsCash:[t("Logistics $"), "money",  function (s) { return money(s.logisticsCash || 0); }],
+    buildCash:    [t("Builder $"), "money",    function (s) { return money(s.buildCash || 0); }],
+    transportCash:[t("Transport $"), "money",  function (s) { return money(s.transportCash || 0); }],
+    objectiveCash:[t("Objective $"), "money",  function (s) { return money(s.objectiveCash || 0); }],
+    combatCash:   [t("Combat $"), "money",     function (s) { return money(s.combatCash || 0); }]
   };
   document.getElementById("thisSession").innerHTML = t("This<br>session");
   // what a change of the balance was for: the plugin sends these codes (Engine::noteMoney)
   var WHY = { KILL: t("KILL"), ASSIST: t("ASSIST"), REVIVE: t("REVIVE"), HEADSHOT: t("HEADSHOT"),
               VEHICLE: t("VEHICLE"), ZONE: t("ZONE"), REFUND: t("REFUND"), REWARD: t("REWARD"),
-              SPENT: t("SPENT"), PURCHASE: t("PURCHASE") };
+              SPENT: t("SPENT"), PURCHASE: t("PURCHASE"), HEAL: t("HEAL"), SPOT: t("SPOT"),
+              SUPPLY: t("SUPPLY"), BUILD: t("BUILD"), TRANSPORT: t("TRANSPORT") };
   var bar = document.getElementById("bar"), shown = "";
   function build(ids) {
     Array.prototype.slice.call(bar.querySelectorAll(".c")).forEach(function (n) { n.remove(); });
@@ -193,12 +207,15 @@ body { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-wei
     if (n("deaths") > 0) parts.push("+" + n("deaths") + " D");
     if (n("assists") > 0) parts.push("+" + n("assists") + " A");
     out.kda = parts.join("  ");
-    ["kills", "deaths", "assists", "revives", "downs", "headshots", "vehicles"].forEach(function (k) {
+    ["kills", "deaths", "assists", "revives", "downs", "headshots", "vehicles",
+     "heals", "spots", "supplies", "builds", "transports"].forEach(function (k) {
       if (n(k) > 0) out[k] = "+" + n(k);
     });
     if (n("earned") > 0) out.earned = "+" + money(n("earned"));
     if (n("spent") > 0) out.spent = "+" + money(n("spent"));
     if (n("net") !== 0) out.net = signed(n("net"));
+    ["medicCash", "reconCash", "logisticsCash", "buildCash", "transportCash", "objectiveCash", "combatCash"]
+      .forEach(function (k) { if (n(k) > 0) out[k] = "+" + money(n(k)); });
     // what each new change was for, from the plugin's log of them
     var seen = prev.moneyLog && prev.moneyLog.length ? prev.moneyLog[prev.moneyLog.length - 1].seq : 0;
     var fresh = (s.moneyLog || []).filter(function (m) { return m.seq > seen; });
@@ -216,7 +233,7 @@ body { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-wei
       var el = document.getElementById("c-" + id);
       if (!el) return;
       var text = CELLS[id][2](s), b = el.querySelector("b");
-      if ((id === "earned" || id === "spent") && prev && (s[id] || 0) > (prev[id] || 0)) {
+      if ((id === "earned" || id === "spent" || /Cash$/.test(id)) && prev && (s[id] || 0) > (prev[id] || 0)) {
         roll(id, prev[id] || 0, s[id] || 0);
       } else if (id === "net" && prev && (s.net || 0) !== (prev.net || 0)) {
         roll(id, prev.net || 0, s.net || 0);        // counts up or down to it, the colour following

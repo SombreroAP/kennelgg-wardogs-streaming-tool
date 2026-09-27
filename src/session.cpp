@@ -1,4 +1,5 @@
 #include "session.h"
+#include <QRegularExpression>
 #include "i18n.h"
 #include <QJsonArray>
 #include <QStringList>
@@ -33,6 +34,16 @@ QString Session::line() const
 		p << (assists == 1 ? tx("1 assist") : tx("%1 assists").arg(assists));
 	if (revives)
 		p << (revives == 1 ? tx("1 revive") : tx("%1 revives").arg(revives));
+	if (heals)
+		p << (heals == 1 ? tx("1 heal") : tx("%1 heals").arg(heals));
+	if (spots)
+		p << (spots == 1 ? tx("1 spot") : tx("%1 spots").arg(spots));
+	if (supplies)
+		p << tx("Supplies: %1").arg(supplies);
+	if (builds)
+		p << tx("Built: %1").arg(builds);
+	if (transports)
+		p << tx("Passengers: %1").arg(transports);
 	if (earned)
 		p << tx("%1 earned").arg(money(earned));
 	if (spent)
@@ -66,11 +77,103 @@ QString Session::summary() const
 	if (haveBalance)
 		l << tx("Balance %1 -> %2 (%3)")
 				.arg(money(balanceStart), money(balanceNow), money(balanceNow - balanceStart, true));
+	if (heals || spots || supplies || builds || transports)
+		l << tx("Heals %1   Spots %2   Supplies %3   Built %4   Passengers %5")
+				.arg(QString::number(heals), QString::number(spots), QString::number(supplies),
+				     QString::number(builds), QString::number(transports));
+	{
+		QStringList by;
+		const char *names[RoleCount] = {TX_NOOP("combat"),
+						TX_NOOP("medic"),
+						TX_NOOP("recon"),
+						TX_NOOP("logistics"),
+						TX_NOOP("building"),
+						TX_NOOP("transport"),
+						TX_NOOP("objectives"),
+						nullptr,
+						nullptr};
+		for (int i = 0; i < RoleCount; i++)
+			if (names[i] && roleEarned[i] > 0)
+				by << txv(names[i]) + " " + money(roleEarned[i]);
+		if (!by.isEmpty())
+			l << tx("Earned by role: %1").arg(by.join(", "));
+	}
 	if (longestKillM)
 		l << tx("Longest kill %1 m").arg(longestKillM);
 	if (!topWeapon().isEmpty())
 		l << tx("Most kills with the %1 (%2)").arg(topWeapon()).arg(weapons.value(topWeapon()));
 	return l.join("\n") + "\n";
+}
+
+Session::Role Session::role(const QString &r)
+{
+	static const QRegularExpression refund("REFUND"), medical("REVIV|RESUSC|HEAL|STIM|DEFIB|MEDIC|BANDAGE"),
+		transport("PASSENGER|TRANSPORT|TAXI|DROP ?OFF|SPAWNED ON|SPAWN ON|PICK ?UP|EXTRACT"),
+		building("BUILD|BUILT|CONSTRUCT|FORTIF|STRUCTURE|FOB|PLACED|DEPLOYED"),
+		logistics("SUPPL|RESUPPL|REPAIR|AMMO|FUEL|LOGIST|PALLET|CRATE"),
+		recon("SPOT|RECON|INTEL|SCOUT|MARKED|REVEAL|DETECT|UAV"),
+		objective("ZONE|CAPTUR|OBJECTIV|PRESENCE|SECTOR|HOLD"),
+		combat("KILL|HEADSHOT|ASSIST|DESTROY|DOWNED|ELIMIN|EXECUT|STREAK|LONG RANGE");
+	if (r.contains(refund))
+		return Refund;
+	if (r.contains(medical))
+		return Medical;
+	if (r.contains(transport))
+		return Transport;
+	if (r.contains(building))
+		return Building;
+	if (r.contains(logistics))
+		return Logistics;
+	if (r.contains(recon))
+		return Recon;
+	if (r.contains(objective))
+		return Objective;
+	if (r.contains(combat))
+		return Combat;
+	return Other;
+}
+
+QString Session::why(const QString &r)
+{
+	switch (role(r)) {
+	case Medical:
+		return r.contains("HEAL") ? "HEAL" : "REVIVE";
+	case Transport:
+		return "TRANSPORT";
+	case Building:
+		return "BUILD";
+	case Logistics:
+		return "SUPPLY";
+	case Recon:
+		return "SPOT";
+	case Objective:
+		return "ZONE";
+	case Refund:
+		return "REFUND";
+	case Combat:
+		return r.contains("ASSIST")    ? "ASSIST"
+		       : r.contains("KILL")    ? "KILL"
+		       : r == "HEADSHOT"       ? "HEADSHOT"
+		       : r.contains("DESTROY") ? "VEHICLE"
+					       : "KILL";
+	default:
+		return "REWARD";
+	}
+}
+
+const QList<Session::Preset> &Session::presets()
+{
+	static const QList<Preset> list = {
+		{"fragger", TX_NOOP("Fragger"), "kda,kd,headshots,longest,net"},
+		{"medic", TX_NOOP("Medic"), "revives,heals,medicCash,net"},
+		{"recon", TX_NOOP("Recon"), "spots,reconCash,kda,net"},
+		{"logistics", TX_NOOP("Logistics"), "supplies,logisticsCash,net,permin"},
+		{"builder", TX_NOOP("Builder"), "builds,buildCash,net,permin"},
+		{"driver", TX_NOOP("Driver"), "transports,transportCash,vehicles,net"},
+		{"objective", TX_NOOP("Objective"), "objectiveCash,kda,net,permin"},
+		{"all-round", TX_NOOP("All-round"), "kda,revives,net,permin"},
+	};
+	return list;
 }
 
 const QList<QPair<QString, QString>> &Session::elements()
@@ -91,6 +194,18 @@ const QList<QPair<QString, QString>> &Session::elements()
 		{"permin", TX_NOOP("$ per minute in game")},
 		{"balance", TX_NOOP("In-game balance change")},
 		{"longest", TX_NOOP("Longest kill")},
+		{"heals", TX_NOOP("Heals (medic)")},
+		{"spots", TX_NOOP("Enemies spotted (recon)")},
+		{"supplies", TX_NOOP("Supplies delivered (logistics)")},
+		{"builds", TX_NOOP("Things built (builder)")},
+		{"transports", TX_NOOP("Passengers transported (driver)")},
+		{"medicCash", TX_NOOP("Money from medic play")},
+		{"reconCash", TX_NOOP("Money from recon")},
+		{"logisticsCash", TX_NOOP("Money from logistics")},
+		{"buildCash", TX_NOOP("Money from building")},
+		{"transportCash", TX_NOOP("Money from transporting")},
+		{"objectiveCash", TX_NOOP("Money from zones and objectives")},
+		{"combatCash", TX_NOOP("Money from combat")},
 	};
 	return list;
 }
@@ -126,6 +241,16 @@ QJsonObject Session::json() const
 	o["balanceChangeText"] = haveBalance ? money(balanceNow - balanceStart, true) : QString();
 	o["kd"] = deaths ? (double)killCount() / deaths : (double)killCount();
 	o["longest"] = longestKillM;
+	o["heals"] = heals;
+	o["spots"] = spots;
+	o["supplies"] = supplies;
+	o["builds"] = builds;
+	o["transports"] = transports;
+	const char *cash[RoleCount] = {"combatCash",    "medicCash",     "reconCash", "logisticsCash", "buildCash",
+				       "transportCash", "objectiveCash", nullptr,     nullptr};
+	for (int i = 0; i < RoleCount; i++)
+		if (cash[i])
+			o[cash[i]] = (double)roleEarned[i];
 	o["topWeapon"] = topWeapon();
 	return o;
 }
