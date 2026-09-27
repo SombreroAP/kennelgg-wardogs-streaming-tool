@@ -59,6 +59,7 @@ class Bridge:
         self._feed_ts = 0.0
         self._inv = {}                # stream id -> (crop, ts): the inventory screen's two tell-tales
         self.on_hud = None            # callable(crop, ts): the HUD's item plate, for weapon names (weapons.py)
+        self.on_ticker = None         # callable(crop, ts): the kill ticker under the crosshair (ticker.py)
         self.feed_roi = _roi_list(cfg.get("roi")) or [0.0, 0.5, 0.25, 0.25]   # fractions of the frame
         self._lock = threading.Lock()
         self._pending = {}            # clip id -> callback(path)
@@ -83,6 +84,7 @@ class Bridge:
         self.nearby_test = False     # the plugin's Test read button: read once and report back
         self.vehicle_cfg = {"enabled": False, "roi": [0.86, 0.60, 0.14, 0.25]}   # automatic Dual POV
         self.inventory_cfg = {"enabled": False}   # squad mate POV while the inventory is open
+        self.ticker_cfg = {"enabled": False}      # the kill ticker, read while session stats are on
         threading.Thread(target=self._run, daemon=True).start()
 
     def _on_error(self, _ws, err):
@@ -161,12 +163,14 @@ class Bridge:
                             self._feed, self._feed_ts = frame, ts / 1000.0
                         elif sid in (2, 3):
                             self._inv[sid] = (frame, ts / 1000.0)   # the inventory reader's two crops
-                        elif sid == 4:
+                        elif sid in (4, 5):
                             pass                                     # handed on below, outside the lock
                         else:
                             self._frame, self._frame_ts = frame, ts / 1000.0
                     if sid == 4 and self.on_hud:
                         self.on_hud(frame, ts / 1000.0)
+                    elif sid == 5 and self.on_ticker:
+                        self.on_ticker(frame, ts / 1000.0)
                 return
             if len(msg) < 16 or msg[:4] != b"KWF1":
                 return
@@ -225,6 +229,11 @@ class Bridge:
                 if on != self.inventory_cfg.get("enabled") or (moved and on):
                     self.inventory_cfg["enabled"] = on
                     self._subscribe()          # the crop streams come and go with the switch
+            if isinstance(v.get("ticker"), dict):
+                on = bool(v["ticker"].get("enabled"))
+                if on != self.ticker_cfg.get("enabled"):
+                    self.ticker_cfg["enabled"] = on
+                    self._subscribe()
             if isinstance(v.get("nearby"), dict):
                 nb = v["nearby"]
                 self.nearby_cfg["enabled"] = bool(nb.get("enabled"))
@@ -332,6 +341,10 @@ class Bridge:
                    # the HUD's item plate, bottom right: what you are holding, so your kills get
                    # the weapon's real name (a strip a few hundred pixels wide, twice a second)
                    {"id": 4, "fps": weapons.HUD_FPS, "roi": list(weapons.HUD_ROI), "width": 0}]
+        if self.ticker_cfg.get("enabled"):
+            # the kill ticker under the crosshair: its box total, five a second (ticker.py)
+            import ticker
+            streams.append({"id": 5, "fps": ticker.FPS, "roi": list(ticker.ROI), "width": 0})
         if self.inventory_cfg.get("enabled"):
             # two tiny crops, three times a second: the "COMBINE AMMO" hint and the INVENTORY tab, so
             # the screen closing is seen within a second

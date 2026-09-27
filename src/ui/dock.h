@@ -64,7 +64,8 @@ private:
 	QList<QPushButton *> povBtns_, dualBtns_;
 	QList<int> peopleIdx_;
 	QString peopleKey_;
-	QPushButton *replay_ = nullptr, *highlights_ = nullptr, *addPop_ = nullptr, *showPop_ = nullptr;
+	QToolButton *replay_ = nullptr;
+	QPushButton *highlights_ = nullptr, *addPop_ = nullptr, *showPop_ = nullptr;
 	// the session bar on stream (on/off, lit while it shows), and its two small companions
 	QPushButton *sessionBtn_ = nullptr, *sessionReset_ = nullptr, *sessionImage_ = nullptr;
 	QWidget *sessionRow_ = nullptr;

@@ -861,6 +861,7 @@ void Engine::pushAppConfig()
 	vh["enabled"] = cfg.dual() != nullptr && (cfg.dualAuto || (dualOn_ && !cfg.dualKeep));
 	vh["roi"] = QJsonArray{cfg.vehX, cfg.vehY, cfg.vehW, cfg.vehH};
 	set["vehicle"] = vh;
+	set["ticker"] = QJsonObject{{"enabled", cfg.sessionTrack}}; // the kill ticker under the crosshair
 	set["inventory"] = QJsonObject{{"enabled", inventoryWatched()},
 				       {"combine", QJsonArray{cfg.invCX, cfg.invCY, cfg.invCW, cfg.invCH}},
 				       {"tab", QJsonArray{cfg.invTX, cfg.invTY, cfg.invTW, cfg.invTH}}};
@@ -1991,6 +1992,25 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		onVehicle(o.value("seat").toString());
 	} else if (type == "inventory") {
 		onInventory(o.value("open").toBool());
+	} else if (type == "kill_reward") {
+		// ClipHound read the kill ticker under the crosshair: a run's box total (the latest wins)
+		int id = o.value("id").toInt();
+		int64_t amt = (int64_t)o.value("amount").toDouble();
+		qint64 t = (qint64)o.value("t").toDouble();
+		if (amt > 0) {
+			bool found = false;
+			for (auto &k : killRuns_)
+				if (k.id == id) {
+					k.amount = amt;
+					k.last = QDateTime::currentMSecsSinceEpoch();
+					found = true;
+				}
+			if (!found)
+				killRuns_.push_back({id, amt, t > 0 ? t : QDateTime::currentMSecsSinceEpoch(),
+						     QDateTime::currentMSecsSinceEpoch(), 0});
+			while (killRuns_.size() > 30)
+				killRuns_.pop_front();
+		}
 	} else if (type == "holding") {
 		holding_ = o.value("name").toString();
 		emit stateChanged();
@@ -2141,6 +2161,8 @@ void Engine::resetSession(const QString &why)
 	dropPending_ = false;
 	gapSeen_ = 0;
 	gapSince_ = 0;
+	killRuns_.clear();
+	lineLog_.clear();
 	lastCashAt_ = 0;
 	log("Session stats: counting from now (" + why + ").");
 	emit stateChanged();
@@ -2248,6 +2270,9 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 			// both carry amounts, so both count.
 			QString reason = QString::fromStdString(e.txt).toUpper().simplified();
 			if (e.hasAmt && e.amt > 0) {
+				lineLog_.push_back({QDateTime::currentMSecsSinceEpoch(), e.amt});
+				while (lineLog_.size() > 200)
+					lineLog_.pop_front();
 				session_.earned += e.amt;
 				if (reason.contains("ZONE"))
 					session_.zoneEarned += e.amt;
@@ -2324,8 +2349,33 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 			gapSince_ = t;
 		} else if (t - gapSince_ >= 4000) {
 			if (gap > 0) {
+				// the kill ticker first: money a kill run showed that the corner lines around it did
+				// not, is kill money; whatever is left is REWARD
+				qint64 now = QDateTime::currentMSecsSinceEpoch();
+				int64_t left = gap, asKill = 0;
+				for (auto &k : killRuns_) {
+					if (now - k.last > 120000 || left <= 0)
+						continue;
+					int64_t lines = 0;
+					for (const auto &l : lineLog_)
+						if (l.t >= k.start - 1500 && l.t <= k.last + 3000)
+							lines += l.amt;
+					int64_t missing = k.amount - lines - k.credited;
+					if (missing > 0) {
+						int64_t take = std::min(missing, left);
+						k.credited += take;
+						asKill += take;
+						left -= take;
+					}
+				}
 				session_.earned += gap;
-				session_.noteMoney(gap, "REWARD");
+				if (asKill > 0)
+					session_.noteMoney(asKill, "KILL");
+				if (left > 0)
+					session_.noteMoney(left, "REWARD");
+				if (asKill > 0)
+					log(QString("Session balance: %1 of it the kill ticker shows as kill money.")
+						    .arg(Session::money(asKill, true)));
 			} else {
 				session_.spent += -gap;
 				session_.noteMoney(gap, "SPENT");
@@ -2813,8 +2863,7 @@ void Engine::onControl(const QJsonObject &o)
 	} else if (cmd == "clip") {
 		clipNow("manual", {"manual", "controller"}, "controller");
 	} else if (cmd == "clip_replay") {
-		replayAfterClip_ = true;
-		clipNow("manual", {"manual", "controller"}, "controller");
+		clipAndReplay("controller");
 	} else if (cmd == "dual_toggle") {
 		toggleDual();
 	} else if (cmd == "dual_on") {
@@ -4248,6 +4297,13 @@ static void replayWindow(const Clips::Entry &e, qint64 durMs, int preS, int post
 	*endMs = std::min<qint64>(durMs, durMs - last + (qint64)postS * 1000);
 	if (*endMs <= *startMs + 1000)
 		*endMs = std::min<qint64>(durMs, *startMs + 8000);
+}
+
+/// Save a clip now and play it back as the instant replay the moment it has landed.
+void Engine::clipAndReplay(const QString &why)
+{
+	replayAfterClip_ = true;
+	clipNow("manual", {"manual", why}, why);
 }
 
 void Engine::playReplay(const QString &why)

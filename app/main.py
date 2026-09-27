@@ -128,6 +128,9 @@ def main():
     if bridge is not None:
         bridge.on_hud = reader.on_hud
         reader.on_change = lambda name: bridge.send({"type": "holding", "name": name})
+        # the kill ticker under the crosshair: reasons for money the corner lines miss (ticker.py)
+        import ticker
+        bridge.on_ticker = ticker.Ticker(bridge.send).on_crop
     print(f"[capture] ROI {cap.box} @ {cfg['capture']['fps']} fps, deciding a row on {det.votes} reads "
           f"({det.min_reads} if it goes away early)   dry-run={DRY}")
 

@@ -381,14 +381,25 @@ Dock::Dock(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine)
 			d->raise();
 			d->activateWindow();
 		});
-		replay_ = new QPushButton("Instant replay", this);
-		replay_->setToolTip("Play the last highlight on the stream, cut to the action. Press again to stop.");
+		replay_ = new QToolButton(this);
+		replay_->setText("Instant replay");
+		replay_->setToolTip("Play the last highlight on the stream, cut to the action. Press again to stop. "
+				    "The arrow saves a clip first and replays that.");
+		replay_->setPopupMode(QToolButton::MenuButtonPopup);
+		replay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+		auto *replayMenu = new QMenu(replay_);
+		replayMenu->addAction("Save clip and replay", this, [this]() { e_->clipAndReplay("dock"); });
+		replayMenu->addAction("Replay the last clip", this, [this]() {
+			if (!e_->replaying())
+				e_->playReplay("dock");
+		});
+		replay_->setMenu(replayMenu);
 		highlights_ = new QPushButton("Highlights", this);
 		highlights_->setToolTip(
 			"Play this session's highlights compilation, full screen, under your camera "
 			"and alerts. Built first when there is nothing newer than your last clip. Press "
 			"again to stop.");
-		connect(replay_, &QPushButton::clicked, this, [this]() {
+		connect(replay_, &QToolButton::clicked, this, [this]() {
 			if (e_->replaying())
 				e_->endReplay("dock");
 			else
@@ -888,8 +899,7 @@ void Dock::refresh()
 		bool on = e_->replaying();
 		replay_->setText(on ? "Stop replay" : "Instant replay");
 		highlights_->setText(on ? "Stop" : e_->highlightsBuilding() ? "Building..." : "Highlights");
-		replay_->setChecked(false);
-		replay_->setStyleSheet(on ? "QPushButton { border-left: 4px solid #ce6050; }" : "");
+		replay_->setStyleSheet(on ? "QToolButton { border-left: 4px solid #ce6050; }" : "");
 		QString lp = e_->clips.lastPath();
 		const auto &h = e_->clips.history();
 		if (lp.isEmpty() || h.empty())

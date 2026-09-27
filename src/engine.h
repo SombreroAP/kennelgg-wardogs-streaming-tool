@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <QObject>
+#include <deque>
 #include <QImage>
 #include <QRectF>
 #include <QTimer>
@@ -120,6 +121,8 @@ public:
 	/// Instant replay: the last highlight, cut to the action (replayPreS before the first kill to
 	/// replayPostS after the last), on the stream at replayScale of the canvas. `why` for the log.
 	void playReplay(const QString &why = "dock");
+	/// Save a clip now and play it as the instant replay once it has landed.
+	void clipAndReplay(const QString &why = "dock");
 	/// The newest highlights compilation in the highlights folder, full screen.
 	void playCompilation(const QString &why = "dock");
 	/// Ask ClipHound to build this session's compilation from the clips saved since the stream (or
@@ -429,6 +432,20 @@ private:
 	bool dropPending_ = false;
 	int64_t dropFrom_ = 0, dropTo_ = 0;
 	qint64 dropAt_ = 0;
+	// the kill ticker's runs (ClipHound, the box under the crosshair) and the corner lines with their
+	// time, so money the corner missed can be named KILL when the ticker showed it
+	struct KillRun {
+		int id;
+		int64_t amount;
+		qint64 start, last;
+		int64_t credited; // added to the session by the wallet match on this run's account
+	};
+	std::deque<KillRun> killRuns_;
+	struct LineAmt {
+		qint64 t;
+		int64_t amt;
+	};
+	std::deque<LineAmt> lineLog_;
 	int64_t gapSeen_ = 0; // the wallet vs the tallied lines: how far apart, and since when (ms)
 	qint64 gapSince_ = 0;
 	void cashTick();

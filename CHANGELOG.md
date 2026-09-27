@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.26.6
+- **Instant replay has a menu, like Save clip.** The arrow beside Instant replay offers **Save clip and replay**: it saves a clip that instant and plays it back as the replay as soon as it has landed. **Replay the last clip** does what the button does.
+- **The kill ticker under the crosshair is read too.** When you get a kill the game shows a boxed total under the crosshair ("+$1,750") on its own dark background, so it reads where the lines under your balance are lost against a white sky. ClipHound now reads that total five times a second while session stats are on. When your wallet shows money the corner lines did not account for, the part a kill ticker showed is counted as KILL money, and only anything else as REWARD. Heals, spotting and zones only appear in the corner, so those still come from there. The wallet still decides the total, so everything always adds up to what your balance says. Read on real 1440p footage: +$1,750, +$1,500, +$3,000, +$2,750 and a quad kill's +$5,500 each came out as one run with the right total.
+
 ## 0.26.5
 - **The session balance always matches your wallet.** It used to be the reward lines added up, so a line the reader missed (white text on a white sky) or read wrong left the total out for the rest of the session. Now your balance on the HUD is the authority: whenever the wallet has held still for 4 seconds, the session balance is brought back to exactly how far it has moved since the session began. Anything the lines did not account for is added as REWARD (or SPENT when it went the other way), and money that moved while the HUD was hidden, such as a payout between matches, is counted the next time your balance is on screen. The log notes every correction.
 
