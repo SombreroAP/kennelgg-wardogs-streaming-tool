@@ -34,6 +34,9 @@ public slots:
 	void openClips(const QString &focusPath = QString());
 	/// "Get stats image": the session as a picture for social media.
 	void openStatsImage();
+	/// What's new since this version, with Update now / Later / Skip this version. Opens by itself
+	/// once per OBS start when a newer version is out and you are not live.
+	void openWhatsNew();
 	/// A health or banner action: the engine's own, or a window the dock opens.
 	void runFix(const QString &id);
 
@@ -79,4 +82,5 @@ private:
 	QPointer<QDialog> settings_;
 	QPointer<QWidget> wizard_;
 	QPointer<QDialog> squad_;
+	QPointer<QDialog> whatsNew_;
 };

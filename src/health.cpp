@@ -391,13 +391,43 @@ QList<Engine::Banner> Engine::banners() const
 		add(b);
 	}
 	if (updateAvailable()) {
+		// amber, with what is new in it, and one click to have it: people update when they see why
 		Banner b;
 		b.id = "update:" + newVersion_;
-		b.level = 0;
-		b.text = tx("Version <b>%1</b> is out (you have %2).")
-				 .arg(newVersion_.toHtmlEscaped(), QString(PLUGIN_VERSION));
-		if (!newUrl_.isEmpty())
-			b.actions = {Fix("update:open", tx("Download"))};
+		b.level = 1;
+		QString what = newNotes_.isEmpty() ? QString() : "<br>" + newNotes_.toHtmlEscaped();
+		bool live = streamingOrRecording();
+		switch (updStep_) {
+		case UpdStep::Downloading:
+			b.text = updPct_ >= 0 ? tx("Downloading version <b>%1</b>... %2%")
+							.arg(newVersion_.toHtmlEscaped(), QString::number(updPct_))
+					      : tx("Downloading version <b>%1</b>...").arg(newVersion_.toHtmlEscaped());
+			b.dismissable = false;
+			break;
+		case UpdStep::Ready:
+			b.text =
+				live ? tx("Version <b>%1</b> is downloaded. Install it after your stream: it closes OBS for "
+					  "about a minute and opens it again.")
+						.arg(newVersion_.toHtmlEscaped())
+				     : tx("Version <b>%1</b> is downloaded. Installing closes OBS for about a minute and opens "
+					  "it again.")
+						.arg(newVersion_.toHtmlEscaped());
+			if (!live)
+				b.actions = {Fix("update:install", tx("Install and restart OBS"))};
+			b.actions << Fix("update:whatsnew", tx("What's new"));
+			break;
+		case UpdStep::Failed:
+			b.text = tx("Version <b>%1</b> could not be downloaded (%2).")
+					 .arg(newVersion_.toHtmlEscaped(), updErr_.toHtmlEscaped());
+			b.actions = {Fix("update:start", tx("Try again")), Fix("update:open", tx("Download page"))};
+			break;
+		default:
+			b.text = tx("Version <b>%1</b> is out (you have %2).")
+					 .arg(newVersion_.toHtmlEscaped(), QString(PLUGIN_VERSION)) +
+				 what;
+			b.actions = {Fix("update:start", canSelfUpdate() ? tx("Update now") : tx("Download")),
+				     Fix("update:whatsnew", tx("What's new"))};
+		}
 		add(b);
 	}
 	if (wantsSupportNote()) {
@@ -511,6 +541,10 @@ bool Engine::runAction(const QString &id)
 		supportNoteShown();
 	} else if (id == "update:open") {
 		QDesktopServices::openUrl(QUrl(newUrl_));
+	} else if (id == "update:start") {
+		startUpdate();
+	} else if (id == "update:install") {
+		installUpdate();
 	} else if (id == "popouts:show") {
 		showPopouts(true);
 	} else

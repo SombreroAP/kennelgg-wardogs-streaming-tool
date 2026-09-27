@@ -1,5 +1,8 @@
 #include "engine.h"
 #include "i18n.h"
+#include <QWidget>
+#include <QStandardPaths>
+#include <QCryptographicHash>
 #include <QSysInfo>
 #include "discord-ipc.h"
 #include <optional>
@@ -31,6 +34,7 @@
 #ifdef _WIN32
 #define NOMINMAX // windows.h defines min and max as macros, which eats every std::min in this file
 #include <windows.h>
+#include <shellapi.h>
 #endif
 
 #include <obs-module.h>
@@ -803,8 +807,15 @@ void Engine::start()
 		sw.armWarm(cfg);
 	QTimer::singleShot(15000, this, [this]() {
 		if (!stopping_)
-			checkForUpdate(false); // once per OBS start, well after everything is up
+			checkForUpdate(false); // at OBS start, well after everything is up
 	});
+	// and every 6 hours after: OBS often stays open for days, and a release should not wait for a restart
+	updateTimer_.setInterval(6 * 3600 * 1000);
+	connect(&updateTimer_, &QTimer::timeout, this, [this]() {
+		if (!stopping_ && updStep_ != UpdStep::Downloading)
+			checkForUpdate(false);
+	});
+	updateTimer_.start();
 	if (cfg.dualEnabled && cfg.dual())
 		QTimer::singleShot(2500, this, [this]() { // after the browser module is fully up
 			if (!stopping_ && cfg.dualEnabled && cfg.dual())
@@ -925,6 +936,11 @@ void Engine::checkForUpdate(bool manual)
 			       newVersion_ = o.value("version").toString();
 			       newUrl_ = o.value("url").toString();
 			       newNotes_ = o.value("notes").toString();
+			       newDownload_ = o.value("download").toString();
+			       newSha_.clear();
+			       QString inst = QUrl(newDownload_).fileName();
+			       if (!inst.isEmpty())
+				       newSha_ = o.value("sha256").toObject().value(inst).toString().toLower();
 			       // the same line from changelog/<code>.md, when that version has been translated
 			       QString local = o.value("notes_i18n")
 						       .toObject()
@@ -940,11 +956,181 @@ void Engine::checkForUpdate(bool manual)
 				       log(tx("A newer build is out: %1").arg(newVersion_) +
 					   (newNotes_.isEmpty() ? "" : " - " + newNotes_) +
 					   (newUrl_.isEmpty() ? "" : "  " + newUrl_));
+				       fetchWhatsNew();
 			       } else
 				       updateState_ = tx("up to date (%1)").arg(QString(PLUGIN_VERSION));
 			       emit updateChecked();
 			       emit stateChanged();
 		       });
+}
+
+static const char *kRepoRaw = "https://raw.githubusercontent.com/SombreroAP/kennelgg-wardogs-streaming-tool/main/";
+
+/// The changelog sections newer than this version, in the plugin's language when that language has
+/// them (changelog/<code>.md starts at 0.27.0; older sections come from the English CHANGELOG.md).
+void Engine::fetchWhatsNew()
+{
+	auto newer = [](const QString &text) {
+		QStringList out;
+		const QStringList parts = text.split(QRegularExpression("(?m)^(?=## )"));
+		for (const QString &p : parts) {
+			QRegularExpressionMatch m = QRegularExpression("^##\\s+v?([0-9][0-9.]*)").match(p);
+			if (m.hasMatch() && isNewer(m.captured(1), PLUGIN_VERSION))
+				out << p.trimmed();
+		}
+		return out;
+	};
+	QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
+	Http::getAsync(this, QString(kRepoRaw) + "CHANGELOG.md", 10000, ua, [this, newer, ua](Http::Result en) {
+		QStringList english = en.ok ? newer(QString::fromUtf8(en.body)) : QStringList();
+		auto finish = [this](const QStringList &secs) {
+			whatsNew_ = secs.join("\n\n");
+			if (updateAvailable())
+				emit updateNoticeReady();
+			emit stateChanged();
+		};
+		if (I18n::current() == "en") {
+			finish(english);
+			return;
+		}
+		QString url = QString(kRepoRaw) + "changelog/" + QString::fromStdString(I18n::current()) + ".md";
+		Http::getAsync(this, url, 10000, ua, [newer, english, finish](Http::Result tr) {
+			QStringList local = tr.ok ? newer(QString::fromUtf8(tr.body)) : QStringList();
+			// each version in the translation when it has it, else the English one
+			QStringList secs;
+			for (const QString &e : english) {
+				QString ver = e.section('\n', 0, 0);
+				QString pick = e;
+				for (const QString &l : local)
+					if (l.section('\n', 0, 0).trimmed() == ver.trimmed())
+						pick = l;
+				secs << pick;
+			}
+			if (english.isEmpty())
+				secs = local;
+			finish(secs);
+		});
+	});
+}
+
+bool Engine::updateNoticeDue() const
+{
+	return updateAvailable() && !noticeShownThisRun_ && !streamingOrRecording();
+}
+
+void Engine::updateNoticeShown(bool skipVersion)
+{
+	noticeShownThisRun_ = true;
+	if (skipVersion) {
+		cfg.updateSkip = newVersion_.toStdString();
+		cfg.save();
+		emit stateChanged();
+	}
+}
+
+bool Engine::canSelfUpdate() const
+{
+#ifdef _WIN32
+	if (newDownload_.isEmpty() || newSha_.size() != 64)
+		return false;
+	// the installer puts the plugin in ProgramData\obs-studio\plugins; a portable OBS keeps it next to OBS
+	const char *bin = obs_get_module_binary_path(obs_current_module());
+	QString p = QString::fromUtf8(bin ? bin : "").replace('\\', '/').toLower();
+	return p.contains("/obs-studio/plugins/kennelgg/");
+#else
+	return false;
+#endif
+}
+
+void Engine::startUpdate()
+{
+	if (!canSelfUpdate()) {
+		QDesktopServices::openUrl(QUrl(newUrl_.isEmpty() ? QString("https://kennel.gg/streaming/") : newUrl_));
+		return;
+	}
+	if (updStep_ == UpdStep::Downloading)
+		return;
+	if (updStep_ == UpdStep::Ready && QFileInfo::exists(updPath_)) {
+		emit stateChanged();
+		return;
+	}
+	QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/kennelgg-update";
+	QDir().mkpath(dir);
+	QString path = dir + "/" + QUrl(newDownload_).fileName();
+	updStep_ = UpdStep::Downloading;
+	updPct_ = 0;
+	updErr_.clear();
+	log(tx("Update: downloading %1...").arg(newVersion_));
+	emit stateChanged();
+	QString want = newSha_, ver = newVersion_;
+	Http::downloadAsync(
+		this, newDownload_, path, QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),
+		[this](qint64 got, qint64 total) {
+			int pct = total > 0 ? (int)(got * 100 / total) : -1;
+			if (pct != updPct_) {
+				updPct_ = pct;
+				emit stateChanged();
+			}
+		},
+		[this, path, want, ver](Http::Result r) {
+			if (!r.ok) {
+				updStep_ = UpdStep::Failed;
+				updErr_ = r.error;
+				log(tx("Update: the download failed (%1).").arg(r.error));
+				emit stateChanged();
+				return;
+			}
+			// the file is only run if it is exactly the one the release lists
+			QFile f(path);
+			QCryptographicHash h(QCryptographicHash::Sha256);
+			if (!f.open(QIODevice::ReadOnly) || !h.addData(&f) ||
+			    QString::fromLatin1(h.result().toHex()) != want) {
+				f.close();
+				QFile::remove(path);
+				updStep_ = UpdStep::Failed;
+				updErr_ = tx("the file did not match the release's checksum");
+				log(tx("Update: %1, so it was deleted.").arg(updErr_));
+				emit stateChanged();
+				return;
+			}
+			updPath_ = path;
+			updStep_ = UpdStep::Ready;
+			log(tx("Update: %1 is downloaded and checked, ready to install.").arg(ver));
+			emit stateChanged();
+		});
+}
+
+bool Engine::installUpdate()
+{
+#ifdef _WIN32
+	if (updStep_ != UpdStep::Ready || !QFileInfo::exists(updPath_))
+		return false;
+	if (obs_frontend_streaming_active() || obs_frontend_recording_active()) {
+		log(tx("Update: not while you are streaming or recording - it closes OBS. It is ready for after."));
+		return false;
+	}
+	// update mode: the installer waits for OBS to close, stops ClipHound, installs quietly and opens
+	// OBS again from where it is now, as you (not as the administrator the installer runs as)
+	QString obs = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
+	QString args = QString("/SILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE \"/OBS=%1\"").arg(obs);
+	HINSTANCE h = ShellExecuteW(nullptr, L"open", (const wchar_t *)QDir::toNativeSeparators(updPath_).utf16(),
+				    (const wchar_t *)args.utf16(), nullptr, SW_SHOWNORMAL);
+	if ((INT_PTR)h <= 32) {
+		log(tx("Update: the installer did not start (Windows said %1). Install it by hand: %2")
+			    .arg(QString::number((INT_PTR)h), updPath_));
+		return false;
+	}
+	log(tx("Update: installing %1 - OBS closes now and opens again when it is done.").arg(newVersion_));
+	if (obs_frontend_replay_buffer_active())
+		obs_frontend_replay_buffer_stop();
+	QTimer::singleShot(1500, this, []() {
+		if (QWidget *w = (QWidget *)obs_frontend_get_main_window())
+			w->close();
+	});
+	return true;
+#else
+	return false;
+#endif
 }
 
 void Engine::twitchLogin()
@@ -4456,6 +4642,12 @@ void Engine::onStreaming(bool live)
 	o["type"] = "stream";
 	o["state"] = live ? "started" : "stopped";
 	bridge.sendJson(o);
+	if (!live)
+		// a newer version that turned up while you were live: offer it now the stream is over
+		QTimer::singleShot(8000, this, [this]() {
+			if (!stopping_ && updateNoticeDue() && !whatsNew_.isEmpty())
+				emit updateNoticeReady();
+		});
 	if (live) {
 		sessionStart_ = QDateTime::currentDateTime();
 		streamStart_ = sessionStart_;

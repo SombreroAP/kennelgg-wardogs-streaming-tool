@@ -199,6 +199,23 @@ public:
 	QString newVersionUrl() const { return newUrl_; }
 	QString newVersionNotes() const { return newNotes_; }
 	bool updateAvailable() const;
+	/// Updating from inside OBS (0.29.0): the installer is downloaded in the background, checked
+	/// against the release's SHA-256, then run in update mode - OBS closes, the installer waits for
+	/// it, installs and opens OBS again. Only for the installed plugin (not the portable one) on
+	/// Windows; otherwise "Update now" opens the download page.
+	enum class UpdStep { Idle, Downloading, Ready, Failed };
+	UpdStep updateStep() const { return updStep_; }
+	int updateProgress() const { return updPct_; } // 0-100 while downloading, -1 when unknown
+	QString updateError() const { return updErr_; }
+	bool canSelfUpdate() const;
+	void startUpdate();   // download (or open the page)
+	bool installUpdate(); // run the installer and close OBS; false (and why in the log) when it cannot now
+	/// What changed since this version, newest first, in the plugin's language when that is
+	/// translated: markdown sections from changelog/<code>.md (or CHANGELOG.md). "" until fetched.
+	QString whatsNew() const { return whatsNew_; }
+	/// A newer version was found, and its notes fetched: the dock may show the What's new window.
+	bool updateNoticeDue() const;
+	void updateNoticeShown(bool skipVersion);
 	static bool isNewer(const QString &a, const QString &b); // is a newer than b
 	void twitchLogin();
 	void twitchLogout();
@@ -207,6 +224,8 @@ signals:
 	void twitchStatusChanged();
 	/// Another language was picked: the dock builds itself again, an open Settings window reopens.
 	void languageChanged();
+	/// A newer version and its notes are in: time to offer it (the dock opens What's new).
+	void updateNoticeReady();
 	void appConfigReceived();
 	void updateChecked();
 	void nearbyTested(const QJsonObject &result);
@@ -554,6 +573,12 @@ private:
 	bool vehicleNotLiveLogged_ = false;
 	void vehicleDualCheck();
 	QString updateState_, newVersion_, newUrl_, newNotes_;
+	QString newDownload_, newSha_, whatsNew_, updPath_, updErr_;
+	UpdStep updStep_ = UpdStep::Idle;
+	int updPct_ = 0;
+	bool noticeShownThisRun_ = false;
+	QTimer updateTimer_; // every 6 hours while OBS runs, not only at start
+	void fetchWhatsNew();
 	bool applied_ = false, detected_ = false, applying_ = false, lookPreview_ = false, previewWanted_ = false;
 	int downRun_ = 0, upRun_ = 0, tickN_ = 0;
 	double peakScore_ = 0;

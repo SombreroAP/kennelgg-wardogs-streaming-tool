@@ -1,5 +1,10 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.29.0
+- **Güncelleme tek tık.** Yeni bir sürüm çıktığında, OBS açılırken bir **Yenilikler** penceresi seninkinden bu yana değişen her şeyi kendi dilinde listeler (yayındayken asla; yayındaysan yayın bitene kadar bekler). **Şimdi güncelle** sen devam ederken arka planda indirir ve sürümün sağlama toplamıyla doğrular. Ardından **Yükle ve OBS'i yeniden başlat** OBS'i kapatır, yükler ve OBS'i yeniden açar; tüm ayarların korunur. **Sonra** bir dahaki sefere yine sorar; **Bu sürümü atla** bir sonraki sürüme kadar sormaz.
+- Paneldeki güncelleme notu artık kehribar renginde ve neyin yeni olduğunu söylüyor, Şimdi güncelle ve Yenilikler düğmeleriyle; eklenti de yalnızca OBS açılırken değil, 6 saatte bir yeni sürüm olup olmadığına bakıyor.
+- Yükleyici, ClipHound'un dosyalarını değiştirmeden önce onu kendisi kapatır; böylece bir güncelleme hiçbir zaman kullanımdaki bir dosyada takılmaz. Taşınabilir sürüm ve Windows olmayan her şey, indirme sayfasını açan İndir düğmesini korur.
+
 ## 0.28.2
 - **Her hızlı seçim dakika başına $ gösteriyor.** Oyunda dakika başına kazanılan para, rolün ne olursa olsun tarafın için ne kadar iş yaptığının en adil ölçüsü; bu yüzden Fragger, Medik, Keşifçi ve Sürücü çubukları da artık bunu gösteriyor (Lojistik, İnşaatçı, Hedef ve Çok yönlü zaten gösteriyordu).
 

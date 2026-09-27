@@ -25,6 +25,11 @@ void requestAsync(QObject *ctx, const QString &method, const QString &url, const
 /// get() on its own thread; `done` runs on ctx's thread afterwards (not at all if ctx is gone).
 void getAsync(QObject *ctx, const QString &url, int timeoutMs, const QString &userAgent,
 	      std::function<void(Result)> done);
+/// A file to disk (the update's installer): streamed, not held in memory, following redirects.
+/// `progress` (bytes so far, total or -1) runs on ctx's thread, a few times a second; `done` once at
+/// the end with ok, or the error. The file is written to path + ".part" and renamed when complete.
+void downloadAsync(QObject *ctx, const QString &url, const QString &path, const QString &userAgent,
+		   std::function<void(qint64, qint64)> progress, std::function<void(Result)> done);
 /// At OBS exit: refuses new requests, cancels the ones in flight and waits briefly for their threads,
 /// so no thread of ours is still inside the network stack when the process goes down.
 void shutdown();

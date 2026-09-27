@@ -6,6 +6,7 @@
 #include "ui/squad.h"
 #include "ui/flow-layout.h"
 #include "i18n.h"
+#include <QTextBrowser>
 #include <QVBoxLayout>
 #include <functional>
 #include <QHBoxLayout>
@@ -211,6 +212,10 @@ void Dock::build()
 				QTimer::singleShot(50, this, [this, page]() { openSettings(page); });
 			}
 		});
+	});
+	connect(e_, &Engine::updateNoticeReady, this, [this]() {
+		if (e_->updateNoticeDue())
+			openWhatsNew();
 	});
 	auto *v = new QVBoxLayout(this);
 	v->setContentsMargins(10, 8, 10, 8);
@@ -648,6 +653,8 @@ void Dock::runFix(const QString &id)
 		openSquad();
 	else if (id == "statsimage")
 		openStatsImage();
+	else if (id == "update:whatsnew")
+		openWhatsNew();
 	else if (id == "discord:type") {
 		bool ok = false;
 		QString v = QInputDialog::getText(
@@ -1144,6 +1151,65 @@ void Dock::openSquad()
 	dlg->setAttribute(Qt::WA_DeleteOnClose);
 	squad_ = dlg;
 	showOnScreen(dlg);
+}
+
+void Dock::openWhatsNew()
+{
+	if (whatsNew_) {
+		whatsNew_->raise();
+		whatsNew_->activateWindow();
+		return;
+	}
+	e_->updateNoticeShown(false);
+	auto *d = new QDialog((QWidget *)obs_frontend_get_main_window());
+	d->setAttribute(Qt::WA_DeleteOnClose);
+	d->setWindowTitle(tx("Kennel.gg Wardogs Streaming Tool %1 is out").arg(e_->newVersion()));
+	d->resize(620, 560);
+	auto *v = new QVBoxLayout(d);
+	auto *head = new QLabel(tx("<b>Version %1 is out</b> - you have %2. Here is everything new since yours:")
+					.arg(e_->newVersion().toHtmlEscaped(), QString(PLUGIN_VERSION)),
+				d);
+	head->setWordWrap(true);
+	v->addWidget(head);
+	auto *text = new QTextBrowser(d);
+	text->setOpenExternalLinks(true);
+	QString md = e_->whatsNew();
+	if (md.isEmpty())
+		md = e_->newVersionNotes();
+	text->setMarkdown(md);
+	v->addWidget(text, 1);
+	bool self = e_->canSelfUpdate();
+	auto *how =
+		new QLabel(self ? tx("Update now downloads it in the background while you carry on. You choose when "
+				     "to install it: that closes OBS for about a minute and opens it again, with "
+				     "all your settings kept.")
+				: tx("Download opens the download page. Close OBS, run the installer, and your "
+				     "settings are kept."),
+			   d);
+	how->setWordWrap(true);
+	how->setObjectName("small");
+	v->addWidget(how);
+	auto *row = new QHBoxLayout();
+	auto *skip = new QPushButton(tx("Skip this version"), d);
+	auto *later = new QPushButton(tx("Later"), d);
+	auto *go = new QPushButton(self ? tx("Update now") : tx("Download"), d);
+	go->setDefault(true);
+	row->addWidget(skip);
+	row->addStretch(1);
+	row->addWidget(later);
+	row->addWidget(go);
+	v->addLayout(row);
+	connect(skip, &QPushButton::clicked, d, [this, d]() {
+		e_->updateNoticeShown(true);
+		d->close();
+	});
+	connect(later, &QPushButton::clicked, d, &QDialog::close);
+	connect(go, &QPushButton::clicked, d, [this, d]() {
+		e_->startUpdate();
+		d->close();
+	});
+	whatsNew_ = d;
+	showOnScreen(d);
 }
 
 void Dock::openSettings(const QString &page)

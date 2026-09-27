@@ -1,5 +1,10 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.29.0
+- **Aktualisieren geht mit einem Klick.** Wenn eine neue Version da ist, listet beim Start von OBS ein Fenster **Neuigkeiten** alles auf, was sich seit deiner Version geändert hat, in deiner Sprache (nie während du live bist; wenn du es warst, wartet es, bis der Stream endet). **Jetzt aktualisieren** lädt sie im Hintergrund herunter, während du weitermachst, und prüft sie gegen die Prüfsumme des Releases. Dann schließt **Installieren und OBS neu starten** OBS, installiert und öffnet OBS wieder, alle Einstellungen bleiben erhalten. **Später** fragt beim nächsten Mal wieder; **Diese Version überspringen** fragt erst bei der nächsten Version wieder.
+- Der Update-Hinweis im Dock ist jetzt bernsteinfarben und sagt, was neu ist, mit den Buttons Jetzt aktualisieren und Neuigkeiten, und das Plugin sucht alle 6 Stunden nach einer neuen Version statt nur beim Start von OBS.
+- Der Installer schließt ClipHound selbst, bevor er dessen Dateien ersetzt, damit ein Update nie an einer Datei hängen bleibt, die gerade benutzt wird. Die portable Version und alles, was nicht Windows ist, behalten den Button Herunterladen, der die Download-Seite öffnet.
+
 ## 0.28.2
 - **Jede Schnellauswahl zeigt $ pro Minute.** Das pro Minute im Spiel verdiente Geld ist das fairste Maß dafür, wie viel du für dein Team leistest, egal in welcher Rolle. Darum zeigen jetzt auch die Leisten Fragger, Medic, Recon und Fahrer diesen Wert (Logistik, Builder, Ziele und Allrounder hatten ihn schon).
 

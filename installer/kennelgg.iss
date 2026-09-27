@@ -74,8 +74,11 @@ Source: "{#APPSRC}\config.default.yaml"; DestDir: "{commonappdata}\Kennel.gg\Cli
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   OldDir, NewDir, OldPlugin: String;
+  ResultCode: Integer;
 begin
   if CurStep = ssInstall then begin
+    // ClipHound can outlive OBS; its files cannot be replaced while it runs (the plugin starts it again)
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM ClipHound.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     OldDir := ExpandConstant('{commonappdata}\Kennel WARDOGS\ClipHound');
     NewDir := ExpandConstant('{commonappdata}\Kennel.gg\ClipHound');
     if DirExists(OldDir) then begin
@@ -102,6 +105,11 @@ begin
   end;
 end;
 
+[Run]
+; update mode (0.29.0: the plugin's "Update now"): OBS opens again where it was, as the user, from its
+; own folder (OBS refuses to start from another working directory)
+Filename: "{code:ObsExe}"; WorkingDir: "{code:ObsDir}"; Flags: nowait runasoriginaluser skipifdoesntexist; Check: RelaunchOBS
+
 [Icons]
 Name: "{commonprograms}\Kennel.gg\ClipHound"; Filename: "{commonappdata}\Kennel.gg\ClipHound\ClipHound.exe"; WorkingDir: "{commonappdata}\Kennel.gg\ClipHound"; Components: app
 
@@ -119,9 +127,47 @@ begin
     Result := (ResultCode = 0);
 end;
 
+// /UPDATE: started by the plugin's "Update now", which closes OBS right after starting this
+function IsUpdate(): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 1 to ParamCount() do
+    if CompareText(ParamStr(I), '/UPDATE') = 0 then
+      Result := True;
+end;
+
+function ObsExe(Param: String): String;
+begin
+  Result := ExpandConstant('{param:OBS|}');
+end;
+
+function ObsDir(Param: String): String;
+begin
+  Result := ExtractFileDir(ExpandConstant('{param:OBS|}'));
+end;
+
+function RelaunchOBS(): Boolean;
+begin
+  Result := IsUpdate() and (ExpandConstant('{param:OBS|}') <> '') and FileExists(ExpandConstant('{param:OBS|}'));
+end;
+
 function InitializeSetup(): Boolean;
+var
+  Waited: Integer;
 begin
   Result := True;
+  // update mode: OBS is closing on its own (it saves its scenes first): give it up to two minutes
+  if IsUpdate() then
+  begin
+    Waited := 0;
+    while IsOBSRunning() and (Waited < 120) do
+    begin
+      Sleep(1000);
+      Waited := Waited + 1;
+    end;
+  end;
   while IsOBSRunning() do
   begin
     if MsgBox('OBS Studio is running. Close it, then press Retry.', mbError, MB_RETRYCANCEL) = IDCANCEL then
