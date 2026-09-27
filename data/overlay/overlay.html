@@ -1,10 +1,12 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
+<script src="i18n.js"></script>
+<script>window.t = window.t || function (s) { return s; };</script>
 <style>
 @font-face { font-family: "Saira Condensed"; src: url("SairaCondensed-Bold.ttf"); font-weight: 700; }
 @font-face { font-family: "IBM Plex Mono"; src: url("IBMPlexMono-SemiBold.ttf"); font-weight: 600; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-body { font-family: "Saira Condensed", "Segoe UI", sans-serif; color: #fff; }
+body { font-family: "Saira Condensed", var(--cjk, "Segoe UI"), sans-serif; color: #fff; }
 #grain { position: absolute; inset: 0; width: 100%; height: 100%; mix-blend-mode: overlay; pointer-events: none; opacity: 0; }
 #vig { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.6) 100%); display: none; }
 #cam { display: none; }
@@ -13,7 +15,7 @@ body { font-family: "Saira Condensed", "Segoe UI", sans-serif; color: #fff; }
 .tr { top: 3vw; right: 3vw; border-left: 0; border-bottom: 0; }
 .bl { bottom: 3vw; left: 3vw; border-right: 0; border-top: 0; }
 .br { bottom: 3vw; right: 3vw; border-left: 0; border-top: 0; }
-.hud { position: absolute; font-size: 2.2vw; letter-spacing: 0.15vw; text-shadow: 0 2px 8px rgba(0,0,0,.8); font-family: "IBM Plex Mono", Consolas, monospace; font-weight: 600; }
+.hud { position: absolute; font-size: 2.2vw; letter-spacing: 0.15vw; text-shadow: 0 2px 8px rgba(0,0,0,.8); font-family: "IBM Plex Mono", Consolas, var(--cjk, monospace), monospace; font-weight: 600; }
 #rec { top: 3.4vw; left: 8.5vw; }
 #rec i { display: inline-block; width: 1.3vw; height: 1.3vw; border-radius: 50%; background: #e0352b; margin-right: 0.7vw; vertical-align: -0.1vw; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
@@ -72,7 +74,7 @@ body.s #frame { display: block; }
 body.r #frame { display: block; inset: 0.6vw; border-width: 0.5vw; border-color: rgba(236,231,219,.92); }
 #rtag { display: none; position: absolute; top: 2.4vw; left: 2.4vw; align-items: center; gap: 0.9vw;
   background: rgba(11,14,16,.82); border-left: 0.5vw solid #C99A3B; padding: 0.9vw 1.6vw 0.9vw 1.3vw;
-  font-family: "Saira Condensed", "Segoe UI", sans-serif; font-weight: 700; font-size: 3.2vw; letter-spacing: 0.3vw;
+  font-family: "Saira Condensed", var(--cjk, "Segoe UI"), sans-serif; font-weight: 700; font-size: 3.2vw; letter-spacing: 0.3vw;
   text-transform: uppercase; color: #ece7db; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,.8); }
 #rtag i { display: inline-block; width: 1.4vw; height: 1.4vw; border-radius: 50%; background: #e0352b; animation: blink 1s steps(1) infinite; }
 body.r #rtag { display: flex; }
@@ -80,7 +82,7 @@ body.r #mark { display: none !important; }
 /* the Kennel.gg mark: small, bottom-right, faint. Off the camcorder battery when that is on. */
 #mark { display: none; position: absolute; right: 3vw; bottom: 3vw; align-items: center; gap: 0.6vw; opacity: .55; filter: drop-shadow(0 1px 4px rgba(0,0,0,.7)); pointer-events: none; }
 #mark img { height: 2.4vw; width: auto; }
-#mark span { font-family: "Saira Condensed", "Segoe UI", sans-serif; font-weight: 700; font-size: 1.6vw; letter-spacing: 0.12vw; color: #ece7db; line-height: 1; }
+#mark span { font-family: "Saira Condensed", var(--cjk, "Segoe UI"), sans-serif; font-weight: 700; font-size: 1.6vw; letter-spacing: 0.12vw; color: #ece7db; line-height: 1; }
 #mark span b { color: #C99A3B; font-weight: 700; }
 body.cam #mark { right: 8.5vw; bottom: 6.6vw; }
 body.v #mark { right: 4vw; bottom: 12vw; }
@@ -130,10 +132,11 @@ body:not(.in) #name b, body:not(.in) #rtag span { letter-spacing: .6vw; transiti
   if (scale > 0 && scale !== 100) document.documentElement.style.setProperty("--s", String(scale / 100));
   if (q.get("replay") === "1") {
     document.body.classList.add("r");
-    var rt = q.get("rlabel"); if (rt) document.querySelector("#rtag span").textContent = rt;
+    var rt = q.get("rlabel") || "Instant replay"; document.querySelector("#rtag span").textContent = rt === "Instant replay" ? t("Instant replay") : rt;
   } else if (q.get("frame") !== "1") document.getElementById("frame").style.display = "none";
   var grain = Math.max(0, Math.min(100, parseInt(q.get("grain") || "0", 10) || 0));
   var label = q.get("label") || "POV";
+  if (label === "POV") label = t("POV");
   var portrait = q.get("v") === "1";
   if (portrait) document.body.classList.add("v");
   var vtop = parseInt(q.get("vtop") || "0", 10);

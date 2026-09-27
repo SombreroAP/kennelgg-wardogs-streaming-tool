@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta charset="utf-8">
+<script src="i18n.js"></script>
+<script>window.t = window.t || function (s) { return s; };</script>
 <!-- Kennel.gg session stats: a full-canvas browser source the plugin adds on request. It connects to
      the plugin's local bridge like the Stream Deck does, and redraws on every state message. What it
      shows, in what order, where, whether it is on at all, and always or only when a number changes,
@@ -14,7 +16,7 @@
 :root { --graphite: rgba(18, 21, 24, 0.86); --line: rgba(232, 229, 221, 0.16); --bone: #e8e5dd;
         --dim: #9a978f; --amber: #c99a3b; --olive: #8f9c5a; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; color: var(--bone); }
+body { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-weight: 700; color: var(--bone); }
 /* where it sits (1080p units, scaled to the canvas by #wrap's transform) */
 #wrap { position: absolute; transform-origin: 0 0; }
 #wrap.tl { left: 40px; top: 100px; }
@@ -39,13 +41,13 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
            transition-delay: calc(160ms + var(--i, 0) * 70ms); }
 .tag { display: flex; align-items: center; gap: 10px; padding: 0 18px 0 14px; border-right: 1px solid var(--line); }
 .tag img { height: 44px; }
-.tag span { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 2px; color: var(--amber);
+.tag span { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 2px; color: var(--amber);
             text-transform: uppercase; line-height: 1.25; }
 .c { padding: 10px 20px 12px; border-right: 1px solid var(--line); min-width: 70px; text-align: left; }
 .c:last-child { border-right: 0; }
 .c b { display: block; font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: .5px; white-space: nowrap;
        transition: color .3s; font-variant-numeric: tabular-nums; }
-.c small { display: block; white-space: nowrap; font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 2px;
+.c small { display: block; white-space: nowrap; font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 2px;
            color: var(--dim); text-transform: uppercase; margin-top: 6px; }
 .c.up b { color: var(--amber); }
 .c.money b { color: var(--olive); }
@@ -74,7 +76,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
    stays a moment, and folds away again */
 .c .row { display: flex; align-items: center; }
 .c .why { display: block; max-width: 0; margin-left: 0; overflow: hidden; white-space: nowrap; opacity: 0;
-          font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 2px;
+          font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 2px;
           line-height: 1.1; color: #7fe093; transform: translateX(-6px);
           transition: max-width .5s cubic-bezier(.16, 1, .3, 1), margin-left .5s cubic-bezier(.16, 1, .3, 1),
                       opacity .3s ease-out, transform .5s cubic-bezier(.16, 1, .3, 1); }
@@ -87,7 +89,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
 <body>
 <div id="wrap" class="tl"><div id="bar">
   <div id="edge"></div>
-  <div class="tag"><img src="hound_mark.png" alt=""><span>This<br>session</span></div>
+  <div class="tag"><img src="hound_mark.png" alt=""><span id="thisSession">This<br>session</span></div>
 </div></div>
 <script>
 (function () {
@@ -95,22 +97,27 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
   var port = q.get("port") || "47821";
   // what each cell shows: its label, its class, and its value from the plugin's session object
   var CELLS = {
-    kda:       ["K / D / A", "",      function (s) { return s.kdaText || "0 / 0 / 0"; }],
-    kills:     ["Kills", "",          function (s) { return String(s.kills || 0); }],
-    deaths:    ["Deaths", "",         function (s) { return String(s.deaths || 0); }],
-    assists:   ["Assists", "",        function (s) { return String(s.assists || 0); }],
-    kd:        ["K/D", "",            function (s) { return (s.kd || 0).toFixed(s.kd >= 10 ? 0 : 1); }],
-    downs:     ["Downs", "",          function (s) { return String(s.downs || 0); }],
-    revives:   ["Revives", "",        function (s) { return String(s.revives || 0); }],
-    headshots: ["Headshots", "",      function (s) { return String(s.headshots || 0); }],
-    vehicles:  ["Vehicles", "",       function (s) { return String(s.vehicles || 0); }],
-    net:       ["Session balance", "net", function (s) { return signed(s.net || 0); }],
-    earned:    ["Earned", "money",    function (s) { return s.earnedText || "$0"; }],
-    spent:     ["Spent", "spent",     function (s) { return s.spentText || "$0"; }],
-    permin:    ["$ / min", "money",   function (s) { return s.perMinText || "-"; }],
-    balance:   ["Balance", "money",   function (s) { return s.balanceChangeText || "-"; }],
-    longest:   ["Longest", "",        function (s) { return s.longest ? s.longest + " m" : "-"; }]
+    kda:       [t("K / D / A"), "",      function (s) { return s.kdaText || "0 / 0 / 0"; }],
+    kills:     [t("Kills"), "",          function (s) { return String(s.kills || 0); }],
+    deaths:    [t("Deaths"), "",         function (s) { return String(s.deaths || 0); }],
+    assists:   [t("Assists"), "",        function (s) { return String(s.assists || 0); }],
+    kd:        [t("K/D"), "",            function (s) { return (s.kd || 0).toFixed(s.kd >= 10 ? 0 : 1); }],
+    downs:     [t("Downs"), "",          function (s) { return String(s.downs || 0); }],
+    revives:   [t("Revives"), "",        function (s) { return String(s.revives || 0); }],
+    headshots: [t("Headshots"), "",      function (s) { return String(s.headshots || 0); }],
+    vehicles:  [t("Vehicles"), "",       function (s) { return String(s.vehicles || 0); }],
+    net:       [t("Session balance"), "net", function (s) { return signed(s.net || 0); }],
+    earned:    [t("Earned"), "money",    function (s) { return s.earnedText || "$0"; }],
+    spent:     [t("Spent"), "spent",     function (s) { return s.spentText || "$0"; }],
+    permin:    [t("$ / min"), "money",   function (s) { return s.perMinText || "-"; }],
+    balance:   [t("Balance"), "money",   function (s) { return s.balanceChangeText || "-"; }],
+    longest:   [t("Longest"), "",        function (s) { return s.longest ? t("%1 m").replace("%1", s.longest) : "-"; }]
   };
+  document.getElementById("thisSession").innerHTML = t("This<br>session");
+  // what a change of the balance was for: the plugin sends these codes (Engine::noteMoney)
+  var WHY = { KILL: t("KILL"), ASSIST: t("ASSIST"), REVIVE: t("REVIVE"), HEADSHOT: t("HEADSHOT"),
+              VEHICLE: t("VEHICLE"), ZONE: t("ZONE"), REFUND: t("REFUND"), REWARD: t("REWARD"),
+              SPENT: t("SPENT"), PURCHASE: t("PURCHASE") };
   var bar = document.getElementById("bar"), shown = "";
   function build(ids) {
     Array.prototype.slice.call(bar.querySelectorAll(".c")).forEach(function (n) { n.remove(); });
@@ -167,7 +174,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; co
     if (!w) return;
     var sum = list.reduce(function (a, m) { return a + m.amt; }, 0);
     var words = [];
-    list.forEach(function (m) { if (words.indexOf(m.why) < 0) words.push(m.why); });
+    list.forEach(function (m) { var w = WHY[m.why] || m.why; if (words.indexOf(w) < 0) words.push(w); });
     w.textContent = words.join(" + ");
     w.classList.toggle("neg", sum < 0);
     w.classList.remove("on");

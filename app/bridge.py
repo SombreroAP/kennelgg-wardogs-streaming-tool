@@ -192,6 +192,9 @@ class Bridge:
             c = self.cfg
             if "player_name" in v:
                 c["detection"]["player_name"] = v["player_name"]
+            if "ui_lang" in v:
+                import highlights
+                highlights.LANG = str(v["ui_lang"] or "en")   # the compilation's title cards
             if "game_lang" in v:
                 c["detection"]["game_lang"] = v["game_lang"] or ""   # "" = not known yet (auto, no match so far)
             if "library" in v:

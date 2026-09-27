@@ -44,6 +44,63 @@ def ffmpeg_path() -> str | None:
     return None
 
 
+# The plugin's language (app_config ui_lang): the title cards' words, and a date the way it is written there.
+LANG = "en"
+_CARD_WORDS = {  # code: (HIGHLIGHTS, the community line)
+    "de": ("HIGHLIGHTS", "The Kennel  ·  WARDOGS-Community"),
+    "fr": ("MEILLEURS MOMENTS", "The Kennel  ·  communauté WARDOGS"),
+    "es": ("MEJORES JUGADAS", "The Kennel  ·  comunidad de WARDOGS"),
+    "it": ("MIGLIORI MOMENTI", "The Kennel  ·  community di WARDOGS"),
+    "pt": ("MELHORES MOMENTOS", "The Kennel  ·  comunidade WARDOGS"),
+    "pl": ("NAJLEPSZE MOMENTY", "The Kennel  ·  społeczność WARDOGS"),
+    "tr": ("ÖNE ÇIKANLAR", "The Kennel  ·  WARDOGS topluluğu"),
+    "ru": ("ЛУЧШИЕ МОМЕНТЫ", "The Kennel  ·  сообщество WARDOGS"),
+    "uk": ("НАЙКРАЩІ МОМЕНТИ", "The Kennel  ·  спільнота WARDOGS"),
+    "ja": ("ハイライト", "The Kennel  ·  WARDOGS コミュニティ"),
+    "ko": ("하이라이트", "The Kennel  ·  WARDOGS 커뮤니티"),
+    "zh": ("精彩集锦", "The Kennel  ·  WARDOGS 社区"),
+    "zh-tw": ("精彩集錦", "The Kennel  ·  WARDOGS 社群"),
+}
+
+
+def card_words() -> tuple[str, str]:
+    return _CARD_WORDS.get(LANG, ("HIGHLIGHTS", "The Kennel  ·  WARDOGS community"))
+
+
+def card_date(d: datetime.date) -> str:
+    if LANG in ("ja", "zh", "zh-tw"):
+        return f"{d.year}年{d.month}月{d.day}日"
+    if LANG == "ko":
+        return f"{d.year}년 {d.month}월 {d.day}일"
+    if LANG in ("de", "ru", "uk", "pl", "tr"):
+        return d.strftime("%d.%m.%Y")
+    if LANG in ("fr", "es", "it", "pt"):
+        return d.strftime("%d/%m/%Y")
+    return d.strftime("%d %b %Y").upper()
+
+
+def _font_for(text: str) -> str | None:
+    """Saira has Latin only: Japanese, Korean, Chinese and Cyrillic (in the words, or a player's name) are
+    drawn with the Windows font that has them."""
+    def has(lo, hi):
+        return any(lo <= ord(ch) <= hi for ch in text)
+    fonts = r"C:\Windows\Fonts"
+    cands = []
+    if has(0x3040, 0x30FF) or (LANG == "ja" and has(0x4E00, 0x9FFF)):
+        cands = ["YuGothB.ttc", "meiryob.ttc", "meiryo.ttc", "msgothic.ttc"]
+    elif has(0xAC00, 0xD7AF) or has(0x1100, 0x11FF):
+        cands = ["malgunbd.ttf", "malgun.ttf"]
+    elif has(0x4E00, 0x9FFF) or has(0x3400, 0x4DBF):
+        cands = (["msjhbd.ttc", "msjh.ttc"] if LANG == "zh-tw" else []) + ["msyhbd.ttc", "msyh.ttc", "simhei.ttf"]
+    elif has(0x0400, 0x04FF):
+        cands = ["arialbd.ttf", "segoeuib.ttf"]
+    for c in cands:
+        p = os.path.join(fonts, c)
+        if os.path.exists(p):
+            return p
+    return _font()
+
+
 def _font() -> str | None:
     for cand in (os.path.join(_base_dir(), "fonts", "SairaCondensed-Bold.ttf"),
                  os.path.join(_base_dir(), "..", "data", "overlay", "SairaCondensed-Bold.ttf"),
@@ -198,13 +255,12 @@ class Highlights:
         out = os.path.join(self.work, f"card-{hashlib.sha1((name + '|'.join(lines)).encode()).hexdigest()[:12]}.mp4")
         if os.path.exists(out):
             return out
-        font = _font()
         vf = []
-        if font:
-            fe = _ff_escape(font)
+        if _font():
             ys = [h * 0.40, h * 0.55] if len(lines) > 1 else [h * 0.46]
             sizes = [84, 40] if vertical else [110, 48]
             for i, text in enumerate(lines[:2]):
+                fe = _ff_escape(_font_for(text) or _font())
                 col = "0xC99A3B" if i == 0 else "0xECE7DB"
                 vf.append(f"drawtext=fontfile='{fe}':text='{_ff_escape(text)}':fontcolor={col}:fontsize={sizes[i]}:"
                           f"x=(w-text_w)/2:y={int(ys[i])}")
@@ -284,10 +340,13 @@ class Highlights:
                 print(f"[highlights] skipped {c['path']}: {e}")
         if not segs:
             raise RuntimeError("no clip could be cut")
-        player = (o.get("player") or "").strip() or "HIGHLIGHTS"
+        global LANG
+        LANG = str(o.get("lang") or LANG)
+        word, community = card_words()
+        player = (o.get("player") or "").strip() or word
         when = datetime.datetime.now()
-        intro = [player.upper(), f"HIGHLIGHTS  ·  {when.strftime('%d %b %Y').upper()}"]
-        outro = ["kennel.gg", "The Kennel  ·  WARDOGS community"]
+        intro = [player.upper(), f"{word}  ·  {card_date(when)}"]
+        outro = ["kennel.gg", community]
         parts = [self._card(intro, CARD_INTRO_S, "intro"), *segs, self._card(outro, CARD_OUTRO_S, "outro")]
         final = os.path.join(out_dir, f"Highlights {when.strftime('%Y-%m-%d %H-%M')}.mp4")
         self._join(parts, final, "")

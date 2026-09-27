@@ -42,6 +42,7 @@ target_sources(
   PRIVATE
     src/plugin-main.cpp
     src/config.cpp
+    src/i18n.cpp
     src/detector.cpp
     src/capture.cpp
     src/picture.cpp

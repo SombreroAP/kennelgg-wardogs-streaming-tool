@@ -1,4 +1,5 @@
 #include "voice.h"
+#include "i18n.h"
 #include <plugin-support.h>
 #include <obs-module.h>
 #include <media-io/audio-io.h>
@@ -43,10 +44,10 @@ QString VoiceTap::attach(const QString &sourceName)
 {
 	detach();
 	if (sourceName.isEmpty())
-		return "no microphone source chosen";
+		return tx("no microphone source chosen");
 	obs_source_t *s = obs_get_source_by_name(sourceName.toUtf8().constData());
 	if (!s)
-		return "microphone source '" + sourceName + "' not found";
+		return tx("microphone source '%1' not found").arg(sourceName);
 	const struct audio_output_info *ai = audio_output_get_info(obs_get_audio());
 	inRate_ = ai ? ai->samples_per_sec : 48000;
 	inFormat_ = ai ? (int)ai->format : (int)AUDIO_FORMAT_FLOAT_PLANAR;

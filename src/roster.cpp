@@ -1,6 +1,7 @@
 #include "roster.h"
 #include "plugin-support.h"
 #include "http.h"
+#include "i18n.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -38,7 +39,12 @@ void Roster::stop()
 		members_.clear();
 		emit changed();
 	}
-	status_ = "off";
+	status_.clear(); // status() says "off"
+}
+
+QString Roster::status() const
+{
+	return status_.isEmpty() ? tx("off") : status_;
 }
 
 QList<Roster::Member> Roster::streamers() const
@@ -73,8 +79,8 @@ void Roster::poll()
 				// 404 is the one worth naming: it means the key in the address does not match the
 				// one the bot was given, which is a typo rather than a network problem
 				status_ = r.status == 404
-						  ? "not found - check the address (the key must match the bot's)"
-						  : "could not read the roster (" + r.error + ")";
+						  ? tx("not found - check the address (the key must match the bot's)")
+						  : tx("could not read the roster (%1)").arg(r.error);
 				healthy_ = false;
 				emit polled();
 				return;
@@ -125,9 +131,8 @@ void Roster::poll()
 				       found[i].channel == members_[i].channel;
 			members_ = found;
 			int live = streamers().size();
-			status_ = members_.isEmpty()
-					  ? "nobody in voice"
-					  : QString("%1 in voice, %2 sharing").arg(members_.size()).arg(live);
+			status_ = members_.isEmpty() ? tx("nobody in voice")
+						     : tx("%1 in voice, %2 sharing").arg(members_.size()).arg(live);
 			if (same)
 				emit polled();
 			else

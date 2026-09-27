@@ -1,4 +1,5 @@
 #include "switcher.h"
+#include "i18n.h"
 #include <util/platform.h>
 #include <graphics/matrix4.h>
 #include <obs-module.h>
@@ -27,6 +28,23 @@ static std::string urlEncode(const std::string &s)
 		}
 	}
 	return o;
+}
+
+static QString qs(const std::string &s)
+{
+	return QString::fromStdString(s);
+}
+
+/// The overlay pages read the plugin's language from their URL.
+static std::string langParam()
+{
+	return "&lang=" + urlEncode(I18n::current());
+}
+
+/// The replay tag: the streamer's own words, or the default in the plugin's language.
+static std::string replayLabelParam(const Config &cfg)
+{
+	return urlEncode(cfg.replayLabel == "Instant replay" ? txs("Instant replay") : cfg.replayLabel);
 }
 
 static std::string lower(std::string s)
@@ -81,7 +99,7 @@ std::string Switcher::overlayUrl(const Config &cfg, const std::string &friendNam
 	std::replace(path.begin(), path.end(), '\\', '/');
 	std::string q;
 	if (cfg.lookName) {
-		q += "name=" + urlEncode(friendName.empty() ? "friend" : friendName) +
+		q += "name=" + urlEncode(friendName.empty() ? txs("friend") : friendName) +
 		     "&label=" + urlEncode(cfg.lookLabel);
 		if (cfg.lookPlate)
 			q += "&plate=1";
@@ -97,6 +115,7 @@ std::string Switcher::overlayUrl(const Config &cfg, const std::string &friendNam
 		q += "&mark=1";
 	if (cfg.povStinger)
 		q += "&enter=650"; // the swap happens under SWITCHING POV: arrive as it uncovers the screen
+	q += langParam();
 	if (!q.empty() && q[0] == '&')
 		q.erase(0, 1);
 	return "file:///" + path + "?" + q;
@@ -210,10 +229,10 @@ std::string Switcher::createInScene(const Config &cfg, const char *kind, const s
 				    bool fullCanvas, bool visible, bool toBottom)
 {
 	if (!kindAvailable(kind))
-		return std::string("source type '") + kind + "' is not available in this OBS";
+		return tx("source type '%1' is not available in this OBS").arg(qs(kind)).toStdString();
 	obs_source_t *ss = sceneSource(cfg);
 	if (!ss)
-		return "no scene";
+		return txs("no scene");
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	obs_source_t *src = obs_get_source_by_name(name.c_str());
 	if (src && obs_source_removed(src)) {
@@ -230,10 +249,12 @@ std::string Switcher::createInScene(const Config &cfg, const char *kind, const s
 		src = obs_source_create(kind, name.c_str(), settings, nullptr);
 		if (!src) {
 			obs_source_release(ss);
-			return "could not create '" + name + "' (OBS refused a " + kind + " source)";
+			return tx("could not create '%1' (OBS refused a %2 source)")
+				.arg(qs(name), qs(kind))
+				.toStdString();
 		}
 		if (log)
-			log("Added '" + name + "' to OBS.");
+			log(tx("Added '%1' to OBS.").arg(qs(name)).toStdString());
 	}
 	obs_sceneitem_t *item = obs_scene_find_source(scene, name.c_str());
 	bool fresh = !item;
@@ -243,7 +264,7 @@ std::string Switcher::createInScene(const Config &cfg, const char *kind, const s
 		std::string sceneName = obs_source_get_name(ss) ? obs_source_get_name(ss) : "?";
 		obs_source_release(src);
 		obs_source_release(ss);
-		return "could not add '" + name + "' to the scene '" + sceneName + "'";
+		return tx("could not add '%1' to the scene '%2'").arg(qs(name), qs(sceneName)).toStdString();
 	}
 	if (item) {
 		if (obs_sceneitem_visible(item) != visible)
@@ -263,7 +284,7 @@ std::string Switcher::createInScene(const Config &cfg, const char *kind, const s
 	}
 	obs_source_release(src);
 	obs_source_release(ss);
-	return item ? "" : "could not add '" + name + "' to the scene";
+	return item ? "" : tx("could not add '%1' to the scene").arg(qs(name)).toStdString();
 }
 
 /// The sources this plugin made for one squad mate, taken out of every scene and deleted. Only ever
@@ -347,7 +368,7 @@ int Switcher::removeFriendSources(const Config &cfg, const Friend &f)
 		obs_source_release(src);
 		gone++;
 		if (log)
-			log("Removed the source '" + name + "'.");
+			log(tx("Removed the source '%1'.").arg(qs(name)).toStdString());
 	}
 	return gone;
 }
@@ -393,7 +414,7 @@ int Switcher::migrateNames(Config &cfg)
 	if (cfgChanged)
 		cfg.save();
 	if (moved && log)
-		log("Renamed " + std::to_string(moved) + " source(s) from \"Kennel ...\" to \"Kennel.gg ...\".");
+		log(tx("Renamed %1 source(s) from \"Kennel ...\" to \"Kennel.gg ...\".").arg(moved).toStdString());
 	return moved;
 }
 
@@ -560,8 +581,12 @@ std::vector<std::string> Switcher::monitors()
 	EnumDisplayMonitors(nullptr, nullptr, monEnum, reinterpret_cast<LPARAM>(&ml));
 	std::vector<std::string> out;
 	for (const RECT &r : ml.rects)
-		out.push_back(std::to_string(r.right - r.left) + "x" + std::to_string(r.bottom - r.top) + " at " +
-			      std::to_string(r.left) + "," + std::to_string(r.top));
+		out.push_back(tx("%1x%2 at %3,%4")
+				      .arg(r.right - r.left)
+				      .arg(r.bottom - r.top)
+				      .arg(r.left)
+				      .arg(r.top)
+				      .toStdString());
 	return out;
 }
 
@@ -732,10 +757,11 @@ std::string Switcher::ensureBrowserSource(obs_scene_t *scene, const char *name, 
 		src = obs_source_create("browser_source", name, st, nullptr);
 		obs_data_release(st);
 		if (!src)
-			return std::string("could not create browser source '") + name +
-			       "' (is the Browser Source available in this OBS?)";
+			return tx("could not create browser source '%1' (is the Browser Source available in this OBS?)")
+				.arg(qs(name))
+				.toStdString();
 		if (log)
-			log(std::string("Added browser source '") + name + "'.");
+			log(tx("Added browser source '%1'.").arg(qs(name)).toStdString());
 	} else {
 		obs_data_t *cur = obs_source_get_settings(src);
 		std::string curUrl = obs_data_get_string(cur, "url");
@@ -762,7 +788,7 @@ std::string Switcher::ensureBrowserSource(obs_scene_t *scene, const char *name, 
 		}
 	}
 	obs_source_release(src);
-	return item ? "" : std::string("could not add '") + name + "' to the scene";
+	return item ? "" : tx("could not add '%1' to the scene").arg(qs(name)).toStdString();
 }
 
 std::string Switcher::ensureHideFilter(obs_source_t *src)
@@ -782,7 +808,7 @@ std::string Switcher::ensureHideFilter(obs_source_t *src)
 	f = obs_source_create_private("color_filter_v2", Config::hideFilterName(), st);
 	obs_data_release(st);
 	if (!f)
-		return "could not create the hide filter";
+		return txs("could not create the hide filter");
 	obs_source_filter_add(src, f);
 	obs_source_release(f);
 	return "";
@@ -864,13 +890,13 @@ std::string Switcher::trimToContent(const Config &cfg, const Friend &f)
 		return "";
 	obs_source_t *ss = sceneSource(cfg);
 	if (!ss)
-		return "no scene";
+		return txs("no scene");
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	obs_sceneitem_t *item = obs_scene_find_source(scene, f.source.c_str());
 	obs_source_t *src = obs_get_source_by_name(f.source.c_str());
 	std::string err;
 	if (!item || !src) {
-		err = "'" + f.source + "' is not in the scene";
+		err = tx("'%1' is not in the scene").arg(qs(f.source)).toStdString();
 	} else if (!f.trim) {
 		struct obs_sceneitem_crop none = {0, 0, 0, 0};
 		obs_sceneitem_set_crop(item, &none);
@@ -879,7 +905,7 @@ std::string Switcher::trimToContent(const Config &cfg, const Friend &f)
 		std::vector<uint8_t> bgra;
 		int w = 0, h = 0, ls = 0;
 		if (!trimCap_.grab(src, W, bgra, w, h, ls) || w < 32 || h < 32) {
-			err = "no picture from '" + f.source + "' yet";
+			err = tx("no picture from '%1' yet").arg(qs(f.source)).toStdString();
 		} else {
 			auto lum = [&](int x, int y) {
 				const uint8_t *p = &bgra[(size_t)y * ls + (size_t)x * 4];
@@ -926,9 +952,13 @@ std::string Switcher::trimToContent(const Config &cfg, const Friend &f)
 			    crop.bottom != had.bottom) {
 				obs_sceneitem_set_crop(item, &crop);
 				if (log && (crop.left || crop.top || crop.right || crop.bottom))
-					log("Trimmed the borders off " + f.name + "'s feed (" +
-					    std::to_string(crop.left) + "/" + std::to_string(crop.top) + "/" +
-					    std::to_string(crop.right) + "/" + std::to_string(crop.bottom) + " px).");
+					log(tx("Trimmed the borders off %1's feed (%2/%3/%4/%5 px).")
+						    .arg(qs(f.name))
+						    .arg(crop.left)
+						    .arg(crop.top)
+						    .arg(crop.right)
+						    .arg(crop.bottom)
+						    .toStdString());
 			}
 		}
 	}
@@ -1032,7 +1062,9 @@ std::string Switcher::applyVertical(const Config &cfg, bool on)
 	if (!scene) {
 		if (ss)
 			obs_source_release(ss);
-		return "vertical scene '" + cfg.sceneV + "' is not there (on a canvas other than the main one)";
+		return tx("vertical scene '%1' is not there (on a canvas other than the main one)")
+			.arg(qs(cfg.sceneV))
+			.toStdString();
 	}
 	// the portrait canvas's size: a scene reports its canvas's base size
 	uint32_t cw = obs_source_get_width(ss), ch = obs_source_get_height(ss);
@@ -1047,11 +1079,12 @@ std::string Switcher::applyVertical(const Config &cfg, bool on)
 			cvName = obs_canvas_get_name(cv) ? obs_canvas_get_name(cv) : "?";
 			obs_canvas_release(cv);
 		}
-		std::string where = "'" + cfg.sceneV + "' on canvas '" + cvName + "' (" + std::to_string(cw) + "x" +
-				    std::to_string(ch) + ")";
+		std::string where = tx("'%1' on canvas '%2' (%3x%4)")
+					    .arg(qs(cfg.sceneV), qs(cvName), QString::number(cw), QString::number(ch))
+					    .toStdString();
 		if (where != lastVerticalWhere_ && log) {
 			lastVerticalWhere_ = where;
-			log("Vertical: the scene is " + where + ".");
+			log(tx("Vertical: the scene is %1.").arg(qs(where)).toStdString());
 		}
 	}
 	std::string err;
@@ -1064,7 +1097,7 @@ std::string Switcher::applyVertical(const Config &cfg, bool on)
 		obs_source_t *src = obs_get_source_by_name(name.c_str());
 		if (!src) {
 			if (isActive && on)
-				err = "'" + name + "' does not exist yet";
+				err = tx("'%1' does not exist yet").arg(qs(name)).toStdString();
 			continue;
 		}
 		obs_sceneitem_t *item = obs_scene_find_source(scene, name.c_str());
@@ -1080,13 +1113,15 @@ std::string Switcher::applyVertical(const Config &cfg, bool on)
 				obs_sceneitem_set_bounds_alignment(item, OBS_ALIGN_CENTER);
 				obs_sceneitem_set_bounds(item, &bounds);
 				if (log)
-					log("Vertical: added " + g.name + "'s feed to '" + cfg.sceneV + "'.");
+					log(tx("Vertical: added %1's feed to '%2'.")
+						    .arg(qs(g.name), qs(cfg.sceneV))
+						    .toStdString());
 			}
 			bool show = on && isActive;
 			if (show)
 				moveToTop(item);
 			if (show && !obs_sceneitem_visible(item) && log)
-				log("Vertical: showing " + g.name + "'s feed.");
+				log(tx("Vertical: showing %1's feed.").arg(qs(g.name)).toStdString());
 			obs_sceneitem_set_visible(item, show);
 		}
 		obs_source_release(src);
@@ -1241,7 +1276,7 @@ std::string Switcher::updateLook(const Config &cfg, bool on)
 {
 	obs_source_t *ss = sceneSource(cfg);
 	if (!ss)
-		return "no scene";
+		return txs("no scene");
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	std::string err;
 	if (on) {
@@ -1256,7 +1291,9 @@ std::string Switcher::updateLook(const Config &cfg, bool on)
 	} else {
 		int n = hideEverywhere(Config::overlaySourceName());
 		if (log && n > 1)
-			log("Look overlay: hid " + std::to_string(n) + " scene items (it was in more than one place).");
+			log(tx("Look overlay: hid %1 scene items (it was in more than one place).")
+				    .arg(n)
+				    .toStdString());
 	}
 	obs_source_release(ss);
 	return err;
@@ -1317,7 +1354,7 @@ void Switcher::armOne(const Config &cfg, const Friend &f)
 		bool keepUp = !f.isWeb() && f.kind == FriendKind::Discord;
 		obs_sceneitem_set_visible(item, keepUp);
 	} else if (log)
-		log("Warm feed: '" + name + "' is not in the scene.");
+		log(tx("Warm feed: '%1' is not in the scene.").arg(qs(name)).toStdString());
 	if (!f.audioSource.empty()) {
 		obs_source_t *a = obs_get_source_by_name(f.audioSource.c_str());
 		obs_sceneitem_t *ai = obs_scene_find_source(scene, f.audioSource.c_str());
@@ -1382,7 +1419,7 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 		return e;
 	obs_source_t *ss = sceneSource(cfg);
 	if (!ss)
-		return "no scene";
+		return txs("no scene");
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	obs_sceneitem_t *item = obs_scene_find_source(scene, Config::replaySourceName());
 	obs_source_t *src = obs_get_source_by_name(Config::replaySourceName());
@@ -1390,7 +1427,7 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 		if (src)
 			obs_source_release(src);
 		obs_source_release(ss);
-		return "the replay source is not in the scene";
+		return txs("the replay source is not in the scene");
 	}
 	struct obs_video_info ovi;
 	obs_get_video_info(&ovi);
@@ -1416,8 +1453,9 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 		std::string page = pp ? pp : "";
 		bfree(pp);
 		std::replace(page.begin(), page.end(), '\\', '/');
-		std::string url = "file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel) +
-				  (cfg.replayStinger ? "&enter=1100" : ""); // the tag arrives as the stinger uncovers
+		std::string url = "file:///" + page + "?replay=1&rlabel=" + replayLabelParam(cfg) +
+				  (cfg.replayStinger ? "&enter=1100" : "") + // the tag arrives as the stinger uncovers
+				  langParam();
 		std::string e2 = ensureBrowserSource(scene, Config::replayFrameName(), url, false, (int)w, (int)h);
 		if (e2.empty()) {
 			if (obs_sceneitem_t *fi = obs_scene_find_source(scene, Config::replayFrameName())) {
@@ -1428,7 +1466,7 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 				moveToTop(fi);
 			}
 		} else if (log)
-			log("Replay frame: " + e2);
+			log(tx("Replay frame: %1").arg(qs(e2)).toStdString());
 	} else
 		hideEverywhere(Config::replayFrameName());
 	raiseOnTop(cfg); // camera and alerts back over it
@@ -1437,7 +1475,7 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 	if (cfg.verticalOn()) {
 		std::string ev = playMediaVertical(cfg, scalePct, frame, pathV);
 		if (!ev.empty() && log)
-			log("Replay (vertical): " + ev);
+			log(tx("Replay (vertical): %1").arg(qs(ev)).toStdString());
 	}
 	return "";
 }
@@ -1453,16 +1491,17 @@ std::string Switcher::ensureStinger(const Config &cfg, bool on)
 	std::string page = pp ? pp : "";
 	bfree(pp);
 	if (page.empty())
-		return "the stinger page is missing from the plugin's data folder";
+		return txs("the stinger page is missing from the plugin's data folder");
 	std::replace(page.begin(), page.end(), '\\', '/');
 	std::string url = "file:///" + page + "?port=" + std::to_string(cfg.bridgePort) +
 			  (cfg.replayStingerSound && cfg.stingerVolume > 0
 				   ? "&vol=" + std::to_string(std::clamp(cfg.stingerVolume, 1, 100))
-				   : std::string("&sound=0"));
+				   : std::string("&sound=0")) +
+			  langParam();
 	auto put = [&](obs_source_t *ss, const char *name, int w, int h) -> std::string {
 		obs_scene_t *scene = ss ? obs_scene_from_source(ss) : nullptr;
 		if (!scene)
-			return "no scene";
+			return txs("no scene");
 		// its whoosh goes out with the stream (reroute_audio), not only to this PC's speakers; the
 		// vertical one leaves the picture-in-picture frame to the main canvas
 		std::string e = ensureBrowserSource(scene, name, w ? url + "&canvas=v" : url, true, w, h);
@@ -1484,7 +1523,7 @@ std::string Switcher::ensureStinger(const Config &cfg, bool on)
 			uint32_t cw = obs_source_get_width(vs), ch = obs_source_get_height(vs);
 			std::string ev = put(vs, Config::stingerNameV(), cw ? (int)cw : 1080, ch ? (int)ch : 1920);
 			if (!ev.empty() && log)
-				log("Replay stinger (vertical): " + ev);
+				log(tx("Replay stinger (vertical): %1").arg(qs(ev)).toStdString());
 			obs_source_release(vs);
 		}
 	return err;
@@ -1494,7 +1533,7 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 {
 	obs_source_t *ss = verticalSceneSource(cfg);
 	if (!ss)
-		return "vertical scene '" + cfg.sceneV + "' is not there";
+		return tx("vertical scene '%1' is not there").arg(qs(cfg.sceneV)).toStdString();
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	uint32_t cw = obs_source_get_width(ss), ch = obs_source_get_height(ss);
 	if (cw == 0 || ch == 0) {
@@ -1525,7 +1564,7 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 		obs_data_release(st);
 		if (!src) {
 			obs_source_release(ss);
-			return "could not make the vertical replay source";
+			return txs("could not make the vertical replay source");
 		}
 		hideEverywhere(Config::replaySourceName()); // not the horizontal one as well
 	} else {
@@ -1534,7 +1573,7 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 	}
 	if (!src) {
 		obs_source_release(ss);
-		return "no replay source";
+		return txs("no replay source");
 	}
 	// a scene item for it: the horizontal clip full width at the chosen scale, 16:9, centred;
 	// the portrait clip full height at the chosen scale, 9:16, centred
@@ -1567,8 +1606,8 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 		std::string page = pp ? pp : "";
 		bfree(pp);
 		std::replace(page.begin(), page.end(), '\\', '/');
-		std::string url = "file:///" + page + "?replay=1&rlabel=" + urlEncode(cfg.replayLabel) +
-				  (portrait ? "&v=1" : "") + (cfg.replayStinger ? "&enter=1100" : "");
+		std::string url = "file:///" + page + "?replay=1&rlabel=" + replayLabelParam(cfg) +
+				  (portrait ? "&v=1" : "") + (cfg.replayStinger ? "&enter=1100" : "") + langParam();
 		std::string e2 = ensureBrowserSource(scene, Config::replayFrameNameV(), url, false, (int)w, (int)h);
 		if (e2.empty()) {
 			if (obs_sceneitem_t *fi = obs_scene_find_source(scene, Config::replayFrameNameV())) {
@@ -1604,7 +1643,7 @@ std::string Switcher::playSound(const Config &cfg, const std::string &path, int 
 		return e;
 	obs_source_t *src = obs_get_source_by_name(Config::chimeSourceName());
 	if (!src)
-		return "no chime source";
+		return txs("no chime source");
 	obs_source_set_volume(src, std::clamp(volumePct, 0, 100) / 100.0f);
 	obs_source_set_muted(src, false);
 	obs_source_set_monitoring_type(src, OBS_MONITORING_TYPE_NONE);
@@ -1929,10 +1968,10 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 {
 	const Friend *f = cfg.dual();
 	if (on && !f)
-		return "no squad mate chosen for the dual POV";
+		return txs("no squad mate chosen for the dual POV");
 	obs_source_t *ss = sceneSource(cfg);
 	if (!ss)
-		return "no scene";
+		return txs("no scene");
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	obs_sceneitem_t *item = obs_scene_find_source(scene, Config::dualSceneName());
 	if (!on) {
@@ -1957,7 +1996,7 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 	if (!dualScene_) {
 		dualScene_ = obs_scene_create_private(Config::dualSceneName());
 		if (log)
-			log("Added the dual-POV window '" + std::string(Config::dualSceneName()) + "'.");
+			log(tx("Added the dual-POV window '%1'.").arg(qs(Config::dualSceneName())).toStdString());
 	}
 	obs_scene_t *dual = dualScene_;
 	obs_source_t *dualSrc = obs_scene_get_source(dual);
@@ -1976,7 +2015,7 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 		inner = f->source;
 		obs_source_t *src = obs_get_source_by_name(inner.c_str());
 		if (!src)
-			err = "source '" + inner + "' not found";
+			err = tx("source '%1' not found").arg(qs(inner)).toStdString();
 		else {
 			if (!obs_scene_find_source(dual, inner.c_str())) {
 				obs_sceneitem_t *it = obs_scene_add(dual, src);
@@ -2011,7 +2050,7 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 		       std::to_string(std::clamp(cfg.dualNameScale, 25, 400));
 		std::string e2 = ensureBrowserSource(dual, lookName.c_str(), url, true);
 		if (!e2.empty() && log)
-			log("Dual POV look: " + e2);
+			log(tx("Dual POV look: %1").arg(qs(e2)).toStdString());
 	}
 	// only the chosen feed, and the look over it, are inside the window
 	struct Keep {
@@ -2053,7 +2092,7 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 		moveToTop(item);
 		raiseOnTop(cfg);
 	} else
-		err = "could not add the dual-POV window to the scene";
+		err = txs("could not add the dual-POV window to the scene");
 	obs_source_release(dualSrc);
 	obs_source_release(ss);
 	return err;
@@ -2090,12 +2129,12 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 	std::vector<std::string> errors;
 	const Friend *f = cfg.active();
 	if (!f) {
-		errors.push_back("no squad mate set");
+		errors.push_back(txs("no squad mate set"));
 		return errors;
 	}
 	obs_source_t *ss = sceneSource(cfg);
 	if (!ss) {
-		errors.push_back("no scene");
+		errors.push_back(txs("no scene"));
 		return errors;
 	}
 	obs_scene_t *scene = obs_scene_from_source(ss);
@@ -2111,8 +2150,9 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 		obs_source_t *src = obs_get_source_by_name(name.c_str());
 		obs_sceneitem_t *item = obs_scene_find_source(scene, name.c_str());
 		if (!src || !item) {
-			errors.push_back("friend source '" + name + "' is not in scene '" + obs_source_get_name(ss) +
-					 "'");
+			errors.push_back(tx("friend source '%1' is not in scene '%2'")
+						 .arg(qs(name), QString::fromUtf8(obs_source_get_name(ss)))
+						 .toStdString());
 		} else {
 			if (on && cfg.bringToFront)
 				moveToTop(item);
@@ -2168,7 +2208,7 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 	{
 		std::string e = updateLook(cfg, on && cfg.lookEnabled());
 		if (!e.empty())
-			errors.push_back("look: " + e);
+			errors.push_back(tx("look: %1").arg(qs(e)).toStdString());
 	}
 
 	// 3. game audio: mute on the way down, restore the exact previous state on the way up. Not for a
@@ -2180,7 +2220,7 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 		obs_source_t *src = obs_get_source_by_name(input.c_str());
 		if (!src) {
 			if (on)
-				errors.push_back("audio '" + input + "' not found");
+				errors.push_back(tx("audio '%1' not found").arg(qs(input)).toStdString());
 			continue;
 		}
 		if (on) {

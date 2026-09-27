@@ -1,4 +1,5 @@
 #include "ui/quick-add.h"
+#include "i18n.h"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QRegularExpression>
@@ -112,25 +113,25 @@ bool parse(const QString &text, FriendKind fallback, Friend &out, QString &err)
 	switch (k) {
 	case FriendKind::Twitch:
 		if (!QRegularExpression("^[a-z0-9_]{3,25}$").match(chan).hasMatch()) {
-			err = "\"" + t + "\" is not a Twitch channel name";
+			err = tx("\"%1\" is not a Twitch channel name").arg(t);
 			return false;
 		}
 		break;
 	case FriendKind::Kick:
 		if (!QRegularExpression("^[a-z0-9_-]{2,}$").match(chan).hasMatch()) {
-			err = "\"" + t + "\" is not a Kick channel name";
+			err = tx("\"%1\" is not a Kick channel name").arg(t);
 			return false;
 		}
 		break;
 	case FriendKind::YouTube:
 		if (chan.isEmpty()) {
-			err = "\"" + t + "\" is not a YouTube channel link, @handle or live video link";
+			err = tx("\"%1\" is not a YouTube channel link, @handle or live video link").arg(t);
 			return false;
 		}
 		break;
 	default:
 		if (!QRegularExpression("^[A-Za-z0-9_-]{1,64}$").match(chan).hasMatch()) {
-			err = "\"" + t + "\" is not a VDO.Ninja stream ID (letters, numbers, - and _)";
+			err = tx("\"%1\" is not a VDO.Ninja stream ID (letters, numbers, - and _)").arg(t);
 			return false;
 		}
 		k = FriendKind::VdoNinja;
@@ -169,11 +170,11 @@ QuickAdd::QuickAdd(Engine *engine, QWidget *parent) : QWidget(parent), e_(engine
 	platform_ = new QComboBox(this);
 	for (FriendKind k : {FriendKind::Twitch, FriendKind::Kick, FriendKind::YouTube, FriendKind::VdoNinja})
 		platform_->addItem(platformName(k), (int)k);
-	platform_->setToolTip("For names typed without a link. A pasted link picks its own platform.");
+	platform_->setToolTip(tx("For names typed without a link. A pasted link picks its own platform."));
 	edit_ = new QLineEdit(this);
-	edit_->setPlaceholderText("Paste their link, or type their channel name - several at once is fine");
+	edit_->setPlaceholderText(tx("Paste their link, or type their channel name - several at once is fine"));
 	edit_->setClearButtonEnabled(true);
-	add_ = new QPushButton("Add", this);
+	add_ = new QPushButton(tx("Add"), this);
 	add_->setDefault(false);
 	add_->setAutoDefault(false);
 	row->addWidget(platform_);
@@ -219,21 +220,21 @@ void QuickAdd::addNow()
 		QString err;
 		if (!SquadInput::parse(entry, fallback, f, err)) {
 			if (!err.isEmpty())
-				notes << err.toHtmlEscaped() + ".";
+				notes << tx("%1.").arg(err.toHtmlEscaped());
 			unread << entry;
 			continue;
 		}
 		if (f.kind == FriendKind::YouTube && !f.channel.empty() && f.channel[0] == '@') {
 			// the player needs the channel's ID, which only its page carries
-			result_->setText("Looking up " + QString::fromStdString(f.channel).toHtmlEscaped() +
-					 " on YouTube...");
+			result_->setText(tx("Looking up %1 on YouTube...")
+						 .arg(QString::fromStdString(f.channel).toHtmlEscaped()));
 			result_->show();
 			QApplication::processEvents();
 			QString id = SquadInput::resolveYouTubeHandle(QString::fromStdString(f.channel));
 			if (id.isEmpty()) {
-				notes << "Could not find the YouTube channel " +
-						 QString::fromStdString(f.channel).toHtmlEscaped() +
-						 " (paste a link to their channel or live video instead).";
+				notes << tx("Could not find the YouTube channel %1 (paste a link to their channel or live "
+					    "video instead).")
+						 .arg(QString::fromStdString(f.channel).toHtmlEscaped());
 				unread << entry;
 				continue;
 			}
@@ -249,7 +250,7 @@ void QuickAdd::addNow()
 				sameName = true;
 		}
 		if (dup) {
-			notes << QString::fromStdString(f.name).toHtmlEscaped() + " is already in your squad.";
+			notes << tx("%1 is already in your squad.").arg(QString::fromStdString(f.name).toHtmlEscaped());
 			continue;
 		}
 		if (sameName) // somebody of that name on Discord already: keep both apart on the dock
@@ -259,16 +260,16 @@ void QuickAdd::addNow()
 		if (f.kind == FriendKind::VdoNinja) {
 			QString link = QString::fromStdString(Switcher::vdoPushUrl(f));
 			QApplication::clipboard()->setText(link);
-			notes << "Send " + QString::fromStdString(f.name).toHtmlEscaped() +
-					 " this link to open while they play (copied): <br><code>" +
-					 link.toHtmlEscaped() + "</code>";
+			notes << tx("Send %1 this link to open while they play (copied): <br><code>%2</code>")
+					 .arg(QString::fromStdString(f.name).toHtmlEscaped(), link.toHtmlEscaped());
 		}
 	}
 	if (!added.isEmpty()) {
 		if (e_->cfg.friends.size() == (size_t)added.size())
 			e_->setActive(0); // the first squad mate is the one shown
 		e_->cfg.save();
-		e_->log("Squad mate" + QString(added.size() == 1 ? "" : "s") + " added: " + added.join(", ") + ".");
+		e_->log((added.size() == 1 ? tx("Squad mate added: %1.") : tx("Squad mates added: %1."))
+				.arg(added.join(", ")));
 		e_->webLiveTick(); // live or offline now, not in a minute
 		emit e_->stateChanged();
 		emit this->added(); // the signal, not the list above
@@ -285,17 +286,19 @@ void QuickAdd::showResult()
 	for (const QString &n : lastAdded_)
 		for (const auto &f : e_->cfg.friends)
 			if (QString::fromStdString(f.name) == n) {
-				QString st = e_->feedStateText(f);
-				QString kind = platformName(f.kind);
-				parts << "<b>" + n.toHtmlEscaped() + "</b> (" + kind +
-						 (st == "live" ? ", <span style=\"color:#8f9c5a\">live now</span>"
-						  : st == "not streaming" ? ", offline"
-									  : "") +
-						 ")";
+				// by the feed state itself, not its (translated) text
+				Engine::Feed fs = e_->feedState(f);
+				QString who = "<b>" + n.toHtmlEscaped() + "</b>", kind = platformName(f.kind);
+				parts << (fs == Engine::Feed::Live
+						  ? tx("%1 (%2, <span style=\"color:#8f9c5a\">live now</span>)")
+							    .arg(who, kind)
+					  : fs == Engine::Feed::Off && !e_->noGamePicture(f)
+						  ? tx("%1 (%2, offline)").arg(who, kind)
+						  : tx("%1 (%2)").arg(who, kind));
 			}
 	QString text;
 	if (!parts.isEmpty())
-		text = "Added " + parts.join(", ") + ". They are ticked as playing.";
+		text = tx("Added %1. They are ticked as playing.").arg(parts.join(", "));
 	if (!lastNote_.isEmpty())
 		text += (text.isEmpty() ? "" : "<br>") + lastNote_;
 	result_->setText(text);

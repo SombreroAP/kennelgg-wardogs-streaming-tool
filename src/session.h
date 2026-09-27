@@ -51,6 +51,7 @@ struct Session {
 	QString summary() const; // a few lines for the end-of-stream file
 	QJsonObject json() const;
 	/// What the on-stream bar can show, in its order: id and label. The settings pick from these.
+	/// The labels are English (TX_NOOP): show them with txv().
 	static const QList<QPair<QString, QString>> &elements();
 	static QString defaultShow() { return "kda,revives,net,permin"; }
 	int64_t net() const { return earned - spent; } // the session balance: up or down on the session

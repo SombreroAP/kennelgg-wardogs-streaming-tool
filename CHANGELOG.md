@@ -2,6 +2,13 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.27.0
+- **The plugin speaks your language.** Settings, the dock, Setup, the Squad panel and every message are now in 14 languages: English, Deutsch, Français, Español, Italiano, Português (Brasil), Polski, Türkçe, Русский, Українська, 日本語, 한국어, 简体中文 and 繁體中文, the same 14 the game has. It follows the language OBS is in unless you pick another: Settings, General, **Plugin language**. The change takes effect at once, with no restart.
+- **On stream too.** The INSTANT REPLAY and SWITCHING POV stingers, the LIVE frame, the replay tag, the name tag, the session stats bar and its reasons (KILL, REVIVE, PURCHASE...), the stats image and the highlights title cards are all in the chosen language. Japanese, Korean, Chinese and Cyrillic are drawn in the matching Windows fonts, and a long title shrinks to fit the screen. A replay label or name tag you typed yourself stays as you wrote it.
+- The OBS Tools menu entry and the plugin's hotkey names follow OBS's own language.
+- **Release notes in your language too.** The plugin's update notice says what is new in the language you picked, and every language has its own changelog page at kennel.gg/streaming/changelog.
+- Voice commands are still English words ("hey kennel replay"), and the plugin's log file stays in English so it can be read when you ask for help.
+
 ## 0.26.6
 - **Instant replay has a menu, like Save clip.** The arrow beside Instant replay offers **Save clip and replay**: it saves a clip that instant and plays it back as the replay as soon as it has landed. **Replay the last clip** does what the button does.
 - **The kill ticker under the crosshair is read too.** When you get a kill the game shows a boxed total under the crosshair ("+$1,750") on its own dark background, so it reads where the lines under your balance are lost against a white sky. ClipHound now reads that total five times a second while session stats are on. When your wallet shows money the corner lines did not account for, the part a kill ticker showed is counted as KILL money, and only anything else as REWARD. Heals, spotting and zones only appear in the corner, so those still come from there. The wallet still decides the total, so everything always adds up to what your balance says. Read on real 1440p footage: +$1,750, +$1,500, +$3,000, +$2,750 and a quad kill's +$5,500 each came out as one run with the right total.

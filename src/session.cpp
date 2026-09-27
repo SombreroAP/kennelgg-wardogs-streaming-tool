@@ -1,4 +1,5 @@
 #include "session.h"
+#include "i18n.h"
 #include <QJsonArray>
 #include <QStringList>
 #include <algorithm>
@@ -26,69 +27,70 @@ QString Session::topWeapon() const
 QString Session::line() const
 {
 	QStringList p;
-	p << QString("%1 kill%2").arg(killCount()).arg(killCount() == 1 ? "" : "s");
-	p << QString("%1 death%2").arg(deaths).arg(deaths == 1 ? "" : "s");
+	p << (killCount() == 1 ? tx("1 kill") : tx("%1 kills").arg(killCount()));
+	p << (deaths == 1 ? tx("1 death") : tx("%1 deaths").arg(deaths));
 	if (assists)
-		p << QString("%1 assist%2").arg(assists).arg(assists == 1 ? "" : "s");
+		p << (assists == 1 ? tx("1 assist") : tx("%1 assists").arg(assists));
 	if (revives)
-		p << QString("%1 revive%2").arg(revives).arg(revives == 1 ? "" : "s");
+		p << (revives == 1 ? tx("1 revive") : tx("%1 revives").arg(revives));
 	if (earned)
-		p << money(earned) + " earned";
+		p << tx("%1 earned").arg(money(earned));
 	if (spent)
-		p << money(spent) + " spent";
+		p << tx("%1 spent").arg(money(spent));
 	if (perMinute() >= 0)
-		p << money(perMinute()) + "/min";
+		p << tx("%1/min").arg(money(perMinute()));
 	return p.join("  ·  ");
 }
 
 QString Session::summary() const
 {
 	QStringList l;
-	l << "Session from " + start.toString("yyyy-MM-dd HH:mm") + " to " +
-			QDateTime::currentDateTime().toString("HH:mm");
-	l << QString("Kills %1   Deaths %2   K/D %3   Downs %4")
+	l << tx("Session from %1 to %2")
+			.arg(start.toString("yyyy-MM-dd HH:mm"), QDateTime::currentDateTime().toString("HH:mm"));
+	l << tx("Kills %1   Deaths %2   K/D %3   Downs %4")
 			.arg(killCount())
 			.arg(deaths)
 			.arg(deaths ? QString::number((double)killCount() / deaths, 'f', 2)
 				    : QString::number(killCount()))
 			.arg(downs);
-	l << QString("Assists %1   Revives %2   Headshots %3   Vehicles destroyed %4")
+	l << tx("Assists %1   Revives %2   Headshots %3   Vehicles destroyed %4")
 			.arg(assists)
 			.arg(revives)
 			.arg(headshotCount())
 			.arg(vehicles);
-	l << "Earned " + money(earned) + (zoneEarned ? " (" + money(zoneEarned) + " from the zone)" : "") +
-			"   Spent " + money(spent);
+	l << (zoneEarned
+		      ? tx("Earned %1 (%2 from the zone)   Spent %3").arg(money(earned), money(zoneEarned), money(spent))
+		      : tx("Earned %1   Spent %2").arg(money(earned), money(spent)));
 	if (perMinute() >= 0)
-		l << QString("%1 a minute over %2 min in game").arg(money(perMinute())).arg(activeMs / 60000);
+		l << tx("%1 a minute over %2 min in game").arg(money(perMinute())).arg(activeMs / 60000);
 	if (haveBalance)
-		l << "Balance " + money(balanceStart) + " -> " + money(balanceNow) + " (" +
-				money(balanceNow - balanceStart, true) + ")";
+		l << tx("Balance %1 -> %2 (%3)")
+				.arg(money(balanceStart), money(balanceNow), money(balanceNow - balanceStart, true));
 	if (longestKillM)
-		l << QString("Longest kill %1 m").arg(longestKillM);
+		l << tx("Longest kill %1 m").arg(longestKillM);
 	if (!topWeapon().isEmpty())
-		l << QString("Most kills with the %1 (%2)").arg(topWeapon()).arg(weapons.value(topWeapon()));
+		l << tx("Most kills with the %1 (%2)").arg(topWeapon()).arg(weapons.value(topWeapon()));
 	return l.join("\n") + "\n";
 }
 
 const QList<QPair<QString, QString>> &Session::elements()
 {
 	static const QList<QPair<QString, QString>> list = {
-		{"kda", "K / D / A"},
-		{"kills", "Kills"},
-		{"deaths", "Deaths"},
-		{"assists", "Assists"},
-		{"kd", "K/D ratio"},
-		{"downs", "Downs"},
-		{"revives", "Revives"},
-		{"headshots", "Headshots"},
-		{"vehicles", "Vehicles destroyed"},
-		{"net", "Session balance (earned minus spent: green up, red down)"},
-		{"earned", "Money earned"},
-		{"spent", "Money spent"},
-		{"permin", "$ per minute in game"},
-		{"balance", "In-game balance change"},
-		{"longest", "Longest kill"},
+		{"kda", TX_NOOP("K / D / A")},
+		{"kills", TX_NOOP("Kills")},
+		{"deaths", TX_NOOP("Deaths")},
+		{"assists", TX_NOOP("Assists")},
+		{"kd", TX_NOOP("K/D ratio")},
+		{"downs", TX_NOOP("Downs")},
+		{"revives", TX_NOOP("Revives")},
+		{"headshots", TX_NOOP("Headshots")},
+		{"vehicles", TX_NOOP("Vehicles destroyed")},
+		{"net", TX_NOOP("Session balance (earned minus spent: green up, red down)")},
+		{"earned", TX_NOOP("Money earned")},
+		{"spent", TX_NOOP("Money spent")},
+		{"permin", TX_NOOP("$ per minute in game")},
+		{"balance", TX_NOOP("In-game balance change")},
+		{"longest", TX_NOOP("Longest kill")},
 	};
 	return list;
 }

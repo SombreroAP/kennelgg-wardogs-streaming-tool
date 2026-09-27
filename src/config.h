@@ -285,6 +285,7 @@ struct Config {
 	std::string gameLang =
 		"auto";            // damage-log wording: auto | en | es (auto tries every language until one matches)
 	std::string gameLangFound; // what auto settled on, so later sessions search one wording only
+	std::string uiLang = "auto"; // the plugin's own language (settings, dock, on-stream text): auto = OBS's
 	bool langAskShown = false; // the once-only "language not supported" note has been shown
 	// voice: the microphone goes to ClipHound, which names manual clips from what was said and
 	// listens for commands after a wake word. Off until switched on.

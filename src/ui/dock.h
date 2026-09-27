@@ -25,6 +25,8 @@ public:
 	explicit Dock(Engine *engine, QWidget *parent = nullptr);
 public slots:
 	void refresh();
+	/// Build the whole dock again (the language changed).
+	void rebuild();
 	void openSettings(const QString &page = QString());
 	void openWizard();
 	void openLogs();
@@ -40,6 +42,7 @@ private:
 	bool noteNext_ = false; // the next manual clip opens the note dialog
 	bool filling_ = false;
 	bool compact() const;
+	void build();
 	void refreshHealth();
 	void rebuildBanners();
 	void rebuildPeople();

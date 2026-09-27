@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta charset="utf-8">
+<script src="i18n.js"></script>
+<script>window.t = window.t || function (s) { return s; };</script>
 <!-- Kennel.gg instant replay stinger. A full-canvas, transparent browser source that sits on top of
      everything. The plugin sends {"type":"stinger","dir":"in"|"out"} over its local bridge; the
      screen is fully covered while the plugin switches the replay on (in) or off (out) underneath,
@@ -16,7 +18,7 @@
 :root { --graphite: #121518; --graphite2: #1c2024; --amber: #c99a3b; --amber2: #e0b457; --olive: #8f9c5a;
         --bone: #e8e5dd; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
+body { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; }
 #st { position: absolute; inset: 0; overflow: hidden; visibility: hidden; }
 .slab { position: absolute; top: -20%; height: 140%; will-change: transform; }
 #s1 { background: var(--amber); width: 38%; }
@@ -53,7 +55,7 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
 </style>
 </head>
 <body>
-<div id="pip"><div class="edge"></div><div class="tag"><i></i>LIVE</div></div>
+<div id="pip"><div class="edge"></div><div class="tag"><i></i><span id="live">LIVE</span></div></div>
 <div id="st">
   <div class="slab" id="s1"></div>
   <div class="slab" id="s2"></div>
@@ -182,10 +184,25 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
     } catch (e) {}
   }
 
+  // a long title in another language (SOFORTWIEDERHOLUNG, МГНОВЕННЫЙ ПОВТОР) shrinks to fit the width,
+  // measured at the letter spacing it settles on
+  function fit() {
+    title.style.fontSize = "";
+    var ls = title.style.letterSpacing;
+    title.style.letterSpacing = ".06em";
+    var w = title.scrollWidth, room = innerWidth * 0.8;
+    title.style.letterSpacing = ls;
+    if (w > room) title.style.fontSize = (11 * room / w) + "vh";
+  }
+  $("live").textContent = t("LIVE");
+  title.innerHTML = t("INSTANT <b>REPLAY</b>");
+  fit();
+
   var running = 0;
   function play(dir, sub) {
     var total = WARPS[dir] ? WARPS[dir].length : D;
-    title.innerHTML = dir === "pov" ? "SWITCHING <b>POV</b>" : "INSTANT <b>REPLAY</b>";
+    title.innerHTML = dir === "pov" ? t("SWITCHING <b>POV</b>") : t("INSTANT <b>REPLAY</b>");
+    fit();
     $("sub").textContent = sub || "kennel.gg";
     var t0 = performance.now(), id = ++running;
     whoosh(1);
@@ -219,7 +236,8 @@ body { font-family: "Chakra Petch", "Segoe UI", sans-serif; }
   if (q.has("pip")) pipFrame(true, q.get("pip").split(",").map(parseFloat));
   if (q.has("t")) {                                    // a still, for previews
     var dir = q.get("dir") || "in";
-    if (dir === "pov") { title.innerHTML = "SWITCHING <b>POV</b>"; if (q.get("sub")) $("sub").textContent = q.get("sub"); }
+    if (dir === "pov") { title.innerHTML = t("SWITCHING <b>POV</b>"); if (q.get("sub")) $("sub").textContent = q.get("sub"); }
+    fit();
     frame(parseFloat(q.get("t")), dir);
     return;
   }

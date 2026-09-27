@@ -266,6 +266,7 @@ void Config::load()
 	DEFD(reviveThreshold);
 	DEFS(gameLang);
 	DEFS(gameLangFound);
+	DEFS(uiLang);
 	DEFB(langAskShown);
 	DEFB(dualStartV2);
 	DEFB(cpuDefaultsV1);
@@ -477,6 +478,7 @@ void Config::load()
 	GETD(reviveThreshold);
 	GETS(gameLang);
 	GETS(gameLangFound);
+	GETS(uiLang);
 	GETB(langAskShown);
 	GETB(dualStartV2);
 	GETB(cpuDefaultsV1);
@@ -873,6 +875,7 @@ void Config::save() const
 	SETD(reviveThreshold);
 	SETS(gameLang);
 	SETS(gameLangFound);
+	SETS(uiLang);
 	SETB(langAskShown);
 	SETB(dualStartV2);
 	SETB(cpuDefaultsV1);

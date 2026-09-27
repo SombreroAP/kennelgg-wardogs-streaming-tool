@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "i18n.h"
 #include <QSysInfo>
 #include "discord-ipc.h"
 #include <optional>
@@ -43,12 +44,13 @@ Engine::Engine(QObject *parent) : QObject(parent)
 		log(QString::fromStdString(s));
 	};
 	cfg.load();
+	I18n::load(I18n::resolve(cfg.uiLang));
 	loadTemplates();
 	{
 		char *mp = obs_module_file("hud/model.bin");
 		hudModel_ = mp ? hud::loadModel(mp, &hudModelErr_) : nullptr;
 		if (!mp)
-			hudModelErr_ = "data/hud/model.bin is missing";
+			hudModelErr_ = txs("data/hud/model.bin is missing");
 		bfree(mp);
 	}
 	detRevive_.fromX = 0.15f;
@@ -83,23 +85,23 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	upDelay_.setSingleShot(true);
 	connect(&downDelay_, &QTimer::timeout, this, [this]() {
 		if (detected_ && !applied_) {
-			pickClosest("about to switch", true); // last reading before the feed goes on screen
+			pickClosest(TX_NOOP("about to switch"), true); // last reading before the feed goes on screen
 			applyNow(true, QString("downed for %1 ms").arg(cfg.downDelayMs));
 		}
 	});
 	connect(&upDelay_, &QTimer::timeout, this, [this]() {
 		if (!detected_ && applied_)
-			applyNow(false, "damage log gone");
+			applyNow(false, TX_NOOP("damage log gone"));
 	});
 	connect(&bridge, &Bridge::message, this, &Engine::onBridgeMessage);
 	connect(&bridge, &Bridge::clientConnected, this, [this]() {
-		appStatus_ = "connected";
+		appStatus_ = tx("connected");
 		if (appLaunchedAt_.isValid() && appLaunchedAt_.msecsTo(QDateTime::currentDateTime()) < 1200)
-			log("Companion app connected - too soon to be the ClipHound just started: a copy was already "
-			    "running. If voice or clips misbehave, close every ClipHound.exe in Task Manager and press "
-			    "Start ClipHound on the dock.");
+			log(tx("Companion app connected - too soon to be the ClipHound just started: a copy was already "
+			       "running. If voice or clips misbehave, close every ClipHound.exe in Task Manager and press "
+			       "Start ClipHound on the dock."));
 		else
-			log("Companion app connected.");
+			log(tx("Companion app connected."));
 		QJsonObject o;
 		o["type"] = "config";
 		o["gameSource"] = QString::fromStdString(cfg.gameSource);
@@ -137,7 +139,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 		}
 		if (!voiceFlowing_) {
 			voiceFlowing_ = true;
-			log("Voice: microphone audio is flowing to ClipHound.");
+			log(tx("Voice: microphone audio is flowing to ClipHound."));
 		}
 	});
 	connect(&bridge, &Bridge::clientDisconnected, this, [this]() {
@@ -146,7 +148,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 		voiceStatus_.clear();
 		voice.detach();
 		frameTimer_.stop();
-		log("Companion app disconnected.");
+		log(tx("Companion app disconnected."));
 		emit stateChanged();
 	});
 	connect(&clips, &Clips::logged, this, &Engine::log);
@@ -221,14 +223,14 @@ void Engine::syncAppPort()
 		return;
 	QFile out(yaml);
 	if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-		log("Could not write ClipHound's config.yaml, so it still expects the old bridge port - put "
-		    "the port back, or edit " +
-		    yaml + " by hand.");
+		log(tx("Could not write ClipHound's config.yaml, so it still expects the old bridge port - put "
+		       "the port back, or edit %1 by hand.")
+			    .arg(yaml));
 		return;
 	}
 	out.write(lines.join('\n').toUtf8());
 	out.close();
-	log(QString("ClipHound's port updated to %1; restarting it so it reconnects.").arg(cfg.bridgePort));
+	log(tx("ClipHound's port updated to %1; restarting it so it reconnects.").arg(cfg.bridgePort));
 	if (cfg.launchApp) {
 		stopApp();
 		QTimer::singleShot(2000, this, [this]() {
@@ -258,11 +260,10 @@ void Engine::setReplaySecondsByUser(int seconds)
 	case Clips::ReplayChange::None:
 		return;
 	case Clips::ReplayChange::Written:
-		log(QString("Clip length set to %1 s in OBS.").arg(cfg.replaySeconds));
+		log(tx("Clip length set to %1 s in OBS.").arg(cfg.replaySeconds));
 		return;
 	case Clips::ReplayChange::NeedsRestart:
-		log(QString("Clip length set to %1 s - restarting OBS's replay buffer so it takes.")
-			    .arg(cfg.replaySeconds));
+		log(tx("Clip length set to %1 s - restarting OBS's replay buffer so it takes.").arg(cfg.replaySeconds));
 		obs_frontend_replay_buffer_stop();
 		QTimer::singleShot(2500, this, [this]() {
 			if (stopping_ || obs_frontend_replay_buffer_active())
@@ -272,9 +273,9 @@ void Engine::setReplaySecondsByUser(int seconds)
 				if (stopping_)
 					return;
 				log(obs_frontend_replay_buffer_active()
-					    ? "Replay buffer is running again."
-					    : "The replay buffer did not come back after the length change - start it "
-					      "in OBS (Settings -> Output -> Replay Buffer), or clips cannot save.");
+					    ? tx("Replay buffer is running again.")
+					    : tx("The replay buffer did not come back after the length change - start it "
+						 "in OBS (Settings -> Output -> Replay Buffer), or clips cannot save."));
 				emit stateChanged();
 			});
 		});
@@ -286,7 +287,7 @@ void Engine::launchApp()
 {
 	appUserStopped_ = false;
 	if (bridge.clients() > 0) {
-		log("ClipHound is already running.");
+		log(tx("ClipHound is already running."));
 		return;
 	}
 	QString p = QString::fromStdString(cfg.appPath);
@@ -298,12 +299,12 @@ void Engine::launchApp()
 		cfg.save();
 	}
 	if (p.isEmpty()) {
-		log("ClipHound: no app path set and nothing at " + def +
-		    " (Settings, Advanced, ClipHound connection, Browse).");
+		log(tx("ClipHound: no app path set and nothing at %1 (Settings, Advanced, ClipHound connection, Browse).")
+			    .arg(def));
 		return;
 	}
 	if (!QFileInfo::exists(p)) {
-		log("ClipHound not found at " + p + " (Settings, Advanced, ClipHound connection, Browse).");
+		log(tx("ClipHound not found at %1 (Settings, Advanced, ClipHound connection, Browse).").arg(p));
 		return;
 	}
 	QString dir = QFileInfo(p).absolutePath();
@@ -323,28 +324,29 @@ void Engine::launchApp()
 			if (stopping_ || bridge.clients() > 0 || !appRunning())
 				return;
 			// alive but never said hello: its own log is the only thing that knows why
-			log("ClipHound has been starting for 25 s without connecting. The last lines of its log:");
+			log(tx("ClipHound has been starting for 25 s without connecting. The last lines of its log:"));
 			for (const QString &l : appLogTail(12))
 				log("  " + l);
-			log("If those lines say nothing useful, check that no older copy of this plugin is "
-			    "installed (C:\\ProgramData\\obs-studio\\plugins\\kennel-wardogs).");
+			log(tx("If those lines say nothing useful, check that no older copy of this plugin is "
+			       "installed (%1).")
+				    .arg("C:\\ProgramData\\obs-studio\\plugins\\kennel-wardogs"));
 			emit stateChanged();
 		});
 		QTimer::singleShot(6000, this, [this]() {
 			if (bridge.clients() == 0 && !appRunning() && !appCrashReported_) {
 				appCrashReported_ = true;
-				log("ClipHound exited right after starting - open Settings → Logs and look at its log (config problem or missing file).");
+				log(tx("ClipHound exited right after starting - open Settings → Logs and look at its log (config problem or missing file)."));
 				emit stateChanged();
 			}
 		});
-		log(QString("Started ClipHound (pid %1): %2").arg(pid).arg(p));
+		log(tx("Started ClipHound (pid %1): %2").arg(pid).arg(p));
 		return;
 	}
 	// fall back to the shell (handles .bat/.cmd and anything Windows wants to elevate or associate)
 	if (QDesktopServices::openUrl(QUrl::fromLocalFile(p)))
-		log("Started ClipHound via the shell: " + p);
+		log(tx("Started ClipHound via the shell: %1").arg(p));
 	else
-		log("Could not start ClipHound: " + p + " (try the Start-menu shortcut and send me the Logs).");
+		log(tx("Could not start ClipHound: %1 (try the Start-menu shortcut and send me the Logs).").arg(p));
 }
 
 Engine::~Engine()
@@ -439,22 +441,22 @@ bool Engine::loadLangTemplate(Detector &d, const std::string &lang)
 
 QString Engine::langName(const std::string &lang)
 {
-	static const std::map<std::string, const char *> names = {{"en", "English"},
-								  {"de", "German"},
-								  {"fr", "French"},
-								  {"es", "Spanish"},
-								  {"it", "Italian"},
-								  {"pt", "Portuguese"},
-								  {"pl", "Polish"},
-								  {"tr", "Turkish"},
-								  {"ru", "Russian"},
-								  {"uk", "Ukrainian"},
-								  {"ja", "Japanese"},
-								  {"ko", "Korean"},
-								  {"zh", "Simplified Chinese"},
-								  {"zh-tw", "Traditional Chinese"}};
+	static const std::map<std::string, const char *> names = {{"en", TX_NOOP("English")},
+								  {"de", TX_NOOP("German")},
+								  {"fr", TX_NOOP("French")},
+								  {"es", TX_NOOP("Spanish")},
+								  {"it", TX_NOOP("Italian")},
+								  {"pt", TX_NOOP("Portuguese")},
+								  {"pl", TX_NOOP("Polish")},
+								  {"tr", TX_NOOP("Turkish")},
+								  {"ru", TX_NOOP("Russian")},
+								  {"uk", TX_NOOP("Ukrainian")},
+								  {"ja", TX_NOOP("Japanese")},
+								  {"ko", TX_NOOP("Korean")},
+								  {"zh", TX_NOOP("Simplified Chinese")},
+								  {"zh-tw", TX_NOOP("Traditional Chinese")}};
 	auto it = names.find(lang);
-	return it != names.end() ? QString(it->second) : QString::fromStdString(lang);
+	return it != names.end() ? txv(QString(it->second)) : QString::fromStdString(lang);
 }
 
 const std::vector<std::pair<std::string, QString>> &Engine::gameLanguages()
@@ -534,7 +536,7 @@ QImage Engine::grabNative()
 QString Engine::learnTemplate(const QImage &img, QRectF rect)
 {
 	if (img.isNull() || rect.width() <= 0)
-		return "No frame to learn from.";
+		return tx("No frame to learn from.");
 	int x = (int)std::lround(rect.x() * img.width()), y = (int)std::lround(rect.y() * img.height());
 	int w = (int)std::lround(rect.width() * img.width()), h = (int)std::lround(rect.height() * img.height());
 	int mx = std::max(2, w / 20), my = std::max(2, h / 5); // a little margin, the match box is tight
@@ -543,7 +545,7 @@ QString Engine::learnTemplate(const QImage &img, QRectF rect)
 	w = std::min(w + 2 * mx, img.width() - x);
 	h = std::min(h + 2 * my, img.height() - y);
 	if (w < 16 || h < 6)
-		return "That is too small to learn from.";
+		return tx("That is too small to learn from.");
 	std::vector<float> g((size_t)w * h);
 	for (int yy = 0; yy < h; yy++)
 		for (int xx = 0; xx < w; xx++) {
@@ -559,7 +561,7 @@ QString Engine::learnTemplate(const QImage &img, QRectF rect)
 	cfg.memScale = cfg.memX = cfg.memY = 0;
 	cfg.save();
 	downRun_ = upRun_ = 0;
-	log(QString("Learned this HUD's damage log: %1x%2 px, %3 of the width.")
+	log(tx("Learned this HUD's damage log: %1x%2 px, %3 of the width.")
 		    .arg(w)
 		    .arg(h)
 		    .arg(cfg.customTemplateWidthFrac, 0, 'f', 3));
@@ -572,14 +574,14 @@ QString Engine::saveFrame()
 {
 	QImage img = grabNative();
 	if (img.isNull())
-		return "Could not render the game source '" + QString::fromStdString(cfg.gameSource) +
-		       "' (is a game source set, and showing something?).";
+		return tx("Could not render the game source '%1' (is a game source set, and showing something?).")
+			.arg(QString::fromStdString(cfg.gameSource));
 	QString dir = QString::fromStdString(Config::configDir());
 	QDir().mkpath(dir);
 	QString path = dir + "/frame-" + QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + ".png";
 	if (!img.copy().save(path, "PNG"))
-		return "Could not write " + path;
-	log("Saved a frame for diagnosis: " + path);
+		return tx("Could not write %1").arg(path);
+	log(tx("Saved a frame for diagnosis: %1").arg(path));
 	return path;
 }
 
@@ -616,8 +618,9 @@ void Engine::autoPickAudio()
 	cfg.audioAutoPicked = true;
 	cfg.save();
 	if (!picked.isEmpty())
-		log("While a squad mate is on screen, " + picked.join(", ") +
-		    " is muted so their sound plays instead of yours (Settings, Squad & POV, to change).");
+		log(tx("While a squad mate is on screen, %1 is muted so their sound plays instead of yours (Settings, "
+		       "Squad & POV, to change).")
+			    .arg(picked.join(", ")));
 }
 
 void Engine::start()
@@ -631,9 +634,9 @@ void Engine::start()
 			cfg.sceneName = obs_source_get_name(s) ? obs_source_get_name(s) : "";
 			obs_source_release(s);
 			if (!cfg.sceneName.empty())
-				log("Scene: '" + QString::fromStdString(cfg.sceneName) +
-				    "' is the scene the plugin works in (it was the one live). Change it under Settings, General, "
-				    "if you stream WARDOGS from another.");
+				log(tx("Scene: '%1' is the scene the plugin works in (it was the one live). Change it under "
+				       "Settings, General, if you stream WARDOGS from another.")
+					    .arg(QString::fromStdString(cfg.sceneName)));
 		}
 	}
 	cfg.save();
@@ -651,7 +654,7 @@ void Engine::start()
 			cfg.appPath = def.toStdString();
 			cfg.launchApp = true;
 			cfg.save();
-			log("Found ClipHound at " + def + "; it will start with OBS (Settings, General).");
+			log(tx("Found ClipHound at %1; it will start with OBS (Settings, General).").arg(def));
 		}
 	}
 	clips.nameTemplate = QString::fromStdString(cfg.clipNameTemplate);
@@ -666,11 +669,11 @@ void Engine::start()
 		clips.hotkeys << QString::fromStdString(h);
 	if (cfg.bridgeEnabled)
 		if (!bridge.listen((quint16)cfg.bridgePort))
-			log(QString("ClipHound's bridge could NOT open port %1 - something else is already on it, "
-				    "usually an older copy of this plugin still installed. ClipHound will sit at "
-				    "\"starting\" and no clips will fire until that is sorted: check for "
-				    "C:\\ProgramData\\obs-studio\\plugins\\kennel-wardogs and delete it, then "
-				    "restart OBS.")
+			log(tx("ClipHound's bridge could NOT open port %1 - something else is already on it, "
+			       "usually an older copy of this plugin still installed. ClipHound will sit at "
+			       "\"starting\" and no clips will fire until that is sorted: check for "
+			       "C:\\ProgramData\\obs-studio\\plugins\\kennel-wardogs and delete it, then "
+			       "restart OBS.")
 				    .arg(cfg.bridgePort));
 	applyReplaySeconds();
 	if (cfg.autoStartReplay && cfg.clipUseReplay)
@@ -696,15 +699,15 @@ void Engine::start()
 			f.audioSource.clear();
 			std::string e = sw.createFriendSources(cfg, f);
 			if (!e.empty())
-				log("Could not remake " + QString::fromStdString(f.name) +
-				    "'s Discord capture: " + QString::fromStdString(e));
+				log(tx("Could not remake %1's Discord capture: %2")
+					    .arg(QString::fromStdString(f.name), QString::fromStdString(e)));
 			else
 				folded++;
 		}
 		cfg.discordShared1 = true;
 		cfg.save();
 		if (folded)
-			log(QString("Squad mates watching the Discord call now share one capture (%1 moved over).")
+			log(tx("Squad mates watching the Discord call now share one capture (%1 moved over).")
 				    .arg(folded));
 	}
 	if (!cfg.discordAudio1) {
@@ -712,28 +715,30 @@ void Engine::start()
 		cfg.discordAudio1 = true;
 		cfg.save();
 		if (n)
-			log(QString("The plugin no longer captures Discord's sound (%1 audio capture%2 removed). Discord hands "
-				    "OBS one mix for the whole call, so it comes through whatever already carries Discord on "
-				    "your stream.")
-				    .arg(n)
-				    .arg(n == 1 ? "" : "s"));
+			log((n == 1 ? tx("The plugin no longer captures Discord's sound (1 audio capture removed). Discord "
+					 "hands OBS one mix for the whole call, so it comes through whatever already carries "
+					 "Discord on your stream.")
+				    : tx("The plugin no longer captures Discord's sound (%1 audio captures removed). Discord "
+					 "hands OBS one mix for the whole call, so it comes through whatever already carries "
+					 "Discord on your stream.")
+					      .arg(n)));
 	}
 	armPopoutWatch();
 	for (const auto &f : cfg.friends)
 		if (f.kind == FriendKind::Discord && !f.handle.empty() &&
 		    QString::fromStdString(f.handle).compare(QString::fromStdString(f.name), Qt::CaseInsensitive) != 0)
-			log("Squad: the slot named " + QString::fromStdString(f.name) + " is set to " +
-			    QString::fromStdString(f.handle) +
-			    "'s stream. If that is not who it should show, remove it and add them again with Add.");
+			log(tx("Squad: the slot named %1 is set to %2's stream. If that is not who it should show, remove "
+			       "it and add them again with Add.")
+				    .arg(QString::fromStdString(f.name), QString::fromStdString(f.handle)));
 #ifdef _WIN32
 	// Two copies of this plugin both load, and the second one gets no bridge port: ClipHound then
 	// connects to the wrong one and everything looks like it is "starting" for ever.
 	for (const char *old :
 	     {"C:/ProgramData/obs-studio/plugins/kennel-wardogs", "C:/ProgramData/obs-studio/plugins/povbridge"})
 		if (QFileInfo::exists(old) && (oldCopy_ = QString(old).replace('/', '\\'), true))
-			log(QString("An older copy of this plugin is still installed at %1. Close OBS, delete that "
-				    "folder, and start OBS again - with both installed they fight over ClipHound's "
-				    "bridge, clips never fire, and OBS can hang on the way out.")
+			log(tx("An older copy of this plugin is still installed at %1. Close OBS, delete that "
+			       "folder, and start OBS again - with both installed they fight over ClipHound's "
+			       "bridge, clips never fire, and OBS can hang on the way out.")
 				    .arg(QString(old).replace('/', '\\')));
 #endif
 	applyRosterConfig();
@@ -787,12 +792,12 @@ void Engine::start()
 			sw.pipRestore(cfg.pipRestore);
 			cfg.pipRestore.clear();
 			cfg.save();
-			log("Instant replay: the game was left small by the last session; it is back where it was.");
+			log(tx("Instant replay: the game was left small by the last session; it is back where it was."));
 		}
 	});
 	if (!hudModel_)
-		log("Session stats: the cash reader could not start (" + QString::fromStdString(hudModelErr_) +
-		    ") - kills and deaths are still counted.");
+		log(tx("Session stats: the cash reader could not start (%1) - kills and deaths are still counted.")
+			    .arg(QString::fromStdString(hudModelErr_)));
 	healthTimer_.start(5000);
 	if (cfg.keepWarm && !applied_ && cfg.active())
 		sw.armWarm(cfg);
@@ -803,7 +808,7 @@ void Engine::start()
 	if (cfg.dualEnabled && cfg.dual())
 		QTimer::singleShot(2500, this, [this]() { // after the browser module is fully up
 			if (!stopping_ && cfg.dualEnabled && cfg.dual())
-				setDual(true, "on at start-up (Dual POV tab)");
+				setDual(true, TX_NOOP("on at start-up (Dual POV tab)"));
 		});
 	emit stateChanged();
 }
@@ -818,6 +823,7 @@ void Engine::pushAppConfig()
 	QJsonObject set;
 	set["player_name"] = QString::fromStdString(cfg.appPlayerName);
 	// the game's language as the downed search found it (or as set): the HUD's weapon names are read in it
+	set["ui_lang"] = QString::fromStdString(I18n::current()); // the highlights title cards
 	set["game_lang"] = QString::fromStdString(cfg.gameLang == "auto" || cfg.gameLang.empty() ? cfg.gameLangFound
 												 : cfg.gameLang);
 	set["library"] = QString::fromStdString(cfg.appLibrary);
@@ -900,18 +906,18 @@ void Engine::checkForUpdate(bool manual)
 		return;
 	QString url = QString::fromStdString(cfg.updateUrl);
 	if (url.isEmpty()) {
-		updateState_ = "no update address set";
+		updateState_ = tx("no update address set");
 		emit updateChecked();
 		return;
 	}
-	updateState_ = "checking...";
+	updateState_ = tx("checking...");
 	emit updateChecked();
 	Http::getAsync(this, url, 8000, QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),
 		       [this, manual](Http::Result r) {
 			       if (!r.ok) {
-				       updateState_ = "could not check (" + r.error + ")";
+				       updateState_ = tx("could not check (%1)").arg(r.error);
 				       if (manual)
-					       log("Update check: " + updateState_);
+					       log(tx("Update check: %1").arg(updateState_));
 				       emit updateChecked();
 				       return;
 			       }
@@ -919,16 +925,23 @@ void Engine::checkForUpdate(bool manual)
 			       newVersion_ = o.value("version").toString();
 			       newUrl_ = o.value("url").toString();
 			       newNotes_ = o.value("notes").toString();
+			       // the same line from changelog/<code>.md, when that version has been translated
+			       QString local = o.value("notes_i18n")
+						       .toObject()
+						       .value(QString::fromStdString(I18n::current()))
+						       .toString();
+			       if (!local.isEmpty())
+				       newNotes_ = local;
 			       if (newVersion_.isEmpty())
-				       updateState_ = "nothing published to check against yet";
+				       updateState_ = tx("nothing published to check against yet");
 			       else if (isNewer(newVersion_, PLUGIN_VERSION)) {
 				       updateState_ =
-					       newVersion_ + " is out (you have " + QString(PLUGIN_VERSION) + ")";
-				       log("A newer build is out: " + newVersion_ +
+					       tx("%1 is out (you have %2)").arg(newVersion_, QString(PLUGIN_VERSION));
+				       log(tx("A newer build is out: %1").arg(newVersion_) +
 					   (newNotes_.isEmpty() ? "" : " - " + newNotes_) +
 					   (newUrl_.isEmpty() ? "" : "  " + newUrl_));
 			       } else
-				       updateState_ = "up to date (" + QString(PLUGIN_VERSION) + ")";
+				       updateState_ = tx("up to date (%1)").arg(QString(PLUGIN_VERSION));
 			       emit updateChecked();
 			       emit stateChanged();
 		       });
@@ -937,7 +950,7 @@ void Engine::checkForUpdate(bool manual)
 void Engine::twitchLogin()
 {
 	if (bridge.clients() == 0) {
-		log("Twitch login needs ClipHound running (the dock's menu, Start ClipHound).");
+		log(tx("Twitch login needs ClipHound running (the dock's menu, Start ClipHound)."));
 		return;
 	}
 	QJsonObject o;
@@ -969,7 +982,7 @@ QStringList Engine::appLogTail(int lines) const
 		QFileInfo(cfg.appPath.empty() ? defaultAppPath() : QString::fromStdString(cfg.appPath)).absolutePath();
 	QFile f(dir + "/cliphound.log");
 	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-		return {"(no cliphound.log at " + dir + " - it may not have got far enough to write one)"};
+		return {tx("(no cliphound.log at %1 - it may not have got far enough to write one)").arg(dir)};
 	QStringList all = QString::fromUtf8(f.readAll()).split('\n', Qt::SkipEmptyParts);
 	f.close();
 	return all.mid(std::max(0, (int)all.size() - lines));
@@ -1021,7 +1034,7 @@ void Engine::stopApp()
 #endif
 	appPid_ = 0;
 	appUserStopped_ = true;
-	log("ClipHound stopped.");
+	log(tx("ClipHound stopped."));
 	emit stateChanged();
 }
 
@@ -1048,7 +1061,7 @@ void Engine::closeApp()
 			if (r == WAIT_TIMEOUT)
 				TerminateProcess(h, 0);
 			CloseHandle(h);
-			log(r == WAIT_TIMEOUT ? "ClipHound was ended with OBS." : "ClipHound closed with OBS.");
+			log(r == WAIT_TIMEOUT ? tx("ClipHound was ended with OBS.") : tx("ClipHound closed with OBS."));
 		}
 		appPid_ = 0;
 	}
@@ -1070,7 +1083,7 @@ void Engine::stop()
 	closeApp();
 	bridge.close();
 	Http::shutdown(); // the live checks and the roster fetch: cancelled, and their threads waited for
-	stopReplay("OBS closing");
+	stopReplay(TX_NOOP("OBS closing"));
 	sw.shutdown(); // the dual-POV scene and its browser page, before obs-browser unloads
 	// the poll and frame workers capture `this`: let them finish before the object can go
 	waitWorkers(2000);
@@ -1103,7 +1116,7 @@ void Engine::waitWorkers(int ms)
 	while (workers_ > 0 && t.elapsed() < ms)
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	if (workers_ > 0)
-		log(QString("%1 worker thread(s) still running after %2 ms.").arg((int)workers_).arg(ms));
+		log(tx("%1 worker thread(s) still running after %2 ms.").arg((int)workers_).arg(ms));
 }
 
 void Engine::sceneCleanup()
@@ -1120,7 +1133,7 @@ void Engine::sceneCleanup()
 	stopTimers();
 	waitWorkers(2000);
 	if (replaying())
-		stopReplay("scene collection closing");
+		stopReplay(TX_NOOP("scene collection closing"));
 	if (voice.attached())
 		voice.detach();
 	sw.shutdown();
@@ -1185,11 +1198,12 @@ QString Engine::rosterStatus() const
 {
 	switch (rosterAccess()) {
 	case Access::NoUsername:
-		return "locked - enter your Discord username (Setup) so the bot can see you are in the Kennel.gg Discord";
+		return tx("locked - enter your Discord username (Setup) so the bot can see you are in the Kennel.gg "
+			  "Discord");
 	case Access::NotMember:
-		return "locked - \"" + QString::fromStdString(cfg.myDiscord) +
-		       "\" is not in the Kennel.gg Discord. Join it (the Discord button on the dock), and check the "
-		       "username is the lower-case one under your display name";
+		return tx("locked - \"%1\" is not in the Kennel.gg Discord. Join it (the Discord button on the dock), and "
+			  "check the username is the lower-case one under your display name")
+			.arg(QString::fromStdString(cfg.myDiscord));
 	default:
 		return roster.status();
 	}
@@ -1207,8 +1221,8 @@ void Engine::setMyDiscord(const QString &user)
 	cfg.save();
 	applyRosterConfig();
 	roster.poll();
-	log(cfg.myDiscord.empty() ? QString("Discord username cleared.")
-				  : QString("Discord username set to %1; checking the Kennel.gg Discord for it.")
+	log(cfg.myDiscord.empty() ? tx("Discord username cleared.")
+				  : tx("Discord username set to %1; checking the Kennel.gg Discord for it.")
 					    .arg(QString::fromStdString(cfg.myDiscord)));
 	emit stateChanged();
 }
@@ -1239,19 +1253,19 @@ void Engine::detectDiscordUser(bool byHand)
 				QString mine = QString::fromStdString(cfg.myDiscord).toLower();
 				if (name.isEmpty()) {
 					if (byHand)
-						log("Could not ask Discord who you are: is the Discord desktop app running on "
-						    "this PC and logged in?");
+						log(tx("Could not ask Discord who you are: is the Discord desktop app running on "
+						       "this PC and logged in?"));
 				} else if (mine.isEmpty() || byHand) {
 					if (mine != name) {
-						log("Discord is logged in as " + name +
-						    ": taken as your Discord username.");
+						log(tx("Discord is logged in as %1: taken as your Discord username.")
+							    .arg(name));
 						setMyDiscord(name);
 					} else if (byHand)
-						log("Discord confirms your username: " + name + ".");
+						log(tx("Discord confirms your username: %1.").arg(name));
 				} else if (mine != name)
-					log("Discord on this PC is logged in as " + name +
-					    ", but the plugin was given " + mine +
-					    ". Detect (Setup, or the dock) switches to " + name + ".");
+					log(tx("Discord on this PC is logged in as %1, but the plugin was given %2. Detect (Setup, or "
+					       "the dock) switches to %1.")
+						    .arg(name, mine));
 				emit discordUserDetected(name, byHand);
 			},
 			Qt::QueuedConnection);
@@ -1264,7 +1278,7 @@ void Engine::checkAccess()
 	QString rs = roster.status();
 	if (cfg.rosterEnabled && rs != lastRosterStatus_) {
 		lastRosterStatus_ = rs;
-		log("Discord voice: " + rs + ".");
+		log(tx("Discord voice: %1.").arg(rs));
 	}
 	logOfferedChanges(); // who is live comes from here: say who came onto or left the dock's list
 	checkUnpopped();
@@ -1274,11 +1288,11 @@ void Engine::checkAccess()
 	Access was = lastAccess_;
 	lastAccess_ = a;
 	if (a == Access::NotMember || a == Access::NoUsername) {
-		log("Squad automation is " + rosterStatus() + ".");
-		addEvent("squad automation locked - join the Kennel.gg Discord");
+		log(tx("Squad automation is %1.").arg(rosterStatus()));
+		addEvent(tx("squad automation locked - join the Kennel.gg Discord"));
 	} else if (a == Access::Ok && was != Access::Unknown) {
-		log("Squad automation unlocked: " + QString::fromStdString(cfg.myDiscord) +
-		    " is in the Kennel.gg Discord.");
+		log(tx("Squad automation unlocked: %1 is in the Kennel.gg Discord.")
+			    .arg(QString::fromStdString(cfg.myDiscord)));
 		syncRoster();
 	}
 	emit stateChanged();
@@ -1342,9 +1356,9 @@ void Engine::syncRoster()
 			continue;
 		rosterGone_.remove(key);
 		if (applied_ && (int)i == cfg.activeFriend)
-			applyNow(false, "their Discord share ended");
+			applyNow(false, TX_NOOP("their Discord share ended"));
 		sw.removeFriendSources(cfg, f);
-		log("Squad: " + QString::fromStdString(f.name) + " stopped sharing a minute ago - slot removed.");
+		log(tx("Squad: %1 stopped sharing a minute ago - slot removed.").arg(QString::fromStdString(f.name)));
 		cfg.friends.erase(cfg.friends.begin() + (long)i);
 		changed = true;
 	}
@@ -1376,17 +1390,17 @@ void Engine::syncRoster()
 		if (cfg.rosterAddSources) {
 			std::string e = sw.createFriendSources(cfg, f);
 			if (!e.empty()) {
-				log("Squad: " + m.name +
-				    " went live in Discord, but the capture could not be "
-				    "made: " +
-				    QString::fromStdString(e));
+				log(tx("Squad: %1 went live in Discord, but the capture could not be made: %2")
+					    .arg(m.name, QString::fromStdString(e)));
 				continue;
 			}
 		}
 		cfg.friends.push_back(f);
 		changed = true;
-		log("Squad: " + QString::fromStdString(f.name) +
-		    " is sharing in Discord voice - slot added. Discord's sound is not handled: Discord hands OBS one mix for the whole call, so it comes through whatever already carries Discord on your stream, and your own game sound stays up while they are shown.");
+		log(tx("Squad: %1 is sharing in Discord voice - slot added. Discord's sound is not handled: Discord hands "
+		       "OBS one mix for the whole call, so it comes through whatever already carries Discord on your "
+		       "stream, and your own game sound stays up while they are shown.")
+			    .arg(QString::fromStdString(f.name)));
 	}
 
 	if (!changed)
@@ -1505,15 +1519,15 @@ QString Engine::addPopouts(QStringList *addedOut)
 		if (err.empty())
 			err = sw.bindPopout(cfg, f, w); // and their own window, by exact title, is what it shows
 		if (!err.empty()) {
-			failed << owner + " (" + QString::fromStdString(err) + ")";
+			failed << QString("%1 (%2)").arg(owner, QString::fromStdString(err));
 			continue;
 		}
 		cfg.friends.push_back(f);
 		added << owner;
 		if (addedOut)
 			*addedOut << owner;
-		log("Squad: added " + owner + " from their popped-out Discord stream (\"" +
-		    QString::fromStdString(w.title) + "\").");
+		log(tx("Squad: added %1 from their popped-out Discord stream (\"%2\").")
+			    .arg(owner, QString::fromStdString(w.title)));
 	}
 	if (!added.isEmpty()) {
 		if (cfg.friends.size() == added.size())
@@ -1526,33 +1540,34 @@ QString Engine::addPopouts(QStringList *addedOut)
 	}
 	QStringList out;
 	if (!added.isEmpty())
-		out << "Added " + added.join(", ") +
-				". Mute each of their streams in Discord (right-click the stream, Mute): Discord hands OBS one "
-				"mix for the whole call, so an unmuted stream's game sound plays in your headphones and goes out "
-				"on your stream through Desktop Audio the whole time. The plugin does not handle it.";
+		out << tx("Added %1. Mute each of their streams in Discord (right-click the stream, Mute): Discord hands "
+			  "OBS one mix for the whole call, so an unmuted stream's game sound plays in your headphones and "
+			  "goes out on your stream through Desktop Audio the whole time. The plugin does not handle it.")
+				.arg(added.join(", "));
 	if (!already.isEmpty())
-		out << already.join(", ") + (already.size() == 1 ? " is" : " are") + " already in the squad.";
+		out << (already.size() == 1 ? tx("%1 is already in the squad.") : tx("%1 are already in the squad."))
+				.arg(already.join(", "));
 	if (!failed.isEmpty())
-		out << "Could not add " + failed.join("; ") + ".";
+		out << tx("Could not add %1.").arg(failed.join("; "));
 	if (unnamed)
-		out << QString("%1 pop-out%2 not titled yet - give Discord a second and press Add again.")
-				.arg(unnamed)
-				.arg(unnamed == 1 ? " is" : "s are");
+		out << (unnamed == 1 ? tx("1 pop-out is not titled yet - give Discord a second and press Add again.")
+				     : tx("%1 pop-outs are not titled yet - give Discord a second and press Add again.")
+					       .arg(unnamed));
 	if (mine)
-		out << "Your own stream is popped out; it is not added.";
+		out << tx("Your own stream is popped out; it is not added.");
 	if (out.isEmpty())
-		out << "No popped-out Discord stream found. In Discord, right-click a squad mate's stream and "
-		       "choose Pop Out, mute the stream (right-click it again), then press Add.";
+		out << tx("No popped-out Discord stream found. In Discord, right-click a squad mate's stream and "
+			  "choose Pop Out, mute the stream (right-click it again), then press Add.");
 	// nothing was added: say exactly which Discord windows were seen, so a title that does not look
 	// the way this expects can be read straight off the panel
 	if (added.isEmpty()) {
 		QStringList seen;
 		for (const auto &w : wins)
 			seen << "\"" + QString::fromStdString(w.title) + "\"";
-		out << (seen.isEmpty() ? QString("No Discord window other than the main one is open.")
-				       : "Discord windows seen: " + seen.join(", ") + ".");
+		out << (seen.isEmpty() ? tx("No Discord window other than the main one is open.")
+				       : tx("Discord windows seen: %1.").arg(seen.join(", ")));
 	}
-	log("Squad: Add - " + out.join(" "));
+	log(tx("Squad: Add - %1").arg(out.join(" ")));
 	return out.join(" ");
 }
 
@@ -1576,10 +1591,10 @@ void Engine::showPopouts(bool show)
 	popoutsShown_ = show;
 	if (show) {
 		releaseAllPopouts();
-		log("Squad: pop-outs brought back on screen. They can go black while covered until you tuck "
-		    "them again.");
+		log(tx("Squad: pop-outs brought back on screen. They can go black while covered until you tuck "
+		       "them again."));
 	} else {
-		log("Squad: pop-outs tucked away again.");
+		log(tx("Squad: pop-outs tucked away again."));
 		watchPopouts();
 	}
 	emit stateChanged();
@@ -1593,14 +1608,15 @@ void Engine::armPopoutWatch()
 			n++;
 	if (n && !popoutTimer_.isActive()) {
 		popoutTimer_.start();
-		log(QString("Pop-out watch on for %1 Discord squad mate%2: pop a share out of Discord and their slot "
-			    "takes that window by itself.")
-			    .arg(n)
-			    .arg(n == 1 ? "" : "s"));
+		log(n == 1 ? tx("Pop-out watch on for 1 Discord squad mate: pop a share out of Discord and their slot "
+				"takes that window by itself.")
+			   : tx("Pop-out watch on for %1 Discord squad mates: pop a share out of Discord and their slot "
+				"takes that window by itself.")
+				     .arg(n));
 		watchPopouts();
 	} else if (!n && popoutTimer_.isActive()) {
 		popoutTimer_.stop();
-		log("Pop-out watch off: no Discord squad mates.");
+		log(tx("Pop-out watch off: no Discord squad mates."));
 	}
 }
 
@@ -1675,37 +1691,38 @@ void Engine::watchPopouts()
 				// their pop-out is open: you are watching them, so they are in this session's squad
 				f.playing = true;
 				changed = true;
-				log("Squad: " + QString::fromStdString(f.name) +
-				    " is playing (their pop-out is open).");
+				log(tx("Squad: %1 is playing (their pop-out is open).")
+					    .arg(QString::fromStdString(f.name)));
 			}
 			if (!f.onPopout()) {
 				std::string e = sw.bindPopout(cfg, f, wins[hit]);
 				if (!e.empty()) {
-					log("Squad: found " + QString::fromStdString(f.name) +
-					    "'s pop-out but could not capture it: " + QString::fromStdString(e));
+					log(tx("Squad: found %1's pop-out but could not capture it: %2")
+						    .arg(QString::fromStdString(f.name), QString::fromStdString(e)));
 					continue;
 				}
-				log("Squad: " + QString::fromStdString(f.name) + "'s share is popped out (\"" +
-				    QString::fromStdString(wins[hit].title) + "\") - showing that window for them.");
+				log(tx("Squad: %1's share is popped out (\"%2\") - showing that window for them.")
+					    .arg(QString::fromStdString(f.name),
+						 QString::fromStdString(wins[hit].title)));
 				changed = true;
 				if (applied_ && f.name == activeName) {
 					if (!f.baseSource.empty())
 						Switcher::hideEverywhere(f.baseSource);
-					applyNow(true, "their pop-out appeared");
+					applyNow(true, TX_NOOP("their pop-out appeared"));
 				}
 			}
 			if (cfg.popoutTuck && !popoutsShown_ && !wins[hit].minimized) {
 				if (cfg.popoutMonitor >= 0) {
 					if (Switcher::parkPopout(wins[hit], cfg.popoutMonitor, parked++, bound))
-						log("Squad: " + QString::fromStdString(f.name) +
-						    QString("'s pop-out parked on monitor %1, on top and fully visible, so "
-							    "Discord keeps drawing it and its controls stay in reach.")
-							    .arg(cfg.popoutMonitor + 1));
+						log(tx("Squad: %1's pop-out parked on monitor %2, on top and fully visible, so "
+						       "Discord keeps drawing it and its controls stay in reach.")
+							    .arg(QString::fromStdString(f.name),
+								 QString::number(cfg.popoutMonitor + 1)));
 				} else if (Switcher::tuckPopout(wins[hit], parked++))
-					log("Squad: " + QString::fromStdString(f.name) +
-					    "'s pop-out pinned on top and tucked to the right edge of its screen, so "
-					    "Discord keeps drawing it while other windows cover it. Press Show pop-outs "
-					    "on the Squad panel to reach its controls.");
+					log(tx("Squad: %1's pop-out pinned on top and tucked to the right edge of its screen, so "
+					       "Discord keeps drawing it while other windows cover it. Press Show pop-outs "
+					       "on the Squad panel to reach its controls.")
+						    .arg(QString::fromStdString(f.name)));
 			}
 			QString minKey = QString::fromStdString(f.name) + "/min";
 			if (wins[hit].minimized != minimised_.contains(QString::fromStdString(f.name))) {
@@ -1717,9 +1734,9 @@ void Engine::watchPopouts()
 			}
 			if (wins[hit].minimized && popoutNote_ != minKey) {
 				popoutNote_ = minKey;
-				log("Squad: " + QString::fromStdString(f.name) +
-				    "'s pop-out is minimised, so its picture is frozen - restore the window (it can "
-				    "sit behind the game, just not minimised).");
+				log(tx("Squad: %1's pop-out is minimised, so its picture is frozen - restore the window (it can "
+				       "sit behind the game, just not minimised).")
+					    .arg(QString::fromStdString(f.name)));
 			}
 		} else if (f.onPopout()) {
 			minimised_.remove(QString::fromStdString(f.name));
@@ -1729,12 +1746,12 @@ void Engine::watchPopouts()
 			if (f.popoutMissingMs < kPopoutGraceMs)
 				continue;
 			sw.unbindPopout(cfg, f);
-			log("Squad: " + QString::fromStdString(f.name) +
-			    "'s pop-out has been gone for a while - back to the Discord window for them. Pop "
-			    "it out again and the slot takes it straight back.");
+			log(tx("Squad: %1's pop-out has been gone for a while - back to the Discord window for them. Pop "
+			       "it out again and the slot takes it straight back.")
+				    .arg(QString::fromStdString(f.name)));
 			changed = true;
 			if (applied_ && f.name == activeName)
-				applyNow(true, "their pop-out closed");
+				applyNow(true, TX_NOOP("their pop-out closed"));
 		}
 	}
 
@@ -1749,10 +1766,12 @@ void Engine::watchPopouts()
 			popoutNote_ = t;
 			QString owner = popoutOwner(wins[i].title);
 			bool me = !cfg.playerName.empty() && owner == lower(cfg.playerName);
-			log("Squad: a pop-out of Discord user '" + owner + "' is open (\"" + t + "\")" +
-			    (me ? ", which is you, so no slot takes it."
-				: ", but no slot is named that. Name their slot with their Discord username, or turn "
-				  "on Squad from Discord and it fills itself in."));
+			log((me ? tx("Squad: a pop-out of Discord user '%1' is open (\"%2\"), which is you, so no slot "
+				     "takes it.")
+				: tx("Squad: a pop-out of Discord user '%1' is open (\"%2\"), but no slot is named that. "
+				     "Name their slot with their Discord username, or turn on Squad from Discord and it "
+				     "fills itself in."))
+				    .arg(owner, t));
 		}
 	}
 	if (changed) {
@@ -1761,6 +1780,32 @@ void Engine::watchPopouts()
 			sw.armWarm(cfg);
 		emit stateChanged();
 	}
+}
+
+void Engine::setUiLanguage(const std::string &code)
+{
+	cfg.uiLang = code.empty() ? "auto" : code;
+	cfg.save();
+	std::string was = I18n::current();
+	I18n::load(I18n::resolve(cfg.uiLang));
+	if (I18n::current() == was)
+		return;
+	// the session bar's page carries the language on its address: point it at the new one
+	if (obs_source_t *src = obs_get_source_by_name(Config::sessionOverlayName())) {
+		obs_data_t *st = obs_source_get_settings(src);
+		QString u = QString::fromUtf8(obs_data_get_string(st, "url"));
+		u.remove(QRegularExpression("&lang=[^&]*"));
+		u += "&lang=" + QString::fromStdString(I18n::current());
+		obs_data_set_string(st, "url", u.toUtf8().constData());
+		obs_source_update(src, st);
+		obs_data_release(st);
+		obs_source_release(src);
+	}
+	reloadConfig();  // the stinger's page, on its new address
+	pushAppConfig(); // ClipHound's highlights title cards
+	log(tx("Language: %1").arg(QString::fromStdString(I18n::current())));
+	emit languageChanged();
+	emit stateChanged();
 }
 
 void Engine::reloadConfig()
@@ -1784,7 +1829,7 @@ void Engine::reloadConfig()
 		// the squad's sources into the vertical scene now, not only at the first swap
 		std::string ev = sw.applyVertical(cfg, applied_);
 		if (!ev.empty())
-			log(QString::fromStdString("Vertical: " + ev));
+			log(tx("Vertical: %1").arg(QString::fromStdString(ev)));
 	}
 	autoPickAudio(); // the game source may have just been chosen
 	clips.nameTemplate = QString::fromStdString(cfg.clipNameTemplate);
@@ -1800,7 +1845,7 @@ void Engine::reloadConfig()
 	if (cfg.bridgeEnabled && (!bridge.listening() || bridge.port() != cfg.bridgePort)) {
 		syncAppPort(); // ClipHound has to be told, or it knocks at the old port for ever
 		if (!bridge.listen((quint16)cfg.bridgePort))
-			log(QString("ClipHound's bridge could not open port %1 (something else has it).")
+			log(tx("ClipHound's bridge could not open port %1 (something else has it).")
 				    .arg(cfg.bridgePort));
 	} else if (!cfg.bridgeEnabled && bridge.listening())
 		bridge.close();
@@ -1837,16 +1882,18 @@ QImage Engine::lastFrame() const
 std::string Engine::stateText() const
 {
 	const Friend *f = cfg.active();
-	std::string name = f ? f->name : "squad mate";
+	QString name = f ? QString::fromStdString(f->name) : tx("squad mate");
 	if (!cfg.enabled)
-		return "Auto switch off - your own POV";
+		return txs("Auto switch off - your own POV");
 	if (applied_)
-		return revivingRecent() ? "Showing " + name + " - being revived" : "Showing " + name + "'s POV";
+		return (revivingRecent() ? tx("Showing %1 - being revived") : tx("Showing %1's POV"))
+			.arg(name)
+			.toStdString();
 	if (cfg.gameSource.empty())
-		return "No game source set";
+		return txs("No game source set");
 	if (!cfg.autoDetect || !detGame_.hasTemplate())
-		return "Manual only";
-	return "Watching your POV";
+		return txs("Manual only");
+	return txs("Watching your POV");
 }
 
 void Engine::addEvent(const QString &text)
@@ -1854,7 +1901,7 @@ void Engine::addEvent(const QString &text)
 	events_ << QDateTime::currentDateTime().toString("HH:mm:ss") + "  " + text;
 	while (events_.size() > 30)
 		events_.removeFirst();
-	log("Event: " + text);
+	log(tx("Event: %1").arg(text));
 	emit stateChanged();
 }
 
@@ -1902,7 +1949,7 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		r["id"] = o.value("id");
 		bridge.sendJson(r);
 		if (!err.isEmpty())
-			log("Clip request: " + err);
+			log(tx("Clip request: %1").arg(err));
 	} else if (type == "highlights_status") {
 		appStatus_ = o.value("text").toString();
 		emit stateChanged();
@@ -1910,17 +1957,17 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		highlightsBuilding_ = false;
 		if (o.value("ok").toBool()) {
 			QString path = o.value("path").toString();
-			log(QString("Highlights ready: %1 (%2 clips).")
+			log(tx("Highlights ready: %1 (%2 clips).")
 				    .arg(QFileInfo(path).fileName())
 				    .arg(o.value("clips").toInt()));
-			addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  HIGHLIGHTS READY " +
-				 QFileInfo(path).fileName());
+			addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  " +
+				 tx("HIGHLIGHTS READY %1").arg(QFileInfo(path).fileName()));
 			if (highlightsThenPlay_) {
 				highlightsThenPlay_ = false;
-				playCompilation("built");
+				playCompilation(TX_NOOP("built"));
 			}
 		} else
-			log("Highlights: could not build - " + o.value("error").toString() + ".");
+			log(tx("Highlights: could not build - %1.").arg(o.value("error").toString()));
 		emit stateChanged();
 	} else if (type == "replay") {
 		QString who = o.value("who").toString("chat");
@@ -1932,21 +1979,22 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		r["who"] = who;
 		bridge.sendJson(r);
 		if (!err.isEmpty())
-			log("Chat replay from " + who + " not played: " + err + ".");
+			log(tx("Chat replay from %1 not played: %2.").arg(who, err));
 	} else if (type == "app_config" && o.contains("values")) {
 		QJsonObject v = o.value("values").toObject();
 		QString av = v.value("app_version").toString();
 		if (av != appVersion_) {
 			appVersion_ = av;
 			if (av.isEmpty())
-				log("Companion app: ClipHound with no version file (a copy older than 0.18.11, or run from source).");
+				log(tx("Companion app: ClipHound with no version file (a copy older than 0.18.11, or run from "
+				       "source)."));
 			else if (av != PLUGIN_VERSION)
-				log("Companion app: ClipHound " + av + " but this plugin is " +
-				    QString(PLUGIN_VERSION) +
-				    ". Another copy of ClipHound is running from somewhere else: close it (Task Manager, "
-				    "ClipHound.exe) and press Start ClipHound on the dock.");
+				log(tx("Companion app: ClipHound %1 but this plugin is %2. Another copy of ClipHound is running "
+				       "from somewhere else: close it (Task Manager, ClipHound.exe) and press Start ClipHound "
+				       "on the dock.")
+					    .arg(av, QString(PLUGIN_VERSION)));
 			else
-				log("Companion app: ClipHound " + av + ".");
+				log(tx("Companion app: ClipHound %1.").arg(av));
 		}
 		if (cfg.appConfigDirty) {
 			pushAppConfig(); // ours wins: the user edited while the app was away
@@ -1982,9 +2030,9 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		twitch_ = o;
 		QString st = o.value("state").toString();
 		if (st == "ok" && !o.value("login").toString().isEmpty())
-			log("Twitch: logged in as " + o.value("login").toString() + ".");
+			log(tx("Twitch: logged in as %1.").arg(o.value("login").toString()));
 		else if (st == "error")
-			log("Twitch login: " + o.value("error").toString());
+			log(tx("Twitch login: %1").arg(o.value("error").toString()));
 		emit twitchStatusChanged();
 	} else if (type == "nearby") {
 		onNearby(o);
@@ -2021,7 +2069,7 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		QStringList dists;
 		for (auto v : o.value("dists").toArray())
 			dists << v.toString();
-		log(QString("Test read of the NEARBY area: %1 row(s), %2 chip(s); names read [%3]; metres read [%4].")
+		log(tx("Test read of the NEARBY area: %1 row(s), %2 chip(s); names read [%3]; metres read [%4].")
 			    .arg(o.value("rows").toInt())
 			    .arg(o.value("chips").toInt())
 			    .arg(texts.join(" | "), dists.join(" | ")));
@@ -2034,9 +2082,9 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 	} else if (type == "pov") {
 		QString force = o.value("force").toString();
 		if (force == "downed")
-			applyNow(true, "companion app");
+			applyNow(true, TX_NOOP("companion app"));
 		else if (force == "up")
-			applyNow(false, "companion app");
+			applyNow(false, TX_NOOP("companion app"));
 	} else if (type == "control") {
 		onControl(o);
 	} else if (type == "state_please") {
@@ -2055,14 +2103,15 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 			if (p) {
 				std::string e = sw.playSound(cfg, p, cfg.voiceChimeVol);
 				if (!e.empty())
-					log("Chime: " + QString::fromStdString(e));
+					log(tx("Chime: %1").arg(QString::fromStdString(e)));
 			}
 			bfree(p);
 		}
 	} else if (type == "voice_miss") {
-		setVoiceHeard("\u201c" + o.value("heard").toString().simplified() + "\u201d \u2192 not a command", 2);
+		setVoiceHeard(tx("\u201c%1\u201d \u2192 not a command").arg(o.value("heard").toString().simplified()),
+			      2);
 	} else if (type == "voice_wake") {
-		setVoiceHeard("wake phrase heard, listening for a command", 3);
+		setVoiceHeard(tx("wake phrase heard, listening for a command"), 3);
 	} else if (type == "voice_ready") {
 		// the app's voice module is up: the settings sent at connect may have come too early
 		if (cfg.voiceEnabled)
@@ -2071,19 +2120,19 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		QString s = o.value("text").toString();
 		if (s != voiceStatus_) {
 			voiceStatus_ = s;
-			log("Voice: " + s);
+			log(tx("Voice: %1").arg(s));
 			emit stateChanged();
 		}
 	} else if (type == "clip_name") {
 		QString path = o.value("path").toString(), title = o.value("title").toString();
 		if (title.trimmed().isEmpty())
-			log("Voice: nothing usable was said around the clip, name kept.");
+			log(tx("Voice: nothing usable was said around the clip, name kept."));
 		else {
 			QString to = clips.retitle(path, title, o.value("text").toString());
 			if (to.isEmpty())
-				log("Voice: could not rename the clip to \"" + title + "\".");
+				log(tx("Voice: could not rename the clip to \"%1\".").arg(title));
 			else
-				addEvent("Named: " + title);
+				addEvent(tx("Named: %1").arg(title));
 		}
 		emit stateChanged();
 	}
@@ -2164,7 +2213,7 @@ void Engine::resetSession(const QString &why)
 	killRuns_.clear();
 	lineLog_.clear();
 	lastCashAt_ = 0;
-	log("Session stats: counting from now (" + why + ").");
+	log(tx("Session stats: counting from now (%1).").arg(txv(why)));
 	emit stateChanged();
 }
 
@@ -2173,13 +2222,13 @@ QString Engine::cashStatus() const
 	if (!cfg.sessionTrack)
 		return "off";
 	if (!hudModel_)
-		return "the cash reader could not start";
+		return tx("the cash reader could not start");
 	if (cfg.gameSource.empty())
-		return "no game source";
+		return tx("no game source");
 	qint64 now = QDateTime::currentMSecsSinceEpoch();
 	if (cashOkAt_ && now - cashOkAt_ < 5000)
 		return "";
-	return cashWhy_.isEmpty() ? "your balance is not on screen" : cashWhy_;
+	return cashWhy_.isEmpty() ? tx("your balance is not on screen") : cashWhy_;
 }
 
 /// Where the cash reader looks, as fractions of a W x H game source: the area set on Settings, Detect
@@ -2374,13 +2423,13 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				if (left > 0)
 					session_.noteMoney(left, "REWARD");
 				if (asKill > 0)
-					log(QString("Session balance: %1 of it the kill ticker shows as kill money.")
+					log(tx("Session balance: %1 of it the kill ticker shows as kill money.")
 						    .arg(Session::money(asKill, true)));
 			} else {
 				session_.spent += -gap;
 				session_.noteMoney(gap, "SPENT");
 			}
-			log(QString("Session balance matched to your wallet: %1 the reward lines had not accounted for.")
+			log(tx("Session balance matched to your wallet: %1 the reward lines had not accounted for.")
 				    .arg(Session::money(gap, true)));
 			gapSeen_ = 0;
 			gapSince_ = 0;
@@ -2420,7 +2469,7 @@ void Engine::writeSessionSummary()
 		sessionEndedAt_ = QDateTime::currentDateTime();
 	queueSessionUpload();
 	for (const auto &l : text.split('\n', Qt::SkipEmptyParts))
-		log("Session stats: " + l);
+		log(tx("Session stats: %1").arg(l));
 	QString dir;
 	for (auto it = clips.history().rbegin(); it != clips.history().rend() && dir.isEmpty(); ++it)
 		if (!it->path.isEmpty())
@@ -2444,12 +2493,12 @@ void Engine::setStatsConsent(bool yes)
 	cfg.statsConsent = yes ? 1 : 2;
 	cfg.save();
 	if (yes && !accountLinked()) {
-		log("Leaderboards: sharing is on; link this PC to your kennel.gg account to take part.");
+		log(tx("Leaderboards: sharing is on; link this PC to your kennel.gg account to take part."));
 		linkAccount(); // taking part means a kennel.gg account, as for wagers and the Cash Cup
 	} else
-		log(yes ? "Leaderboards: your session stats go to your kennel.gg account at the end of each stream "
-			  "(Settings, Clips & replays, to stop)."
-			: "Leaderboards: nothing is shared.");
+		log(yes ? tx("Leaderboards: your session stats go to your kennel.gg account at the end of each stream "
+			     "(Settings, Clips & replays, to stop).")
+			: tx("Leaderboards: nothing is shared."));
 	if (yes)
 		flushStatsQueue();
 	emit stateChanged();
@@ -2493,15 +2542,15 @@ void Engine::linkAccount()
 		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
 			QJsonObject a = QJsonDocument::fromJson(r.body).object();
 			if (!r.ok || a.value("device_code").toString().isEmpty()) {
-				log("Account: kennel.gg did not give a link code (" +
-				    (r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error) + ").");
+				log(tx("Account: kennel.gg did not give a link code (%1).")
+					    .arg(r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error));
 				return;
 			}
 			deviceCode_ = a.value("device_code").toString();
 			linkCode_ = a.value("user_code").toString();
 			linkUntil_ = QDateTime::currentMSecsSinceEpoch() + a.value("expires_in").toInt(900) * 1000;
 			linkPoll_.start(std::max(2, a.value("interval").toInt(3)) * 1000);
-			log("Account: sign in on kennel.gg to link this PC (code " + linkCode_ + ").");
+			log(tx("Account: sign in on kennel.gg to link this PC (code %1).").arg(linkCode_));
 			QDesktopServices::openUrl(QUrl(QString(accountApi()) + "/link/start?code=" + linkCode_));
 			emit stateChanged();
 		});
@@ -2512,7 +2561,7 @@ void Engine::pollLink()
 	if (deviceCode_.isEmpty() || QDateTime::currentMSecsSinceEpoch() > linkUntil_) {
 		linkPoll_.stop();
 		if (!deviceCode_.isEmpty())
-			log("Account: the link code " + linkCode_ + " expired. Press Link again.");
+			log(tx("Account: the link code %1 expired. Press Link again.").arg(linkCode_));
 		deviceCode_.clear();
 		linkCode_.clear();
 		emit stateChanged();
@@ -2521,28 +2570,29 @@ void Engine::pollLink()
 	QJsonObject o;
 	o["device_code"] = deviceCode_;
 	const QString ua = QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION);
-	Http::requestAsync(
-		this, "POST", QString(accountApi()) + "/device/poll", QJsonDocument(o).toJson(QJsonDocument::Compact),
-		"Content-Type: application/json\r\n", 10000, ua, [this](Http::Result r) {
-			QJsonObject a = QJsonDocument::fromJson(r.body).object();
-			QString st = a.value("status").toString();
-			if (st == "linked") {
-				linkPoll_.stop();
-				deviceCode_.clear();
-				linkCode_.clear();
-				QJsonObject p = a.value("player").toObject();
-				cfg.accountToken = a.value("token").toString().toStdString();
-				cfg.accountId = p.value("id").toString().toStdString();
-				cfg.accountName = p.value("name").toString().toStdString();
-				cfg.save();
-				log("Account: linked to kennel.gg as " + QString::fromStdString(cfg.accountName) + ".");
-				refreshAccount();
-				flushStatsQueue();
-				emit stateChanged();
-			} else if (st == "expired") {
-				linkUntil_ = 0; // the next tick tidies up
-			}
-		});
+	Http::requestAsync(this, "POST", QString(accountApi()) + "/device/poll",
+			   QJsonDocument(o).toJson(QJsonDocument::Compact), "Content-Type: application/json\r\n", 10000,
+			   ua, [this](Http::Result r) {
+				   QJsonObject a = QJsonDocument::fromJson(r.body).object();
+				   QString st = a.value("status").toString();
+				   if (st == "linked") {
+					   linkPoll_.stop();
+					   deviceCode_.clear();
+					   linkCode_.clear();
+					   QJsonObject p = a.value("player").toObject();
+					   cfg.accountToken = a.value("token").toString().toStdString();
+					   cfg.accountId = p.value("id").toString().toStdString();
+					   cfg.accountName = p.value("name").toString().toStdString();
+					   cfg.save();
+					   log(tx("Account: linked to kennel.gg as %1.")
+						       .arg(QString::fromStdString(cfg.accountName)));
+					   refreshAccount();
+					   flushStatsQueue();
+					   emit stateChanged();
+				   } else if (st == "expired") {
+					   linkUntil_ = 0; // the next tick tidies up
+				   }
+			   });
 }
 
 void Engine::refreshAccount()
@@ -2555,8 +2605,8 @@ void Engine::refreshAccount()
 		"Authorization: Bearer " + QString::fromStdString(cfg.accountToken) + "\r\n", 10000, ua,
 		[this](Http::Result r) {
 			if (r.status == 401 || r.status == 403) {
-				log("Account: kennel.gg no longer knows this PC's link (unlinked on the site?). Link "
-				    "it again to keep sharing.");
+				log(tx("Account: kennel.gg no longer knows this PC's link (unlinked on the site?). Link "
+				       "it again to keep sharing."));
 				cfg.accountToken.clear();
 				cfg.save();
 				accountInfo_ = QJsonObject();
@@ -2590,7 +2640,7 @@ void Engine::unlinkAccount()
 	cfg.accountName.clear();
 	cfg.save();
 	accountInfo_ = QJsonObject();
-	log("Account: this PC is unlinked from kennel.gg. Nothing is shared until it is linked again.");
+	log(tx("Account: this PC is unlinked from kennel.gg. Nothing is shared until it is linked again."));
 	emit stateChanged();
 }
 
@@ -2662,15 +2712,14 @@ void Engine::flushStatsQueue()
 						for (const auto &l : rest)
 							q.write(l + "\n");
 				}
-				log(taken ? "Leaderboards: this stream's stats were shared with kennel.gg."
-					  : QString("Leaderboards: kennel.gg refused a session (HTTP %1); it was dropped.")
+				log(taken ? tx("Leaderboards: this stream's stats were shared with kennel.gg.")
+					  : tx("Leaderboards: kennel.gg refused a session (HTTP %1); it was dropped.")
 						    .arg(r.status));
 				if (taken)
 					QTimer::singleShot(1500, this, [this]() { flushStatsQueue(); });
 			} else
-				log("Leaderboards: could not reach kennel.gg (" +
-				    (r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error) +
-				    "); the stats wait on this PC and go next time.");
+				log(tx("Leaderboards: could not reach kennel.gg (%1); the stats wait on this PC and go next time.")
+					    .arg(r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error));
 		});
 }
 
@@ -2678,7 +2727,7 @@ void Engine::deleteSharedStats()
 {
 	QFile::remove(statsQueuePath()); // nothing waiting on this PC will be sent either
 	if (!accountLinked()) {
-		log("Leaderboards: link this PC to your kennel.gg account to delete what it shared.");
+		log(tx("Leaderboards: link this PC to your kennel.gg account to delete what it shared."));
 		return;
 	}
 	QJsonObject o;
@@ -2690,11 +2739,10 @@ void Engine::deleteSharedStats()
 		10000, ua, [this](Http::Result r) {
 			QJsonObject a = QJsonDocument::fromJson(r.body).object();
 			log(r.ok && a.value("ok").toBool()
-				    ? QString("Leaderboards: deleted from kennel.gg (%1 sessions).")
+				    ? tx("Leaderboards: deleted from kennel.gg (%1 sessions).")
 					      .arg(a.value("deleted").toInt())
-				    : "Leaderboards: the delete did not go through (" +
-					      (r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error) +
-					      "); try again in a minute.");
+				    : tx("Leaderboards: the delete did not go through (%1); try again in a minute.")
+					      .arg(r.error.isEmpty() ? QString("HTTP %1").arg(r.status) : r.error));
 		});
 }
 
@@ -2712,14 +2760,14 @@ QString Engine::addSessionOverlay()
 	std::string path = p ? p : "";
 	bfree(p);
 	if (path.empty())
-		return "the overlay page is missing from the plugin's data folder";
+		return tx("the overlay page is missing from the plugin's data folder");
 	std::replace(path.begin(), path.end(), '\\', '/');
-	std::string url = "file:///" + path + "?port=" + std::to_string(cfg.bridgePort);
+	std::string url = "file:///" + path + "?port=" + std::to_string(cfg.bridgePort) + "&lang=" + I18n::current();
 	obs_source_t *ss = cfg.sceneName.empty() ? nullptr : obs_get_source_by_name(cfg.sceneName.c_str());
 	if (!ss || !obs_scene_from_source(ss)) {
 		if (ss)
 			obs_source_release(ss);
-		return "no scene: pick the plugin's scene under Settings, General";
+		return tx("no scene: pick the plugin's scene under Settings, General");
 	}
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	const char *name = Config::sessionOverlayName();
@@ -2740,7 +2788,7 @@ QString Engine::addSessionOverlay()
 	obs_data_release(st);
 	if (!src) {
 		obs_source_release(ss);
-		return "could not create a browser source (is the Browser Source available in this OBS?)";
+		return tx("could not create a browser source (is the Browser Source available in this OBS?)");
 	}
 	obs_sceneitem_t *item = obs_scene_find_source(scene, name);
 	if (!item)
@@ -2756,7 +2804,8 @@ QString Engine::addSessionOverlay()
 	cfg.save();
 	obs_source_release(src);
 	obs_source_release(ss);
-	log("Session stats: the overlay is in your scene (" + QString(name) + "); move and size it like any source.");
+	log(tx("Session stats: the overlay is in your scene (%1); move and size it like any source.")
+		    .arg(QString(name)));
 	QTimer::singleShot(1500, this, [this]() { broadcastState(); });
 	return "";
 }
@@ -2807,8 +2856,10 @@ void Engine::checkUnpopped()
 				added << n;
 		unpopped_ = due;
 		if (!added.isEmpty())
-			log("Squad: " + added.join(", ") + (added.size() == 1 ? " is" : " are") +
-			    " live in your voice channel but not popped out on this PC.");
+			log((added.size() == 1
+				     ? tx("Squad: %1 is live in your voice channel but not popped out on this PC.")
+				     : tx("Squad: %1 are live in your voice channel but not popped out on this PC."))
+				    .arg(added.join(", ")));
 		emit stateChanged();
 	}
 }
@@ -2834,42 +2885,42 @@ void Engine::logOfferedChanges()
 		QString n = QString::fromStdString(f.name);
 		if (!offered_.contains(n) || now.contains(n))
 			continue;
-		QString why = noGamePicture(f) ? "no game picture in their capture"
+		QString why = noGamePicture(f) ? tx("no game picture in their capture")
 			      : feedState(f) == Feed::Off && rosterLive()
-				      ? "the Discord voice list has them not live in your channel"
-			      : feedState(f) == Feed::Off ? "not streaming"
-			      : rosterLive()              ? "the Discord voice list cannot vouch for them"
-							  : "not ticked as Playing";
-		out << n + " (" + why + ")";
+				      ? tx("the Discord voice list has them not live in your channel")
+			      : feedState(f) == Feed::Off ? tx("not streaming")
+			      : rosterLive()              ? tx("the Discord voice list cannot vouch for them")
+							  : tx("not ticked as Playing");
+		out << QString("%1 (%2)").arg(n, why);
 	}
 	for (const auto &n : offered_)
 		if (std::none_of(cfg.friends.begin(), cfg.friends.end(),
 				 [&](const Friend &f) { return QString::fromStdString(f.name) == n; }))
-			out << n + " (slot removed)";
+			out << tx("%1 (slot removed)").arg(n);
 	offered_ = now;
 	if (!in.isEmpty())
-		log("Squad list: now offering " + in.join(", ") + ".");
+		log(tx("Squad list: now offering %1.").arg(in.join(", ")));
 	if (!out.isEmpty())
-		log("Squad list: no longer offering " + out.join(", ") + ".");
+		log(tx("Squad list: no longer offering %1.").arg(out.join(", ")));
 }
 
 void Engine::onControl(const QJsonObject &o)
 {
 	QString cmd = o.value("cmd").toString();
 	QString name = o.value("name").toString();
-	log("Controller: " + cmd + (name.isEmpty() ? "" : " " + name));
+	log(tx("Controller: %1").arg(cmd + (name.isEmpty() ? "" : " " + name)));
 	if (cmd == "replay") {
-		playReplay("controller");
+		playReplay(TX_NOOP("controller"));
 	} else if (cmd == "clip") {
 		clipNow("manual", {"manual", "controller"}, "controller");
 	} else if (cmd == "clip_replay") {
-		clipAndReplay("controller");
+		clipAndReplay(TX_NOOP("controller"));
 	} else if (cmd == "dual_toggle") {
 		toggleDual();
 	} else if (cmd == "dual_on") {
-		setDual(true, "controller");
+		setDual(true, TX_NOOP("controller"));
 	} else if (cmd == "dual_off") {
-		setDual(false, "controller");
+		setDual(false, TX_NOOP("controller"));
 	} else if (cmd == "voice_toggle" || cmd == "voice_on" || cmd == "voice_off") {
 		bool on = cmd == "voice_on" ? true : cmd == "voice_off" ? false : !cfg.voiceEnabled;
 		cfg.voiceEnabled = on;
@@ -2877,15 +2928,15 @@ void Engine::onControl(const QJsonObject &o)
 		applyVoice();
 		if (!on)
 			voiceStatus_.clear();
-		log(on ? "Voice control on (controller)." : "Voice control off (controller).");
+		log(on ? tx("Voice control on (controller).") : tx("Voice control off (controller)."));
 		emit stateChanged();
 	} else if (cmd == "auto_toggle") {
 		setEnabled(!cfg.enabled);
 	} else if (cmd == "me") {
 		if (applied_)
-			applyNow(false, "controller");
+			applyNow(false, TX_NOOP("controller"));
 	} else if (cmd == "highlights") {
-		requestHighlights("controller", true);
+		requestHighlights(TX_NOOP("controller"), true);
 	} else if (cmd == "show") {
 		// by name, by index, or "auto": the live squad mate (the first one live, else the chosen one)
 		int idx = -1;
@@ -2900,12 +2951,12 @@ void Engine::onControl(const QJsonObject &o)
 				if (QString::fromStdString(cfg.friends[i].name).compare(name, Qt::CaseInsensitive) == 0)
 					idx = (int)i;
 		if (idx < 0 || idx >= (int)cfg.friends.size()) {
-			log("Controller: no squad mate to show.");
+			log(tx("Controller: no squad mate to show."));
 			return;
 		}
 		// the same key again while they are up: back to your own POV
 		if (applied_ && cfg.activeFriend == idx && o.value("toggle").toBool(true)) {
-			applyNow(false, "controller");
+			applyNow(false, TX_NOOP("controller"));
 			return;
 		}
 		setActive(idx);
@@ -2913,7 +2964,7 @@ void Engine::onControl(const QJsonObject &o)
 	} else if (cmd == "cycle") {
 		int n = (int)cfg.friends.size();
 		if (n == 0) {
-			log("Controller: no squad mates.");
+			log(tx("Controller: no squad mates."));
 			return;
 		}
 		int next = cfg.activeFriend;
@@ -2980,7 +3031,7 @@ void Engine::replayAfterClipTick()
 		}
 	}
 	replayAfterClipTries_ = 0;
-	playReplay("clip replay");
+	playReplay(TX_NOOP("clip replay"));
 }
 
 void Engine::applyVoice()
@@ -2988,7 +3039,7 @@ void Engine::applyVoice()
 	if (!cfg.voiceEnabled || bridge.clients() == 0) {
 		if (voice.attached()) {
 			voice.detach();
-			log("Voice: microphone released.");
+			log(tx("Voice: microphone released."));
 		}
 		return;
 	}
@@ -2996,9 +3047,9 @@ void Engine::applyVoice()
 	if (mic.isEmpty())
 		mic = VoiceTap::pickMic();
 	if (mic.isEmpty()) {
-		if (voiceStatus_ != "no microphone source in OBS") {
-			voiceStatus_ = "no microphone source in OBS";
-			log("Voice: no microphone source found in OBS; add a Mic/Aux input or pick one in Settings.");
+		if (voiceStatus_ != tx("no microphone source in OBS")) {
+			voiceStatus_ = tx("no microphone source in OBS");
+			log(tx("Voice: no microphone source found in OBS; add a Mic/Aux input or pick one in Settings."));
 		}
 		return;
 	}
@@ -3011,10 +3062,10 @@ void Engine::applyVoice()
 	voicePcmMs_ = 0;
 	QString err = voice.attach(mic);
 	if (!err.isEmpty()) {
-		log("Voice: " + err);
+		log(tx("Voice: %1").arg(err));
 		return;
 	}
-	log("Voice: listening to '" + mic + "' (16 kHz mono goes to ClipHound, nothing is recorded).");
+	log(tx("Voice: listening to '%1' (16 kHz mono goes to ClipHound, nothing is recorded).").arg(mic));
 	sendVoiceConfig();
 }
 
@@ -3022,30 +3073,31 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 {
 	if (!cfg.voiceEnabled || !cfg.voiceCommands)
 		return;
-	log("Voice command: " + cmd + (name.isEmpty() ? "" : " " + name) + "  (\"" + heard + "\")");
+	log(tx("Voice command: %1  (\"%2\")").arg(cmd + (name.isEmpty() ? "" : " " + name), heard));
 	{
-		static const QHash<QString, QString> did = {{"replay", "instant replay"},
-							    {"clip", "clip saved"},
-							    {"clip_replay", "clip saved, replaying"},
-							    {"dual", "Dual POV"},
-							    {"dual_on", "Dual POV on"},
-							    {"dual_off", "Dual POV off"},
-							    {"highlights", "highlights"},
-							    {"me", "back to you"},
-							    {"force", "squad mate's POV"},
-							    {"closest", "closest squad mate"},
-							    {"change", "next squad mate"},
-							    {"show", "showing " + name}};
-		setVoiceHeard("\u201c" + heard.simplified() + "\u201d \u2192 " + did.value(cmd, cmd), 1);
+		// what the command did, in the dock's words (translated here, when it is shown)
+		static const QHash<QString, QString> did = {{"replay", TX_NOOP("instant replay")},
+							    {"clip", TX_NOOP("clip saved")},
+							    {"clip_replay", TX_NOOP("clip saved, replaying")},
+							    {"dual", TX_NOOP("Dual POV")},
+							    {"dual_on", TX_NOOP("Dual POV on")},
+							    {"dual_off", TX_NOOP("Dual POV off")},
+							    {"highlights", TX_NOOP("highlights")},
+							    {"me", TX_NOOP("back to you")},
+							    {"force", TX_NOOP("squad mate's POV")},
+							    {"closest", TX_NOOP("closest squad mate")},
+							    {"change", TX_NOOP("next squad mate")}};
+		QString what = cmd == "show" ? tx("showing %1").arg(name) : txv(did.value(cmd, cmd));
+		setVoiceHeard(tx("\u201c%1\u201d \u2192 %2").arg(heard.simplified(), what), 1);
 	}
 	if (cmd == "replay" && cfg.voiceCmdReplay) {
-		playReplay("voice");
+		playReplay(TX_NOOP("voice"));
 	} else if (cmd == "dual" && cfg.voiceCmdDual) {
 		toggleDual();
 	} else if (cmd == "dual_on" && cfg.voiceCmdDual) {
-		setDual(true, "voice");
+		setDual(true, TX_NOOP("voice"));
 	} else if (cmd == "dual_off" && cfg.voiceCmdDual) {
-		setDual(false, "voice");
+		setDual(false, TX_NOOP("voice"));
 	} else if (cmd == "clip" && cfg.voiceCmdClip) {
 		clipNow("clip", {"manual", "voice"}, "voice");
 	} else if (cmd == "clip_replay" && cfg.voiceCmdClip && cfg.voiceCmdReplay) {
@@ -3053,14 +3105,14 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 		replayAfterClip_ = true;
 		clipNow("clip", {"manual", "voice"}, "voice");
 	} else if (cmd == "highlights") {
-		requestHighlights("voice", true);
+		requestHighlights(TX_NOOP("voice"), true);
 	} else if (cmd == "me") {
 		if (applied_)
-			applyNow(false, "voice");
+			applyNow(false, TX_NOOP("voice"));
 	} else if (cmd == "force" && cfg.voiceCmdForce) {
 		// the squad mate's POV now, downed or not
 		if (!cfg.active()) {
-			log("Voice: no squad mate to show.");
+			log(tx("Voice: no squad mate to show."));
 			return;
 		}
 		if (feedState(*cfg.active()) == Feed::Off) {
@@ -3068,17 +3120,17 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 			if (alt >= 0)
 				setActive(alt);
 		}
-		applyNow(true, "voice: squad mate POV");
+		applyNow(true, TX_NOOP("voice: squad mate POV"));
 	} else if (cmd == "closest" && cfg.voiceCmdClosest) {
 		askNearbyNow();
-		pickClosest("voice", true);
+		pickClosest(TX_NOOP("voice"), true);
 		if (cfg.active())
-			applyNow(true, "voice: closest squad mate");
+			applyNow(true, TX_NOOP("voice: closest squad mate"));
 	} else if (cmd == "change" && cfg.voiceCmdChange && name.isEmpty()) {
 		// no name said: the next squad mate on offer
 		int n = (int)cfg.friends.size();
 		if (n < 2) {
-			log("Voice: only one squad mate to choose from.");
+			log(tx("Voice: only one squad mate to choose from."));
 			return;
 		}
 		int next = cfg.activeFriend;
@@ -3118,7 +3170,7 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 			}
 		}
 		if (best < 0) {
-			log("Voice: no squad mate sounds like \"" + name + "\".");
+			log(tx("Voice: no squad mate sounds like \"%1\".").arg(name));
 			return;
 		}
 		cfg.activeFriend = best;
@@ -3177,12 +3229,12 @@ void Engine::onNearby(const QJsonObject &o)
 		who << (e.match.isEmpty() ? e.name : e.match);
 	if (who.join(',') != nearbyWho_) { // only who is there is worth a log line
 		nearbyWho_ = who.join(',');
-		log("Nearby: " + (line.isEmpty() ? QString("nobody") : line));
+		log(tx("Nearby: %1").arg(line.isEmpty() ? tx("nobody") : line));
 	}
 	// follow the closest all the time, so the dock always shows who would be used and that feed
 	// is the one kept warm; the margin and the cooldown inside pickClosest stop it flapping
 	if (cfg.nearEnabled)
-		pickClosest(applied_ ? "still down" : detected_ ? "going down" : "nearest");
+		pickClosest(applied_ ? TX_NOOP("still down") : detected_ ? TX_NOOP("going down") : TX_NOOP("nearest"));
 }
 
 bool Engine::nearbyFresh() const
@@ -3194,8 +3246,8 @@ QString Engine::nearbyText() const
 {
 	QStringList parts;
 	for (const auto &e : nearby_)
-		parts << (e.match.isEmpty() ? e.name : e.match) +
-				 (e.unknown ? QString(" ? m") : QString(" %1 m").arg(e.dist));
+		parts << (e.match.isEmpty() ? e.name : e.match) + " " +
+				 (e.unknown ? tx("? m") : tx("%1 m").arg(e.dist));
 	return parts.join("  ·  ");
 }
 
@@ -3203,19 +3255,20 @@ QString Engine::nearbyText() const
 QString Engine::nearbyStatus() const
 {
 	if (!cfg.nearEnabled)
-		return "off";
+		return tx("off");
 	if (bridge.clients() == 0)
-		return "ClipHound is NOT running - Closest cannot work until it is (dock → Start ClipHound)";
+		return tx("ClipHound is NOT running - Closest cannot work until it is (dock → Start ClipHound)");
 	if (!detected_ && !applied_)
-		return "N/A while you are up";
+		return tx("N/A while you are up");
 	if (!nearbyAt_.isValid())
-		return nearbyEmptySince_.isValid() ? "nobody matched yet - use Test read under Settings, Detect areas"
-						   : (bridge.clients() > 0 ? "read when you go down (nothing read yet)"
-									   : "ClipHound is not running");
+		return nearbyEmptySince_.isValid()
+			       ? tx("nobody matched yet - use Test read under Settings, Detect areas")
+			       : (bridge.clients() > 0 ? tx("read when you go down (nothing read yet)")
+						       : tx("ClipHound is not running"));
 	QString t = nearbyText();
 	if (nearbyFresh())
-		return nearbyEmptySince_.isValid() ? t + "  (last seen)" : t;
-	return t + QString("  (%1 s old)").arg(nearbyAt_.secsTo(QDateTime::currentDateTime()));
+		return nearbyEmptySince_.isValid() ? tx("%1  (last seen)").arg(t) : t;
+	return tx("%1  (%2 s old)").arg(t, QString::number(nearbyAt_.secsTo(QDateTime::currentDateTime())));
 }
 
 int Engine::friendIndexFor(const QString &gameName) const
@@ -3304,9 +3357,9 @@ QString Engine::feedStateText(const Friend &f) const
 {
 	switch (feedState(f)) {
 	case Feed::Live:
-		return "live";
+		return tx("live");
 	case Feed::Off:
-		return noGamePicture(f) ? "no game picture" : "not streaming";
+		return noGamePicture(f) ? tx("no game picture") : tx("not streaming");
 	default:
 		return "";
 	}
@@ -3442,7 +3495,7 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 	const Friend *act = cfg.active();
 	bool onScreen = applied_ && act && QString::fromStdString(act->source) == source;
 	QStringList who = namesOn(source);
-	QString names = who.size() > 3 ? QString("%1 and %2 others").arg(who.mid(0, 2).join(", ")).arg(who.size() - 2)
+	QString names = who.size() > 3 ? tx("%1 and %2 others").arg(who.mid(0, 2).join(", ")).arg(who.size() - 2)
 				       : who.join(", ");
 	if (picture) {
 		p.good++;
@@ -3450,11 +3503,11 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 		if (!p.off || p.good < 2)
 			return;
 		p.off = false;
-		log(QString("Picture check: %1 - a game picture again, back on offer.").arg(names));
+		log(tx("Picture check: %1 - a game picture again, back on offer.").arg(names));
 		// still downed, and the swap came off because this feed had nothing: put it back
 		if (detected_ && !applied_ && cfg.enabled && !downDelay_.isActive() && act &&
 		    QString::fromStdString(act->source) == source)
-			applyNow(true, "game picture back in " + QString::fromStdString(act->name) + "'s feed");
+			applyNow(true, tx("game picture back in %1's feed").arg(QString::fromStdString(act->name)));
 		emit stateChanged();
 		return;
 	}
@@ -3466,17 +3519,23 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 		return;
 	p.off = true;
 	bool shared = who.size() > 1 || source == Friend::discordCallSourceName();
-	log(QString("Picture check: no game picture in %1 (largest picture %2% of it, %3% filled; a stream is at "
-		    "least %4% and %5%) - %6 not shown until there is. %7")
-		    .arg(shared ? "the Discord window" : names + "'s feed")
-		    .arg((int)std::lround(area * 100))
-		    .arg((int)std::lround(density * 100))
-		    .arg((int)std::lround(Picture::kMinArea * 100))
-		    .arg((int)std::lround(Picture::kMinDensity * 100))
-		    .arg(shared ? names : "they are")
-		    .arg(shared ? "Discord is showing the call or a channel, or is minimised: click Watch Stream on a "
-				  "squad mate in Discord, or pop their stream out."
-				: "Their stream ended or has not started."));
+	log(shared ? tx("Picture check: no game picture in the Discord window (largest picture %1% of it, %2% "
+			"filled; a stream is at least %3% and %4%) - %5 not shown until there is. Discord is showing "
+			"the call or a channel, or is minimised: click Watch Stream on a squad mate in Discord, or pop "
+			"their stream out.")
+			     .arg((int)std::lround(area * 100))
+			     .arg((int)std::lround(density * 100))
+			     .arg((int)std::lround(Picture::kMinArea * 100))
+			     .arg((int)std::lround(Picture::kMinDensity * 100))
+			     .arg(names)
+		   : tx("Picture check: no game picture in %1's feed (largest picture %2% of it, %3% filled; a "
+			"stream is at least %4% and %5%) - they are not shown until there is. Their stream ended or "
+			"has not started.")
+			     .arg(names)
+			     .arg((int)std::lround(area * 100))
+			     .arg((int)std::lround(density * 100))
+			     .arg((int)std::lround(Picture::kMinArea * 100))
+			     .arg((int)std::lround(Picture::kMinDensity * 100)));
 	if (onScreen) {
 		// somebody else whose picture comes from another capture: live first, then unknown. The
 		// roster may still call this one live, so anyLiveFriend() could hand them straight back
@@ -3490,12 +3549,12 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 				break;
 		}
 		if (alt >= 0) {
-			log("Picture check: " + QString::fromStdString(act->name) +
-			    "'s feed has no game picture - showing " + QString::fromStdString(cfg.friends[alt].name) +
-			    " instead.");
+			log(tx("Picture check: %1's feed has no game picture - showing %2 instead.")
+				    .arg(QString::fromStdString(act->name),
+					 QString::fromStdString(cfg.friends[alt].name)));
 			setActive(alt);
 		} else
-			applyNow(false, "no game picture in " + QString::fromStdString(act->name) + "'s feed");
+			applyNow(false, tx("no game picture in %1's feed").arg(QString::fromStdString(act->name)));
 	}
 	emit stateChanged();
 }
@@ -3521,13 +3580,13 @@ int Engine::closestFriend(int *metres, QString *problem) const
 		int i = friendIndexFor(e.match);
 		if (i < 0) {
 			if (problem)
-				*problem = e.match + " is nearby but is not one of your squad mates here";
+				*problem = tx("%1 is nearby but is not one of your squad mates here").arg(e.match);
 			continue;
 		}
 		if (!feedUsable(cfg.friends[i])) {
 			if (problem)
-				*problem = QString::fromStdString(cfg.friends[i].name) +
-					   " is nearby but their feed is not usable (source missing in OBS?)";
+				*problem = tx("%1 is nearby but their feed is not usable (source missing in OBS?)")
+						   .arg(QString::fromStdString(cfg.friends[i].name));
 			continue;
 		}
 		// a squad mate with nothing to show is never the one to show, however close: the nearest
@@ -3535,8 +3594,9 @@ int Engine::closestFriend(int *metres, QString *problem) const
 		Feed state = feedState(cfg.friends[i]);
 		if (state == Feed::Off) {
 			if (problem)
-				*problem = QString::fromStdString(cfg.friends[i].name) +
-					   QString(" is closest at %1 m but is not streaming").arg(e.dist);
+				*problem = tx("%1 is closest at %2 m but is not streaming")
+						   .arg(QString::fromStdString(cfg.friends[i].name))
+						   .arg(e.dist);
 			continue;
 		}
 		int rank = state == Feed::Live ? 0 : 1;
@@ -3554,9 +3614,9 @@ int Engine::closestFriend(int *metres, QString *problem) const
 void Engine::nearbyTest()
 {
 	if (bridge.clients() == 0) {
-		log("Test read: ClipHound is not running (dock → Start ClipHound).");
+		log(tx("Test read: ClipHound is not running (dock → Start ClipHound)."));
 		QJsonObject o;
-		o["error"] = "ClipHound is not running";
+		o["error"] = tx("ClipHound is not running");
 		emit nearbyTested(o);
 		return;
 	}
@@ -3587,9 +3647,12 @@ void Engine::pickClosest(const QString &why, bool decisive)
 		if (cfg.active() && feedState(*cfg.active()) != Feed::Live) {
 			int alt = anyLiveFriend();
 			if (alt >= 0 && alt != cfg.activeFriend && feedState(cfg.friends[alt]) == Feed::Live) {
-				log("Closest squad mate: nobody near you is streaming" +
-				    (problem.isEmpty() ? QString() : " (" + problem + ")") + " - showing " +
-				    QString::fromStdString(cfg.friends[alt].name) + ", who is live.");
+				log((problem.isEmpty()
+					     ? tx("Closest squad mate: nobody near you is streaming - showing %1, who is live.")
+						       .arg(QString::fromStdString(cfg.friends[alt].name))
+					     : tx("Closest squad mate: nobody near you is streaming (%1) - showing %2, who is "
+						  "live.")
+						       .arg(problem, QString::fromStdString(cfg.friends[alt].name))));
 				setActive(alt);
 				lastPick_ = clock_::now();
 				return;
@@ -3598,13 +3661,16 @@ void Engine::pickClosest(const QString &why, bool decisive)
 		if (clock_::now() - lastNearbyWarn_ > std::chrono::seconds(60)) {
 			lastNearbyWarn_ = clock_::now();
 			if (!problem.isEmpty())
-				log("Closest squad mate: " + problem + ".");
+				log(tx("Closest squad mate: %1.").arg(problem));
 			else
 				log(bridge.clients() == 0
-					    ? "Closest squad mate: ClipHound is not running, so the NEARBY list cannot be read - keeping the squad mate you picked."
+					    ? tx("Closest squad mate: ClipHound is not running, so the NEARBY list cannot be read - "
+						 "keeping the squad mate you picked.")
 					    : (nearbyFresh()
-						       ? "Closest squad mate: nobody in the NEARBY list is one of your squad mates (check their in-game names in the Squad window)."
-						       : "Closest squad mate: no reading from the NEARBY list yet (check the NEARBY box under Settings, Detect areas)."));
+						       ? tx("Closest squad mate: nobody in the NEARBY list is one of your squad mates "
+							    "(check their in-game names in the Squad window).")
+						       : tx("Closest squad mate: no reading from the NEARBY list yet (check the NEARBY "
+							    "box under Settings, Detect areas).")));
 		}
 		return;
 	}
@@ -3625,7 +3691,7 @@ void Engine::pickClosest(const QString &why, bool decisive)
 		if (left.count() > 0) {
 			if (clock_::now() - lastNearbyWarn_ > std::chrono::seconds(5)) {
 				lastNearbyWarn_ = clock_::now();
-				log(QString("Closest is %1 at %2 m; keeping %3 for another %4 s (wait between swaps).")
+				log(tx("Closest is %1 at %2 m; keeping %3 for another %4 s (wait between swaps).")
 					    .arg(QString::fromStdString(cfg.friends[idx].name))
 					    .arg(d)
 					    .arg(QString::fromStdString(cfg.active() ? cfg.active()->name : ""))
@@ -3638,8 +3704,8 @@ void Engine::pickClosest(const QString &why, bool decisive)
 	QString nm = QString::fromStdString(cfg.friends[idx].name);
 	QString ign = QString::fromStdString(cfg.friends[idx].nearName());
 	if (ign.compare(nm, Qt::CaseInsensitive) != 0)
-		nm += " (in game " + ign + ")";
-	switchTo(idx, QString("%1 is closest at %2 m - %3 - read [%4]").arg(nm).arg(d).arg(why, nearbyText()));
+		nm += " " + tx("(in game %1)").arg(ign);
+	switchTo(idx, tx("%1 is closest at %2 m - %3 - read [%4]").arg(nm).arg(d).arg(txv(why), nearbyText()));
 }
 
 /// setActive() without the "you chose this" wording: used by the closest-squad-mate picker.
@@ -3649,7 +3715,7 @@ void Engine::switchTo(int idx, const QString &why)
 		return;
 	bool wasOn = applied_;
 	if (wasOn)
-		applyNow(false, "switching squad mate");
+		applyNow(false, TX_NOOP("switching squad mate"));
 	cfg.activeFriend = idx;
 	cfg.save();
 	lastPick_ = clock_::now();
@@ -3657,8 +3723,8 @@ void Engine::switchTo(int idx, const QString &why)
 		applyNow(true, why);
 	else if (cfg.keepWarm)
 		sw.armWarm(cfg);
-	log("Squad mate: " + why + ".");
-	addEvent("Closest: " + QString::fromStdString(cfg.friends[idx].name));
+	log(tx("Squad mate: %1.").arg(txv(why)));
+	addEvent(tx("Closest: %1").arg(QString::fromStdString(cfg.friends[idx].name)));
 	emit stateChanged();
 }
 
@@ -3701,9 +3767,9 @@ void Engine::webLiveTick()
 			if (was != state) {
 				log(QString("%1: %2%3")
 					    .arg(ch)
-					    .arg(state == Feed::Live  ? "live"
-						 : state == Feed::Off ? "offline"
-								      : "unknown")
+					    .arg(state == Feed::Live  ? tx("live")
+						 : state == Feed::Off ? tx("offline")
+								      : tx("unknown"))
 					    .arg(note.isEmpty() ? "" : " (" + note + ")"));
 				emit stateChanged();
 			}
@@ -3727,7 +3793,7 @@ void Engine::webLiveTick()
 					QJsonObject d = QJsonDocument::fromJson(r.body).object()["data"].toObject();
 					QJsonValue user = d["user"];
 					if (!user.isObject()) {
-						settle(Feed::Unknown, "no such channel");
+						settle(Feed::Unknown, tx("no such channel"));
 						return;
 					}
 					settle(user.toObject()["stream"].isObject() ? Feed::Live : Feed::Off, "");
@@ -3743,7 +3809,7 @@ void Engine::webLiveTick()
 						   }
 						   QJsonObject o = QJsonDocument::fromJson(r.body).object();
 						   if (o.isEmpty()) {
-							   settle(Feed::Unknown, "no answer");
+							   settle(Feed::Unknown, tx("no answer"));
 							   return;
 						   }
 						   settle(o["livestream"].isObject() ? Feed::Live : Feed::Off, "");
@@ -3764,7 +3830,7 @@ void Engine::webLiveTick()
 					// that is live serves its stream's watch page here, whose videoDetails say
 					// isLive; one that is not serves its home page, with no videoDetails at all
 					if (!r.body.contains("ytInitialData")) {
-						settle(Feed::Unknown, "page not readable");
+						settle(Feed::Unknown, tx("page not readable"));
 						return;
 					}
 					bool live = r.body.contains("\"videoDetails\"") &&
@@ -3871,7 +3937,7 @@ void Engine::clipNow(const QString &title, const QStringList &tags, const QStrin
 {
 	QString err = clips.request(title, tags, source);
 	if (!err.isEmpty())
-		log("Clip: " + err);
+		log(tx("Clip: %1").arg(err));
 	emit stateChanged();
 }
 
@@ -3970,7 +4036,9 @@ void Engine::onResult(Result r)
 	if (stopping_)
 		return;
 	if (!r.ok) {
-		std::string e = "Watch: cannot render game source '" + cfg.gameSource + "'.";
+		std::string e = tx("Watch: cannot render game source '%1'.")
+					.arg(QString::fromStdString(cfg.gameSource))
+					.toStdString();
 		if (lastWatchError_ != e) {
 			lastWatchError_ = e;
 			log(QString::fromStdString(e));
@@ -3989,7 +4057,7 @@ void Engine::onResult(Result r)
 		cfg.gameLangFound = lang;
 		cfg.save();
 		pushAppConfig(); // ClipHound reads the HUD's weapon names in this language
-		log(QString("Game language: %1 (the damage log matched the %1 wording).").arg(langName(lang)));
+		log(tx("Game language: %1 (the damage log matched the %1 wording).").arg(langName(lang)));
 		emit stateChanged();
 	}
 	if (r.game.locked && !lastGame_.locked && detGame_.remembers()) {
@@ -4005,7 +4073,7 @@ void Engine::onResult(Result r)
 		lastReviveSeen_ = clock_::now();
 		reviveProgress_ = r.progress;
 		if (!was) {
-			log("A squad mate is reviving you - switching back the instant the damage log goes.");
+			log(tx("A squad mate is reviving you - switching back the instant the damage log goes."));
 			sendPov("reviving");
 		}
 	} else if (!revivingRecent())
@@ -4033,10 +4101,10 @@ void Engine::detect(const Match &m)
 		auto now = clock_::now();
 		if (now - nearSince_ >= std::chrono::seconds(60)) {
 			if (nearBest_ >= 0.60 && nearBest_ < cfg.threshold) {
-				log(QString("Downed search: best match %1 in the last minute, below the threshold of %2. "
-					    "If you were downed in that time, the damage-log header on your screen does "
-					    "not match the built-in one (game language or resolution): cut your own on "
-					    "Settings, Advanced.")
+				log(tx("Downed search: best match %1 in the last minute, below the threshold of %2. "
+				       "If you were downed in that time, the damage-log header on your screen does "
+				       "not match the built-in one (game language or resolution): cut your own on "
+				       "Settings, Advanced.")
 					    .arg(nearBest_, 0, 'f', 3)
 					    .arg(cfg.threshold, 0, 'f', 2));
 				// three such minutes with every wording in play and none ever matching: the
@@ -4047,9 +4115,9 @@ void Engine::detect(const Match &m)
 				    cfg.gameLangFound.empty() && cfg.customTemplateWidthFrac <= 0) {
 					cfg.langAskShown = true;
 					cfg.save();
-					log("The damage log never matched the English, Spanish or French wording: is the game "
-					    "in another language? Save a frame while downed and open a ticket in the Kennel.gg "
-					    "Discord.");
+					log(tx("The damage log never matched the English, Spanish or French wording: is the game "
+					       "in another language? Save a frame while downed and open a ticket in the Kennel.gg "
+					       "Discord."));
 					langBanner_ = true;
 					emit languageUnknown();
 					emit stateChanged();
@@ -4098,19 +4166,20 @@ void Engine::detect(const Match &m)
 		detGame_.holdThreshold = std::max(0.50, cfg.threshold - std::max(0.0, cfg.holdDrop));
 		upDelay_.stop();
 		askNearbyNow(); // fresh NEARBY reading while the delay runs
-		pickClosest("downed", true);
+		pickClosest(TX_NOOP("downed"), true);
 		// whoever is about to be shown must have a picture: a squad mate the roster has in voice
 		// but not streaming shows nothing, so a live one takes their place, or you stay on your own
 		if (!applied_ && cfg.active() && feedState(*cfg.active()) == Feed::Off) {
 			int alt = anyLiveFriend();
 			if (alt < 0) {
-				log("Downed, but none of the squad is streaming a game picture right now - staying on your own POV.");
+				log(tx("Downed, but none of the squad is streaming a game picture right now - staying on your own "
+				       "POV."));
 				return;
 			}
 			if (alt != cfg.activeFriend) {
-				log("Downed: " + QString::fromStdString(cfg.active()->name) +
-				    " is not streaming, showing " + QString::fromStdString(cfg.friends[alt].name) +
-				    " instead.");
+				log(tx("Downed: %1 is not streaming, showing %2 instead.")
+					    .arg(QString::fromStdString(cfg.active()->name),
+						 QString::fromStdString(cfg.friends[alt].name)));
 				cfg.activeFriend = alt;
 				cfg.save();
 				emit stateChanged();
@@ -4123,7 +4192,7 @@ void Engine::detect(const Match &m)
 				// cancelled if the log goes away first (a blip, or a quick revive); the stinger's
 				// run-up comes out of the wait, so the squad mate is on screen when they were before
 				downDelay_.start(std::max(0, cfg.downDelayMs - (cfg.povStinger ? kPovCoverMs : 0)));
-				log(QString("Downed - showing the squad mate in %1 ms unless you are revived first.")
+				log(tx("Downed - showing the squad mate in %1 ms unless you are revived first.")
 					    .arg(cfg.downDelayMs));
 			}
 		}
@@ -4143,12 +4212,12 @@ void Engine::detect(const Match &m)
 			int hold = (int)std::max<qint64>(0, (qint64)cfg.povMinS * 1000 - shownMs);
 			int wait = std::max(fast ? 0 : cfg.upDelayMs, hold);
 			if (wait <= 0)
-				applyNow(false, fast ? "revived (squad mate's revive seen, damage log gone)"
-						     : QString("damage log gone (%1)").arg(m.score, 0, 'f', 3));
+				applyNow(false, fast ? TX_NOOP("revived (squad mate's revive seen, damage log gone)")
+						     : tx("damage log gone (%1)").arg(m.score, 0, 'f', 3));
 			else
 				upDelay_.start(wait);
 		} else
-			log("Damage log gone before the delay ended - no switch.");
+			log(tx("Damage log gone before the delay ended - no switch."));
 	}
 }
 
@@ -4186,7 +4255,7 @@ void Engine::applyNow(bool on, const QString &why)
 		o["type"] = "stinger";
 		o["dir"] = "pov";
 		const Friend *a = cfg.active();
-		o["sub"] = povTarget_ && a ? QString::fromStdString(a->name) : QString("your POV");
+		o["sub"] = povTarget_ && a ? QString::fromStdString(a->name) : tx("your POV"); // on stream
 		bridge.sendJson(o);
 		QTimer::singleShot(kPovCoverMs, this, [this]() {
 			povPending_ = false;
@@ -4194,7 +4263,7 @@ void Engine::applyNow(bool on, const QString &why)
 				return;
 			bool on = povTarget_;
 			if (on && applied_ && povShown_ != cfg.activeFriend)
-				applySwitch(false, "switching squad mate");
+				applySwitch(false, TX_NOOP("switching squad mate"));
 			applySwitch(on, povWhy_);
 			// the swap raised the squad mate's feed, their look and the camera: the stinger goes
 			// back over all of them for the rest of its wipe
@@ -4208,7 +4277,7 @@ void Engine::applySwitch(bool on, const QString &why)
 	if (applying_)
 		return;
 	if (!cfg.active()) {
-		log("Add a squad mate first.");
+		log(tx("Add a squad mate first."));
 		return;
 	}
 	applying_ = true;
@@ -4216,15 +4285,16 @@ void Engine::applySwitch(bool on, const QString &why)
 	{
 		std::string ev = sw.applyVertical(cfg, on); // the same swap on the portrait canvas, if set
 		if (!ev.empty()) {
-			errors.push_back("vertical: " + ev);
-			log(QString::fromStdString("Vertical: " + ev));
+			errors.push_back(tx("vertical: %1").arg(QString::fromStdString(ev)).toStdString());
+			log(tx("Vertical: %1").arg(QString::fromStdString(ev)));
 		}
 	}
 	if (!on) {
 		// your own POV takes priority when you are up: every squad mate and the look overlay go, in every scene
 		int n = sw.hideAllFriends(cfg);
 		if (n > 0)
-			log(QString("Squad mate feeds hidden (%1 item%2).").arg(n).arg(n == 1 ? "" : "s"));
+			log(n == 1 ? tx("Squad mate feeds hidden (1 item).")
+				   : tx("Squad mate feeds hidden (%1 items).").arg(n));
 	}
 	applied_ = on;
 	povShown_ = on ? cfg.activeFriend : -1;
@@ -4260,27 +4330,27 @@ void Engine::applySwitch(bool on, const QString &why)
 	// the events list names why: downed, the inventory, a voice or Stream Deck command, a button
 	{
 		QString w = why.toLower();
-		QString label = w.startsWith("inventory")    ? "INVENTORY"
-				: w.startsWith("downed")     ? "DOWNED"
-				: w.startsWith("voice")      ? "VOICE"
-				: w.startsWith("controller") ? "STREAM DECK"
-				: w.startsWith("closest")    ? "CLOSEST"
-							     : "SHOWING";
-		events_ << QDateTime::currentDateTime().toString("HH:mm:ss") +
-				   (on ? "  " + label + " - showing " + QString::fromStdString(cfg.active()->name)
-				       : "  back up - " + why);
+		QString label = w.startsWith("inventory")    ? tx("INVENTORY")
+				: w.startsWith("downed")     ? tx("DOWNED")
+				: w.startsWith("voice")      ? tx("VOICE")
+				: w.startsWith("controller") ? tx("STREAM DECK")
+				: w.startsWith("closest")    ? tx("CLOSEST")
+							     : tx("SHOWING");
+		events_ << QDateTime::currentDateTime().toString("HH:mm:ss") + "  " +
+				   (on ? tx("%1 - showing %2").arg(label, QString::fromStdString(cfg.active()->name))
+				       : tx("back up - %1").arg(txv(why)));
 	}
 	while (events_.size() > 30)
 		events_.removeFirst();
 	if (on && cfg.clipOnDowned)
 		clips.request("downed", {"downed"}, "pov");
-	QString msg = (on ? QString("Showing %1's POV").arg(QString::fromStdString(cfg.active()->name))
-			  : QString("Back to your POV")) +
-		      " - " + why + ".";
+	QString msg = on ? tx("Showing %1's POV - %2.").arg(QString::fromStdString(cfg.active()->name), txv(why))
+			 : tx("Back to your POV - %1.").arg(txv(why));
 	if (!errors.empty()) {
-		msg += "  Problems: ";
+		QString list;
 		for (size_t i = 0; i < errors.size(); i++)
-			msg += QString::fromStdString(errors[i]) + (i + 1 < errors.size() ? "; " : "");
+			list += QString::fromStdString(errors[i]) + (i + 1 < errors.size() ? "; " : "");
+		msg += "  " + tx("Problems: %1").arg(list);
 	}
 	log(msg);
 	applying_ = false;
@@ -4315,16 +4385,16 @@ void Engine::playReplay(const QString &why)
 			break;
 		}
 	if (!last) {
-		log("Instant replay: no highlight saved yet this session.");
+		log(tx("Instant replay: no highlight saved yet this session."));
 		return;
 	}
 	if (replaying())
-		stopReplay("replaced");
+		stopReplay(TX_NOOP("replaced"));
 	std::string e = sw.playMedia(cfg, last->path.toStdString(), cfg.replayScale,
 				     cfg.replaySound ? cfg.replayVolume : 0, true,
 				     cfg.verticalOn() ? last->pathV.toStdString() : std::string());
 	if (!e.empty()) {
-		log("Instant replay: " + QString::fromStdString(e));
+		log(tx("Instant replay: %1").arg(QString::fromStdString(e)));
 		return;
 	}
 	replayWhat_ = last->title.isEmpty() ? QFileInfo(last->path).fileName() : last->title;
@@ -4338,8 +4408,8 @@ void Engine::playReplay(const QString &why)
 		sw.ensureStinger(cfg, true); // loaded long before; this puts it back on top of everything
 	replayClock_.start();
 	replayTimer_.start(150);
-	addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  REPLAY " + replayWhat_);
-	log("Instant replay: " + replayWhat_ + " - " + why + ".");
+	addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  " + tx("REPLAY %1").arg(replayWhat_));
+	log(tx("Instant replay: %1 - %2.").arg(replayWhat_, txv(why)));
 	emit stateChanged();
 }
 
@@ -4371,15 +4441,15 @@ void Engine::onStreaming(bool live)
 		sessionStart_ = QDateTime::currentDateTime();
 		streamStart_ = sessionStart_;
 		chapters_.clear();
-		resetSession("the stream started");
-		log("Streaming: the highlights session starts here.");
+		resetSession(TX_NOOP("the stream started"));
+		log(tx("Streaming: the highlights session starts here."));
 		return;
 	}
 	writeChapters();
 	writeSessionSummary();
 	streamStart_ = QDateTime();
 	if (cfg.highlightsAuto)
-		requestHighlights("stream ended", false);
+		requestHighlights(TX_NOOP("stream ended"), false);
 }
 
 void Engine::noteChapter(const Clips::Entry &e)
@@ -4390,7 +4460,7 @@ void Engine::noteChapter(const Clips::Entry &e)
 	// a little before the save (a hotkey or a voice command comes just after the action)
 	double back = e.momentS > 0 ? e.momentS : 8.0;
 	qint64 at = e.when.toMSecsSinceEpoch() - (qint64)(back * 1000) - streamStart_.toMSecsSinceEpoch();
-	QString title = e.title == "manual" ? "Clip" : e.title == "downed" ? "Downed" : e.title;
+	QString title = e.title == "manual" ? tx("Clip") : e.title == "downed" ? tx("Downed") : e.title;
 	title = title.simplified();
 	if (title.size() > 70)
 		title = title.left(67) + "...";
@@ -4414,7 +4484,7 @@ void Engine::writeChapters()
 	};
 	auto list = chapters_;
 	std::sort(list.begin(), list.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
-	QStringList lines{"0:00 Start"};
+	QStringList lines{"0:00 " + tx("Start")};
 	qint64 prev = 0;
 	for (const auto &c : list) {
 		if (c.first - prev < 10000)
@@ -4423,10 +4493,12 @@ void Engine::writeChapters()
 		prev = c.first;
 	}
 	if (lines.size() < 3) {
-		log(QString("YouTube chapters: %1 moment%2 this stream - YouTube needs at least two after 0:00, so no "
-			    "list was written.")
-			    .arg(lines.size() - 1)
-			    .arg(lines.size() == 2 ? "" : "s"));
+		log(lines.size() == 2
+			    ? tx("YouTube chapters: 1 moment this stream - YouTube needs at least two after 0:00, "
+				 "so no list was written.")
+			    : tx("YouTube chapters: %1 moments this stream - YouTube needs at least two after "
+				 "0:00, so no list was written.")
+				      .arg(lines.size() - 1));
 		return;
 	}
 	lastChapters_ = lines.join("\n") + "\n";
@@ -4443,20 +4515,20 @@ void Engine::writeChapters()
 		f.write(lastChapters_.toUtf8());
 		f.close();
 		lastChaptersPath_ = path;
-		log(QString("YouTube chapters: %1 for this stream saved to %2 - paste them into the VOD's description "
-			    "(the dock's menu has Copy YouTube chapters).")
+		log(tx("YouTube chapters: %1 for this stream saved to %2 - paste them into the VOD's description "
+		       "(the dock's menu has Copy YouTube chapters).")
 			    .arg(lines.size())
 			    .arg(QDir::toNativeSeparators(path)));
 	} else
-		log("YouTube chapters: could not write " + QDir::toNativeSeparators(path) +
-		    " - the dock's menu still has Copy YouTube chapters.");
+		log(tx("YouTube chapters: could not write %1 - the dock's menu still has Copy YouTube chapters.")
+			    .arg(QDir::toNativeSeparators(path)));
 	emit stateChanged();
 }
 
 void Engine::requestHighlights(const QString &why, bool thenPlay)
 {
 	if (!appConnected()) {
-		log("Highlights: ClipHound is not running, so nothing can be built.");
+		log(tx("Highlights: ClipHound is not running, so nothing can be built."));
 		return;
 	}
 	QJsonArray arr;
@@ -4473,7 +4545,7 @@ void Engine::requestHighlights(const QString &why, bool thenPlay)
 		arr.append(c);
 	}
 	if (arr.isEmpty()) {
-		log("Highlights: no clips saved this session yet, nothing to build.");
+		log(tx("Highlights: no clips saved this session yet, nothing to build."));
 		return;
 	}
 	QJsonObject o;
@@ -4481,15 +4553,14 @@ void Engine::requestHighlights(const QString &why, bool thenPlay)
 	o["clips"] = arr;
 	o["out"] = highlightsDir();
 	o["player"] = playerName();
+	o["lang"] = QString::fromStdString(I18n::current()); // the title cards' words
 	o["max"] = cfg.highlightsMax;
 	o["vertical"] = cfg.verticalOn(); // a portrait compilation as well, from the twins
 	bridge.sendJson(o);
 	highlightsBuilding_ = true;
 	highlightsThenPlay_ = thenPlay;
-	log(QString("Highlights: building from %1 clip%2 - %3.")
-		    .arg(arr.size())
-		    .arg(arr.size() == 1 ? "" : "s")
-		    .arg(why));
+	log((arr.size() == 1 ? tx("Highlights: building from 1 clip - %1.").arg(txv(why))
+			     : tx("Highlights: building from %1 clips - %2.").arg(arr.size()).arg(txv(why))));
 	emit stateChanged();
 }
 
@@ -4503,7 +4574,7 @@ void Engine::sendObsHealth()
 		DWORD user = GetGuiResources(GetCurrentProcess(), GR_USEROBJECTS);
 		DWORD gdi = GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
 		if (lastUserObjects_ == 0 || user > lastUserObjects_ + 300 || user > 6000)
-			log(QString("Windows objects held by OBS: %1 user, %2 GDI (the limit is 10000 each).")
+			log(tx("Windows objects held by OBS: %1 user, %2 GDI (the limit is 10000 each).")
 				    .arg(user)
 				    .arg(gdi));
 		lastUserObjects_ = user;
@@ -4543,14 +4614,14 @@ void Engine::playCompilation(const QString &why)
 	if (files.isEmpty() || (lastClip.isValid() && files.first().lastModified() < lastClip)) {
 		if (highlightsBuilding_) {
 			highlightsThenPlay_ = true;
-			log("Highlights: still building; it will play when it is ready.");
+			log(tx("Highlights: still building; it will play when it is ready."));
 			return;
 		}
 		requestHighlights(why, true);
 		return;
 	}
 	if (replaying())
-		stopReplay("replaced");
+		stopReplay(TX_NOOP("replaced"));
 	QString pathV;
 	if (cfg.verticalOn()) {
 		QFileInfo v(files.first().absolutePath() + "/" + files.first().completeBaseName() + " [vertical]." +
@@ -4558,13 +4629,13 @@ void Engine::playCompilation(const QString &why)
 		if (v.exists())
 			pathV = v.absoluteFilePath();
 		else
-			log("Play highlights: no vertical compilation next to this one, so the vertical scene gets the "
-			    "landscape one (the twin is built when vertical clips are there).");
+			log(tx("Play highlights: no vertical compilation next to this one, so the vertical scene gets the "
+			       "landscape one (the twin is built when vertical clips are there)."));
 	}
 	std::string e = sw.playMedia(cfg, files.first().absoluteFilePath().toStdString(), 100,
 				     cfg.replaySound ? cfg.replayVolume : 0, false, pathV.toStdString());
 	if (!e.empty()) {
-		log("Play highlights: " + QString::fromStdString(e));
+		log(tx("Play highlights: %1").arg(QString::fromStdString(e)));
 		return;
 	}
 	replayWhat_ = files.first().fileName();
@@ -4577,8 +4648,8 @@ void Engine::playCompilation(const QString &why)
 	replayEndMs_ = 0; // = the whole file, once its length is known
 	replayClock_.start();
 	replayTimer_.start(250);
-	addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  HIGHLIGHTS " + replayWhat_);
-	log("Play highlights: " + replayWhat_ + " - " + why + ".");
+	addEvent(QDateTime::currentDateTime().toString("HH:mm:ss") + "  " + tx("HIGHLIGHTS %1").arg(replayWhat_));
+	log(tx("Play highlights: %1 - %2.").arg(replayWhat_, txv(why)));
 	emit stateChanged();
 }
 
@@ -4593,8 +4664,8 @@ void Engine::replayTick()
 		// it is still opening is dropped, and the whole clip plays from the start
 		if (dur <= 0 || st != OBS_MEDIA_STATE_PLAYING) {
 			if (replayClock_.elapsed() > 5000) {
-				log("Instant replay: the file did not start playing.");
-				stopReplay("failed");
+				log(tx("Instant replay: the file did not start playing."));
+				stopReplay(TX_NOOP("failed"));
 			}
 			return;
 		}
@@ -4656,7 +4727,7 @@ void Engine::replayTick()
 	bool ended = replayClock_.elapsed() > 800 && (st == OBS_MEDIA_STATE_ENDED || st == OBS_MEDIA_STATE_STOPPED);
 	bool safety = replayClock_.elapsed() > replayLengthMs_ + 4000; // the clock never lies, the state might
 	if (pastEnd || ended || safety)
-		endReplay("finished");
+		endReplay(TX_NOOP("finished"));
 }
 
 void Engine::sendStinger(const char *dir)
@@ -4790,7 +4861,7 @@ void Engine::stopReplay(const QString &why)
 	replayStartMs_ = replayEndMs_ = 0;
 	sw.stopMedia(cfg);
 	if (was)
-		log("Replay off - " + why + ".");
+		log(tx("Replay off - %1.").arg(txv(why)));
 	replayWhat_.clear();
 	emit stateChanged();
 }
@@ -4798,19 +4869,19 @@ void Engine::stopReplay(const QString &why)
 QString Engine::chatReplay(const QString &who)
 {
 	if (!cfg.replayChat)
-		return "chat replays are off (Settings, Clips & replays)";
+		return tx("chat replays are off (Settings, Clips & replays)");
 	QDateTime now = QDateTime::currentDateTime();
 	if (lastChatReplay_.isValid()) {
 		qint64 left = cfg.replayCooldownS - lastChatReplay_.secsTo(now);
 		if (left > 0)
-			return QString("cooldown: %1 s to go").arg(left);
+			return tx("cooldown: %1 s to go").arg(left);
 	}
 	bool have = false;
 	for (const auto &e : clips.history())
 		if (!e.path.isEmpty() && QFileInfo::exists(e.path))
 			have = true;
 	if (!have)
-		return "no highlight saved yet";
+		return tx("no highlight saved yet");
 	lastChatReplay_ = now;
 	playReplay("chat: " + who);
 	return "";
@@ -4869,7 +4940,7 @@ void Engine::setDual(bool on, const QString &why)
 			cfg.dualFriend = 0;
 			cfg.save();
 		} else {
-			log("Dual POV: add a squad mate first.");
+			log(tx("Dual POV: add a squad mate first."));
 			return;
 		}
 	}
@@ -4889,7 +4960,7 @@ void Engine::setDual(bool on, const QString &why)
 		std::string e = sw.applyDual(cfg, show);
 		sw.dualK = 1.0;
 		if (!e.empty()) {
-			log("Dual POV: " + QString::fromStdString(e));
+			log(tx("Dual POV: %1").arg(QString::fromStdString(e)));
 			if (on)
 				return;
 		}
@@ -4898,9 +4969,11 @@ void Engine::setDual(bool on, const QString &why)
 	}
 	dualOn_ = on;
 	pushAppConfig(); // ClipHound watches the vehicle corner while the window is up
-	log((on ? "Dual POV on: " + QString::fromStdString(cfg.dual()->name) + " in the small window"
-		: QString("Dual POV off")) +
-	    " - " + why + (on && !dualAutoOn_ ? " (forced: stays until you turn it off)." : "."));
+	log(!on           ? tx("Dual POV off - %1.").arg(txv(why))
+	    : dualAutoOn_ ? tx("Dual POV on: %1 in the small window - %2.")
+				    .arg(QString::fromStdString(cfg.dual()->name), txv(why))
+			  : tx("Dual POV on: %1 in the small window - %2 (forced: stays until you turn it off).")
+				    .arg(QString::fromStdString(cfg.dual()->name), txv(why)));
 	emit stateChanged();
 }
 
@@ -4913,7 +4986,7 @@ void Engine::onInventory(bool open)
 		invApplied_ = false;
 		// back to your own POV, unless you went down meanwhile: then the downed swap owns it
 		if (applied_ && !detected_)
-			applyNow(false, "inventory closed");
+			applyNow(false, TX_NOOP("inventory closed"));
 		return;
 	}
 	if (!cfg.invSwitch || !cfg.enabled || applied_ || detected_ || !cfg.active())
@@ -4922,13 +4995,13 @@ void Engine::onInventory(bool open)
 	// for used to be enough)
 	int alt = confirmedLiveFriend();
 	if (alt < 0) {
-		log("Inventory open, but no squad mate is confirmed live - staying on your own POV.");
+		log(tx("Inventory open, but no squad mate is confirmed live - staying on your own POV."));
 		return;
 	}
 	if (alt != cfg.activeFriend)
 		setActive(alt);
 	invApplied_ = true;
-	applyNow(true, "inventory open (magazine packing)");
+	applyNow(true, TX_NOOP("inventory open (magazine packing)"));
 }
 
 void Engine::onVehicle(const QString &seat)
@@ -4942,7 +5015,7 @@ void Engine::onVehicle(const QString &seat)
 		// turned on yourself is yours to turn off.
 		if (dualOn_ && dualAutoOn_ && !cfg.dualKeep) {
 			dualAutoOn_ = false;
-			setDual(false, "out of the vehicle");
+			setDual(false, TX_NOOP("out of the vehicle"));
 		}
 		return;
 	}
@@ -4986,29 +5059,29 @@ void Engine::vehicleDualCheck()
 		if (!confirmedLive(*f)) {
 			if (!vehicleNotLiveLogged_) {
 				vehicleNotLiveLogged_ = true;
-				log("In a vehicle, but " + who +
-				    " is not confirmed live (Discord or Twitch), so the dual window stays closed until "
-				    "they are.");
+				log(tx("In a vehicle, but %1 is not confirmed live (Discord or Twitch), so the dual window stays "
+				       "closed until they are.")
+					    .arg(who));
 			}
 			return;
 		}
 		vehicleNotLiveLogged_ = false;
-		setDual(true, "in a vehicle: " + vehicleSeat_);
+		setDual(true, tx("in a vehicle: %1").arg(vehicleSeat_));
 		dualAutoOn_ = dualOn_; // after the call: setDual clears it, and this one was the detector's
 	} else if (dualAutoOn_ && st == Feed::Off) {
 		dualAutoOn_ = false;
-		setDual(false, who + " is not live any more");
+		setDual(false, tx("%1 is not live any more").arg(who));
 	}
 }
 
 void Engine::toggleDual()
 {
-	setDual(!dualOn_, "hotkey"); // the person is the Dual POV drop-down's pick
+	setDual(!dualOn_, TX_NOOP("hotkey")); // the person is the Dual POV drop-down's pick
 }
 
 void Engine::toggle()
 {
-	applyNow(!applied_, "hotkey");
+	applyNow(!applied_, TX_NOOP("hotkey"));
 }
 
 void Engine::setActive(int idx)
@@ -5017,14 +5090,14 @@ void Engine::setActive(int idx)
 		return;
 	bool wasOn = applied_;
 	if (wasOn)
-		applyNow(false, "switching squad mate");
+		applyNow(false, TX_NOOP("switching squad mate"));
 	cfg.activeFriend = idx;
 	cfg.save();
 	if (wasOn)
-		applyNow(true, QString("squad mate is now %1").arg(QString::fromStdString(cfg.friends[idx].name)));
+		applyNow(true, tx("squad mate is now %1").arg(QString::fromStdString(cfg.friends[idx].name)));
 	else if (cfg.keepWarm)
 		sw.armWarm(cfg);
-	log(QString("Active squad mate: %1.").arg(QString::fromStdString(cfg.friends[idx].name)));
+	log(tx("Active squad mate: %1.").arg(QString::fromStdString(cfg.friends[idx].name)));
 	emit stateChanged();
 }
 
@@ -5033,12 +5106,13 @@ void Engine::setEnabled(bool on)
 	cfg.enabled = on;
 	cfg.save();
 	if (!on && applied_)
-		applyNow(false, "paused");
+		applyNow(false, TX_NOOP("paused"));
 	downRun_ = upRun_ = 0;
 	detected_ = false;
 	detGame_.holdThreshold = 0;
-	log(on ? "Auto switch on: a squad mate takes over when you are downed."
-	       : "Auto switch off: your own POV stays up. The squad mate buttons on the dock still work, and clips keep coming.");
+	log(on ? tx("Auto switch on: a squad mate takes over when you are downed.")
+	       : tx("Auto switch off: your own POV stays up. The squad mate buttons on the dock still work, and clips "
+		    "keep coming."));
 	// ClipHound watches for the inventory screen only while Auto switch is on: tell it now. It was
 	// told only at the next settings change before, so turning Auto switch back on left magazine
 	// packing off until OBS restarted
@@ -5053,7 +5127,8 @@ void Engine::setInvSwitch(bool on)
 	cfg.invSwitch = on;
 	cfg.save();
 	pushAppConfig();
-	log(on ? "Magazine packing / inventory POV switching on." : "Magazine packing / inventory POV switching off.");
+	log(on ? tx("Magazine packing / inventory POV switching on.")
+	       : tx("Magazine packing / inventory POV switching off."));
 	emit stateChanged();
 }
 
@@ -5068,12 +5143,12 @@ void Engine::setFriendAudio(bool on)
 	QString who = applied_ && a ? QString::fromStdString(a->name) : QString();
 	if (on)
 		log(who.isEmpty()
-			    ? QString("Squad mate's sound on: whoever is on screen is the one feed with sound.")
-			    : QString("Squad mate's sound on: %1's feed has sound now; every other squad mate stays muted.")
+			    ? tx("Squad mate's sound on: whoever is on screen is the one feed with sound.")
+			    : tx("Squad mate's sound on: %1's feed has sound now; every other squad mate stays muted.")
 				      .arg(who));
 	else
-		log(who.isEmpty() ? QString("Squad mate's sound off: their feeds are silent on your stream.")
-				  : QString("Squad mate's sound off: %1's feed is muted on your stream.").arg(who));
+		log(who.isEmpty() ? tx("Squad mate's sound off: their feeds are silent on your stream.")
+				  : tx("Squad mate's sound off: %1's feed is muted on your stream.").arg(who));
 	emit stateChanged();
 }
 
@@ -5081,7 +5156,7 @@ void Engine::captureTemplate()
 {
 	QImage img = lastFrame();
 	if (img.isNull()) {
-		log("No frame from the game source yet (open the settings window so frames are kept).");
+		log(tx("No frame from the game source yet (open the settings window so frames are kept)."));
 		return;
 	}
 	int x = (int)std::lround(cfg.boxX * img.width()), y = (int)std::lround(cfg.boxY * img.height());
@@ -5106,7 +5181,7 @@ void Engine::captureTemplate()
 	out.write((const char *)g.data(), g.size() * sizeof(float));
 	cfg.save();
 	downRun_ = upRun_ = 0;
-	log("Custom damage-log template captured from the box.");
+	log(tx("Custom damage-log template captured from the box."));
 	emit stateChanged();
 }
 
@@ -5115,7 +5190,7 @@ void Engine::useBuiltInTemplate()
 	cfg.customTemplateWidthFrac = 0;
 	cfg.save();
 	loadTemplates();
-	log("Back to the built-in damage-log template.");
+	log(tx("Back to the built-in damage-log template."));
 	emit stateChanged();
 }
 
@@ -5130,6 +5205,6 @@ void Engine::previewLook(bool on)
 		if (!ev.empty() && e.empty())
 			e = ev;
 	}
-	log(!e.empty() ? QString::fromStdString("Look: " + e)
-		       : (lookPreview_ ? "Look overlay showing in OBS." : "Look overlay hidden."));
+	log(!e.empty() ? tx("Look: %1").arg(QString::fromStdString(e))
+		       : (lookPreview_ ? tx("Look overlay showing in OBS.") : tx("Look overlay hidden.")));
 }

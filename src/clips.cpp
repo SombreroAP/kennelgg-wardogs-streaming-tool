@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QRegularExpression>
 #include "config.h"
+#include "i18n.h"
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -149,7 +150,7 @@ void Clips::pollWatches()
 			e.pathV = w.vertPath; // a vertical file that came first
 			w.vertPath.clear();
 			history_.push_back(e);
-			emit logged("Backtrack clip named: " + QFileInfo(target).fileName());
+			emit logged(tx("Backtrack clip named: %1").arg(QFileInfo(target).fileName()));
 			joinSeries(target, w.since);
 			e.path = history_.back().path; // joinSeries may have renamed it into the run
 			logEntry(e);
@@ -166,7 +167,7 @@ void Clips::pollWatches()
 				target = d.filePath(name + QString("_%1.").arg(n++) + fi.suffix());
 			if (!QFile::rename(fi.absoluteFilePath(), target))
 				continue;
-			emit logged("Vertical Backtrack clip named: " + QFileInfo(target).fileName());
+			emit logged(tx("Vertical Backtrack clip named: %1").arg(QFileInfo(target).fileName()));
 			if (!attachVertical(w.since, target))
 				w.vertPath = target; // its partner has not landed yet: kept for it
 		}
@@ -309,7 +310,8 @@ QString Clips::relabel(const QString &given, const QString &title, const QString
 		e->tags = clean;
 	}
 	writeSidecar(*e);
-	emit logged((spoken.isEmpty() ? "Clip labelled: " : "Clip named by voice: ") + QFileInfo(to).fileName() +
+	emit logged((spoken.isEmpty() ? tx("Clip labelled: %1") : tx("Clip named by voice: %1"))
+			    .arg(QFileInfo(to).fileName()) +
 		    (e->tags.isEmpty() ? "" : "  [" + e->tags.join(", ") + "]"));
 	return to;
 }
@@ -477,9 +479,8 @@ void Clips::joinSeries(const QString &path, const QDateTime &when)
 				e.path = target;
 		series_.paths[i] = target;
 	}
-	emit logged(QString("Rolling highlights: %1 clips inside %2 s, named 1 of %1 to %1 of %1.")
-			    .arg(n)
-			    .arg(seriesWindowS));
+	emit logged(
+		tx("Rolling highlights: %1 clips inside %2 s, named 1 of %1 to %1 of %1.").arg(n).arg(seriesWindowS));
 }
 
 /// The moment a clip was made, from the "yyyy-MM-dd HH-mm-ss" every name carries (the {date}
@@ -561,20 +562,16 @@ QString Clips::numberPastClips()
 			renamed++;
 		}
 	}
-	QString out = QString("%1 clips looked at in %2 folder%3: %4 run%5 of rolling highlights, %6 file%7 renamed, "
-			      "%8 lone clip%9 left plain.")
+	QString out = tx("%1 clips looked at in %2 folder(s): %3 run(s) of rolling highlights, %4 file(s) renamed, "
+			 "%5 lone clip(s) left plain.")
 			      .arg(items.size())
 			      .arg(folders.size())
-			      .arg(folders.size() == 1 ? "" : "s")
 			      .arg(runsFound)
-			      .arg(runsFound == 1 ? "" : "s")
 			      .arg(renamed)
-			      .arg(renamed == 1 ? "" : "s")
-			      .arg(alone)
-			      .arg(alone == 1 ? "" : "s");
+			      .arg(alone);
 	if (failed)
-		out += QString(" %1 could not be renamed (open in a player, or the name is taken).").arg(failed);
-	emit logged("Clips: " + out);
+		out += " " + tx("%1 could not be renamed (open in a player, or the name is taken).").arg(failed);
+	emit logged(tx("Clips: %1").arg(out));
 	return out;
 }
 
@@ -625,10 +622,11 @@ void Clips::ensureReplayBuffer()
 		return;
 	obs_frontend_replay_buffer_start();
 	if (obs_frontend_replay_buffer_active())
-		emit logged("Replay buffer started (Kennel needs it for clips).");
+		emit logged(tx("Replay buffer started (Kennel needs it for clips)."));
 	else
-		emit logged(
-			"REPLAY BUFFER IS OFF and could not be started: enable it in OBS Settings → Output → Replay Buffer (60-120 s), then restart OBS. Until then clips only fire your hotkeys.");
+		emit logged(tx("REPLAY BUFFER IS OFF and could not be started: enable it in OBS "
+			       "Settings → Output → Replay Buffer (60-120 s), then restart OBS. Until "
+			       "then clips only fire your hotkeys."));
 }
 
 QList<QPair<QString, QString>> Clips::allHotkeys()
@@ -698,7 +696,7 @@ QString Clips::request(const QString &title, const QStringList &tags, const QStr
 		}
 	}
 	if (lastRequest_.isValid() && lastRequest_.msecsTo(now) < minGapMs)
-		return "ignored: too soon after the last clip";
+		return tx("ignored: too soon after the last clip");
 	lastRequest_ = now;
 	QStringList missed;
 	for (const QString &hk : hotkeys)
@@ -724,24 +722,24 @@ QString Clips::request(const QString &title, const QStringList &tags, const QStr
 			watchTimer_.start(1000);
 	}
 	if (!missed.isEmpty())
-		emit logged("Clip hotkeys not found in OBS (plugin missing?): " + missed.join(", "));
+		emit logged(tx("Clip hotkeys not found in OBS (plugin missing?): %1").arg(missed.join(", ")));
 	else if (!hotkeys.isEmpty())
-		emit logged(QString("Fired %1 clip hotkey(s) for '%2'.")
+		emit logged(tx("Fired %1 clip hotkey(s) for '%2'.")
 				    .arg(hotkeys.size())
-				    .arg(title.isEmpty() ? "(untitled)" : title));
+				    .arg(title.isEmpty() ? tx("(untitled)") : title));
 	if (!useReplay)
 		return hotkeys.isEmpty()
-			       ? "no clip method: turn on the replay buffer or pick a hotkey (Settings, Clips & replays)"
-			       : "";
+			       ? tx("no clip method: turn on the replay buffer or pick a hotkey (Settings, Clips & replays)")
+			       : QString();
 	if (!obs_frontend_replay_buffer_active()) {
 		if (!autoStartReplay)
-			return "the replay buffer is not running (Settings → Output → Replay Buffer)";
+			return tx("the replay buffer is not running (Settings → Output → Replay Buffer)");
 		ensureReplayBuffer();
-		return "replay buffer was off; started it - this moment is lost, the next one will save";
+		return tx("replay buffer was off; started it - this moment is lost, the next one will save");
 	}
 	pending_.push_back({now, title, tags, source, momentS, firstS, kills, info});
 	obs_frontend_replay_buffer_save();
-	emit logged(QString("Clip requested: %1 [%2]").arg(title.isEmpty() ? "(untitled)" : title, tags.join(", ")));
+	emit logged(tx("Clip requested: %1 [%2]").arg(title.isEmpty() ? tx("(untitled)") : title, tags.join(", ")));
 	return "";
 }
 
@@ -768,7 +766,7 @@ void Clips::onReplaySaved()
 		if (want.exists() || want.mkpath("."))
 			outDir = want;
 		else
-			emit logged("Clip folder does not exist and could not be created: " + folder);
+			emit logged(tx("Clip folder does not exist and could not be created: %1").arg(folder));
 	}
 	QString target = outDir.filePath(name + "." + fi.suffix());
 	int n = 2;
@@ -785,6 +783,6 @@ void Clips::onReplaySaved()
 	while (history_.size() > 200)
 		history_.pop_front();
 	logEntry(e);
-	emit logged("Clip saved: " + QFileInfo(finalPath).fileName());
+	emit logged(tx("Clip saved: %1").arg(QFileInfo(finalPath).fileName()));
 	emit saved(e);
 }

@@ -46,7 +46,7 @@ public:
 	QList<Member> members() const { return members_; }
 	/// Just the ones sharing their screen, in the order the bot listed them.
 	QList<Member> streamers() const;
-	QString status() const { return status_; } // for the settings dialog
+	QString status() const; // for the settings dialog ("off" when not polling)
 	bool running() const { return timer_.isActive(); }
 
 signals:
@@ -57,7 +57,7 @@ signals:
 
 private:
 	QTimer timer_;
-	QString url_, onlyChannel_, onlyGuild_, status_ = "off";
+	QString url_, onlyChannel_, onlyGuild_, status_; // empty = off (worded by status(), in the chosen language)
 	QStringList guilds_;
 	QString invite_;
 	QString home_, join_;

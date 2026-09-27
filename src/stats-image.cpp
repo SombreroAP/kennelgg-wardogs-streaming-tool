@@ -1,7 +1,9 @@
 #include "stats-image.h"
+#include "i18n.h"
 #include <QFontDatabase>
 #include <QFileInfo>
 #include <QHash>
+#include <QLocale>
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
@@ -95,7 +97,7 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 	p.drawText(QPoint(L + 100, 136), "KENNEL.GG");
 	p.setPen(kAmber);
 	p.setFont(font(mono, 22, QFont::DemiBold, 5));
-	p.drawText(QPoint(L + 104, 168), "WARDOGS  ·  SESSION STATS");
+	p.drawText(QPoint(L + 104, 168), tx("WARDOGS  ·  SESSION STATS"));
 
 	// who, and when
 	QString who = name.trimmed().isEmpty() ? QString("Wardog") : name.trimmed();
@@ -103,11 +105,12 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 	p.setPen(kBone);
 	p.setFont(font(disp, namePx));
 	p.drawText(QRect(L - 6, 200, 1100, 150), Qt::AlignLeft | Qt::AlignVCenter, who.toUpper());
-	QString when = s.start.toString("d MMM yyyy").toUpper();
+	// the month in the plugin's language
+	QString when = QLocale(QString::fromStdString(I18n::current())).toString(s.start, "d MMM yyyy").toUpper();
 	if (s.activeMs >= 60000) {
 		qint64 m = s.activeMs / 60000;
-		when += m >= 60 ? QString("  ·  %1 H %2 MIN IN GAME").arg(m / 60).arg(m % 60)
-				: QString("  ·  %1 MIN IN GAME").arg(m);
+		when += "  ·  " +
+			(m >= 60 ? tx("%1 H %2 MIN IN GAME").arg(m / 60).arg(m % 60) : tx("%1 MIN IN GAME").arg(m));
 	}
 	p.setPen(kDim);
 	p.setFont(font(mono, 24, QFont::DemiBold, 3));
@@ -123,15 +126,15 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 	};
 	QString kd = s.deaths ? QString::number((double)s.killCount() / s.deaths, 'f', 2) : num(s.killCount());
 	QList<Cell> cells = {
-		{QString("%1 / %2 / %3").arg(s.killCount()).arg(s.deaths).arg(s.assists), "K / D / A", kBone},
-		{kd, "K/D", kBone},
-		{num(s.revives), "Revives", kBone},
-		{Session::money(s.earned), "Earned", kOlive},
-		{Session::money(s.spent), "Spent", kRed},
-		{s.perMinute() >= 0 ? Session::money(s.perMinute()) : QString("-"), "$ per minute", kOlive},
-		{num(s.headshotCount()), "Headshots", kBone},
-		{s.longestKillM ? QString("%1 m").arg(s.longestKillM) : QString("-"), "Longest kill", kBone},
-		{num(s.vehicles), "Vehicles destroyed", kBone},
+		{QString("%1 / %2 / %3").arg(s.killCount()).arg(s.deaths).arg(s.assists), tx("K / D / A"), kBone},
+		{kd, tx("K/D"), kBone},
+		{num(s.revives), tx("Revives"), kBone},
+		{Session::money(s.earned), tx("Earned"), kOlive},
+		{Session::money(s.spent), tx("Spent"), kRed},
+		{s.perMinute() >= 0 ? Session::money(s.perMinute()) : QString("-"), tx("$ per minute"), kOlive},
+		{num(s.headshotCount()), tx("Headshots"), kBone},
+		{s.longestKillM ? tx("%1 m").arg(s.longestKillM) : QString("-"), tx("Longest kill"), kBone},
+		{num(s.vehicles), tx("Vehicles destroyed"), kBone},
 	};
 	const int top = 430, colW = 390, rowH = 158;
 	for (int i = 0; i < cells.size(); ++i) {
@@ -150,7 +153,7 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 	if (!s.topWeapon().isEmpty()) {
 		p.setFont(font(disp, 40));
 		shadowed(p, QRect(L, top + 3 * rowH + 14, 1400, 56), Qt::AlignLeft | Qt::AlignVCenter,
-			 QString("MOST KILLS WITH THE %1 (%2)")
+			 tx("MOST KILLS WITH THE %1 (%2)")
 				 .arg(s.topWeapon().toUpper())
 				 .arg(s.weapons.value(s.topWeapon())),
 			 kBone);

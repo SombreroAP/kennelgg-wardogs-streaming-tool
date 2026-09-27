@@ -1,4 +1,5 @@
 #include "ui/area-editor.h"
+#include "i18n.h"
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -128,7 +129,7 @@ void AreaEditor::paintEvent(QPaintEvent *)
 		p.setPen(QColor(154, 158, 147));
 		p.drawText(
 			ir, Qt::AlignCenter | Qt::TextWordWrap,
-			"No picture of the game yet.\nPick your game source under General, and have the game running.");
+			tx("No picture of the game yet.\nPick your game source under General, and have the game running."));
 		p.setPen(QColor(58, 62, 59));
 		p.drawRect(ir.adjusted(0, 0, -1, -1));
 	} else
@@ -162,7 +163,7 @@ void AreaEditor::paintEvent(QPaintEvent *)
 		p.setBrush(Qt::NoBrush);
 		p.drawRect(r);
 		// its name on a tag at the top-left corner, inside the picture
-		QString t = a.locked ? a.label + QString::fromUtf8("  \u2022 automatic") : a.label;
+		QString t = a.locked ? tx("%1  \u2022 automatic").arg(a.label) : a.label;
 		int tw = fm.horizontalAdvance(t) + 10, th = fm.height() + 4;
 		QRectF tag(r.left(), r.top() - th, tw, th);
 		if (tag.top() < ir.top())

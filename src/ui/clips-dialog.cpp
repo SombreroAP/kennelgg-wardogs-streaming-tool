@@ -10,6 +10,8 @@
 #include <QMessageBox>
 #include <QDialogButtonBox>
 #include <obs-frontend-api.h>
+#include "i18n.h"
+#include "ui/kmsg.h"
 
 static QString tagsText(const QStringList &t)
 {
@@ -29,20 +31,20 @@ static QStringList tagsFrom(const QString &s)
 
 ClipsDialog::ClipsDialog(Engine *e, QWidget *parent) : QDialog(parent), e_(e)
 {
-	setWindowTitle("Kennel.gg Wardogs - clips");
+	setWindowTitle(tx("Kennel.gg Wardogs - clips"));
 	setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::WindowCloseButtonHint | Qt::WindowMinMaxButtonsHint);
 	setAttribute(Qt::WA_DeleteOnClose);
 	resize(900, 560);
 	auto *v = new QVBoxLayout(this);
 	auto *intro =
-		new QLabel("Every clip with a title and tags. Change either and press Apply: the file is renamed to "
-			   "the title, and both go into the clip's .json for Kennel Cut and the compilation.",
+		new QLabel(tx("Every clip with a title and tags. Change either and press Apply: the file is renamed to "
+			      "the title, and both go into the clip's .json for Kennel Cut and the compilation."),
 			   this);
 	intro->setWordWrap(true);
 	v->addWidget(intro);
 	table_ = new QTableWidget(this);
 	table_->setColumnCount(4);
-	table_->setHorizontalHeaderLabels({"When", "Title", "Tags", "File"});
+	table_->setHorizontalHeaderLabels({tx("When"), tx("Title"), tx("Tags"), tx("File")});
 	table_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 	table_->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
 	table_->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -52,27 +54,28 @@ ClipsDialog::ClipsDialog(Engine *e, QWidget *parent) : QDialog(parent), e_(e)
 	v->addWidget(table_, 1);
 	auto *f = new QFormLayout();
 	title_ = new QLineEdit(this);
-	title_->setPlaceholderText("a few words: what happened");
+	title_->setPlaceholderText(tx("a few words: what happened"));
 	tags_ = new QLineEdit(this);
-	tags_->setPlaceholderText("comma separated: highlight, funny, fail, ace, ...");
+	tags_->setPlaceholderText(
+		tx("comma separated: %1").arg("highlight, funny, fail, ace, ...")); // tag words stay English: data
 	spoken_ = new QLabel(this);
 	spoken_->setWordWrap(true);
 	spoken_->setStyleSheet("color:#7c8076");
 	file_ = new QLabel(this);
 	file_->setWordWrap(true);
 	file_->setStyleSheet("color:#7c8076");
-	f->addRow("Title", title_);
-	f->addRow("Tags", tags_);
-	f->addRow("Said", spoken_);
-	f->addRow("File", file_);
+	f->addRow(tx("Title"), title_);
+	f->addRow(tx("Tags"), tags_);
+	f->addRow(tx("Said"), spoken_);
+	f->addRow(tx("File"), file_);
 	v->addLayout(f);
 	auto *row = new QHBoxLayout();
-	applyBtn_ = new QPushButton("Apply", this);
+	applyBtn_ = new QPushButton(tx("Apply"), this);
 	applyBtn_->setDefault(true);
-	openBtn_ = new QPushButton("Show in folder", this);
-	playBtn_ = new QPushButton("Play", this);
-	auto *refresh = new QPushButton("Refresh", this);
-	auto *close = new QPushButton("Close", this);
+	openBtn_ = new QPushButton(tx("Show in folder"), this);
+	playBtn_ = new QPushButton(tx("Play"), this);
+	auto *refresh = new QPushButton(tx("Refresh"), this);
+	auto *close = new QPushButton(tx("Close"), this);
 	row->addWidget(applyBtn_);
 	row->addWidget(playBtn_);
 	row->addWidget(openBtn_);
@@ -154,8 +157,8 @@ void ClipsDialog::apply()
 	QStringList tags = tagsFrom(tags_->text());
 	QString to = e_->clips.relabel(current_, title_->text(), QString(), &tags);
 	if (to.isEmpty()) {
-		QMessageBox::warning(this, "Kennel.gg Wardogs",
-				     "Could not rename that clip. Is it open in a player, or already gone?");
+		KMsg::warning(this, "Kennel.gg Wardogs",
+			      tx("Could not rename that clip. Is it open in a player, or already gone?"));
 		return;
 	}
 	current_ = to;
@@ -167,23 +170,25 @@ void ClipsDialog::apply()
 
 ClipNoteDialog::ClipNoteDialog(Engine *e, const QString &path, QWidget *parent) : QDialog(parent), e_(e), path_(path)
 {
-	setWindowTitle("Kennel.gg Wardogs - clip saved");
+	setWindowTitle(tx("Kennel.gg Wardogs - clip saved"));
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
 	auto *v = new QVBoxLayout(this);
-	auto *l = new QLabel("Saved: " + QFileInfo(path).fileName() + "\nWhat was it? (Enter to keep going)", this);
+	auto *l = new QLabel(tx("Saved: %1\nWhat was it? (Enter to keep going)").arg(QFileInfo(path).fileName()), this);
 	l->setWordWrap(true);
 	v->addWidget(l);
 	auto *f = new QFormLayout();
 	title_ = new QLineEdit(this);
-	title_->setPlaceholderText("a few words");
+	title_->setPlaceholderText(tx("a few words"));
 	tags_ = new QLineEdit(this);
-	tags_->setPlaceholderText("highlight, funny, fail, ...");
-	f->addRow("Title", title_);
-	f->addRow("Tags", tags_);
+	tags_->setPlaceholderText("highlight, funny, fail, ..."); // tag words stay English: data
+	f->addRow(tx("Title"), title_);
+	f->addRow(tx("Tags"), tags_);
 	v->addLayout(f);
 	auto *bb = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 	v->addWidget(bb);
+	bb->button(QDialogButtonBox::Ok)->setText(tx("OK"));
+	bb->button(QDialogButtonBox::Cancel)->setText(tx("Cancel"));
 	connect(bb, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	connect(bb, &QDialogButtonBox::accepted, this, [this]() {
 		QStringList tags = tagsFrom(tags_->text());
@@ -192,7 +197,7 @@ ClipNoteDialog::ClipNoteDialog(Engine *e, const QString &path, QWidget *parent) 
 		QString to = e_->clips.relabel(path_, title_->text(), QString(),
 					       tags_->text().trimmed().isEmpty() ? nullptr : &tags);
 		if (to.isEmpty() && !title_->text().trimmed().isEmpty())
-			e_->log("Could not rename " + QFileInfo(path_).fileName() + " - is it open somewhere?");
+			e_->log(tx("Could not rename %1 - is it open somewhere?").arg(QFileInfo(path_).fileName()));
 		emit e_->stateChanged();
 		accept();
 	});

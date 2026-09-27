@@ -1,5 +1,6 @@
 #include "ui/stats-dialog.h"
 #include "stats-image.h"
+#include "i18n.h"
 #include <obs-module.h>
 #include <QApplication>
 #include <QClipboard>
@@ -16,7 +17,7 @@
 
 StatsDialog::StatsDialog(Engine *engine, QWidget *parent) : QDialog(parent), e_(engine)
 {
-	setWindowTitle("Kennel.gg Wardogs - session stats image");
+	setWindowTitle(tx("Kennel.gg Wardogs - session stats image"));
 	setAttribute(Qt::WA_DeleteOnClose);
 	auto *v = new QVBoxLayout(this);
 	preview_ = new QLabel(this);
@@ -26,14 +27,14 @@ StatsDialog::StatsDialog(Engine *engine, QWidget *parent) : QDialog(parent), e_(
 	note_ = new QLabel(this);
 	note_->setWordWrap(true);
 	note_->setTextFormat(Qt::RichText);
-	note_->setText("1920 x 1080, ready for X, Instagram, Bluesky or Discord. The name is your in-game name "
-		       "(Settings, General).");
+	note_->setText(tx("1920 x 1080, ready for X, Instagram, Bluesky or Discord. The name is your in-game name "
+			  "(Settings, General)."));
 	v->addWidget(note_);
 	auto *row = new QHBoxLayout();
-	auto *again = new QPushButton("Another background", this);
-	auto *save = new QPushButton("Save", this);
-	auto *copy = new QPushButton("Copy", this);
-	auto *folder = new QPushButton("Open folder", this);
+	auto *again = new QPushButton(tx("Another background"), this);
+	auto *save = new QPushButton(tx("Save"), this);
+	auto *copy = new QPushButton(tx("Copy"), this);
+	auto *folder = new QPushButton(tx("Open folder"), this);
 	save->setDefault(true);
 	row->addWidget(again);
 	row->addStretch(1);
@@ -55,14 +56,16 @@ StatsDialog::StatsDialog(Engine *engine, QWidget *parent) : QDialog(parent), e_(
 	});
 	connect(save, &QPushButton::clicked, this, [this]() {
 		QString p = this->save();
-		note_->setText(p.isEmpty()
-				       ? "Could not save the image."
-				       : "Saved <b>" + QFileInfo(p).fileName().toHtmlEscaped() + "</b> in " +
-						 QDir::toNativeSeparators(QFileInfo(p).absolutePath()).toHtmlEscaped());
+		note_->setText(
+			p.isEmpty()
+				? tx("Could not save the image.")
+				: tx("Saved <b>%1</b> in %2")
+					  .arg(QFileInfo(p).fileName().toHtmlEscaped(),
+					       QDir::toNativeSeparators(QFileInfo(p).absolutePath()).toHtmlEscaped()));
 	});
 	connect(copy, &QPushButton::clicked, this, [this]() {
 		QApplication::clipboard()->setImage(img_);
-		note_->setText("Copied: paste it straight into a post or a Discord message.");
+		note_->setText(tx("Copied: paste it straight into a post or a Discord message."));
 	});
 	connect(folder, &QPushButton::clicked, this, [this]() {
 		QString p = saved_.isEmpty() ? this->save() : saved_;
@@ -107,6 +110,6 @@ QString StatsDialog::save()
 	if (!img_.save(p, "PNG"))
 		return QString();
 	saved_ = p;
-	e_->log("Session stats image saved: " + QDir::toNativeSeparators(p));
+	e_->log(tx("Session stats image saved: %1").arg(QDir::toNativeSeparators(p)));
 	return p;
 }

@@ -24,6 +24,7 @@
 #include "session.h"
 #include "hudocr/stabilizer.h"
 #include "switcher.h"
+#include "i18n.h"
 
 /// The state machine. Lives on the Qt main thread; capture + matching run on a worker per poll.
 class Engine : public QObject {
@@ -117,14 +118,14 @@ public:
 	void showPopouts(bool show);
 	bool popoutsShown() const { return popoutsShown_; }
 	/// Put this squad mate in the dual window and keep it there until it is turned off by hand.
-	void showInDual(int idx, const QString &why = "squad panel");
+	void showInDual(int idx, const QString &why = TX_NOOP("squad panel"));
 	/// Instant replay: the last highlight, cut to the action (replayPreS before the first kill to
 	/// replayPostS after the last), on the stream at replayScale of the canvas. `why` for the log.
-	void playReplay(const QString &why = "dock");
+	void playReplay(const QString &why = TX_NOOP("dock"));
 	/// Save a clip now and play it as the instant replay once it has landed.
-	void clipAndReplay(const QString &why = "dock");
+	void clipAndReplay(const QString &why = TX_NOOP("dock"));
 	/// The newest highlights compilation in the highlights folder, full screen.
-	void playCompilation(const QString &why = "dock");
+	void playCompilation(const QString &why = TX_NOOP("dock"));
 	/// Ask ClipHound to build this session's compilation from the clips saved since the stream (or
 	/// OBS) started. `thenPlay`: play it on the stream when it is ready.
 	void requestHighlights(const QString &why, bool thenPlay = false);
@@ -132,10 +133,10 @@ public:
 	bool highlightsBuilding() const { return highlightsBuilding_; }
 	/// OBS started or stopped streaming: the session boundary for the compilation.
 	void onStreaming(bool live);
-	void stopReplay(const QString &why = "dock");
+	void stopReplay(const QString &why = TX_NOOP("dock"));
 	/// Stop a replay the way it ends by itself: behind the stinger's "back to live" wipe when
 	/// the stinger is on, at once otherwise. For the dock, hotkeys and the end of the clip.
-	void endReplay(const QString &why = "dock");
+	void endReplay(const QString &why = TX_NOOP("dock"));
 	/// A "!replay" from chat: plays if the cooldown has passed. Returns "" or why not.
 	QString chatReplay(const QString &who);
 	bool replaying() const { return replayLengthMs_ > 0; }
@@ -173,7 +174,9 @@ public:
 	/// The last lines of ClipHound's log.
 	QStringList appLogTail(int lines = 12) const;
 	QString appState() const; // "connected" | "starting" | "crashed" | "stopped"
-	void pushAppConfig();     // send the ClipHound settings to the app
+	void pushAppConfig();
+	/// The plugin's own language ("auto" = OBS's): saved, loaded, and every page and window in it.
+	void setUiLanguage(const std::string &code); // send the ClipHound settings to the app
 
 	/// One line of the game's NEARBY list, as ClipHound read it.
 	struct NearbyEntry {
@@ -202,6 +205,8 @@ public:
 	QJsonObject twitchStatus() const { return twitch_; }
 signals:
 	void twitchStatusChanged();
+	/// Another language was picked: the dock builds itself again, an open Settings window reopens.
+	void languageChanged();
 	void appConfigReceived();
 	void updateChecked();
 	void nearbyTested(const QJsonObject &result);
@@ -349,8 +354,11 @@ public:
 	/// This session's kills, deaths, assists, revives and money (Session).
 	const Session &session() const { return session_; }
 	void resetSession(const QString &why);
-	/// Whether the cash HUD is being read, or why not ("" = reading it).
+	/// Whether the cash HUD is being read, or why not ("" = reading it). "off" (untranslated) when
+	/// session stats are turned off; test that with cashOff() instead.
 	QString cashStatus() const;
+	/// Session stats are turned off (Clips & replays): what cashStatus() says as "off".
+	bool cashOff() const { return !cfg.sessionTrack; }
 	/// Where the cash reader looks, as fractions of a W x H game source.
 	QRectF cashArea(double W, double H) const;
 	/// The session stats overlay (a browser source) into the plugin's scene; "" or why not.
