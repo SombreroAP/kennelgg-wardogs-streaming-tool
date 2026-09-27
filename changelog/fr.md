@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.28.1
+- **Le kill le plus long n'est plus dans la barre des stats de session.** Il est retiré des choix de la barre et du choix rapide « Fragger », qui affiche à la place l'argent du combat. Une barre qui l'affichait l'omet simplement. Il reste sur l'image de stats et dans le résumé de fin de stream.
+
 ## 0.28.0
 - **Des stats pour chaque façon de jouer, pas seulement K/D/A.** La barre des stats de session peut maintenant montrer ce que font les médics, les recons, les joueurs logistique, les bâtisseurs et les pilotes : soins, ennemis repérés, ravitaillements livrés, constructions et passagers transportés, ainsi que l'argent rapporté par chacun de ces rôles (Médic $, Recon $, Logistique $, Bâtisseur $, Transport $, Objectif $, Combat $). Paramètres, Clips & replays : coche-les dans « La barre à l'écran affiche », ou utilise le **Choix rapide** pour une barre toute prête : Fragger, Médic, Recon, Logistique, Bâtisseur, Pilote, Objectif ou Polyvalent. La raison à côté de ton solde affiche aussi SOIN, SPOT, RAVITO, CONSTRUIT ou TRANSPORT, et l'image des stats remplace sa rangée du bas par tes chiffres de soutien quand tu en as.
 - **Corrigé : les réanimations n'étaient pas comptées.** Le jeu écrit REVIVE, TEAMMATE REVIVED et HOT ZONE REVIVE ; le plugin ne connaissait qu'une autre formulation, donc le nombre de réanimations pouvait rester à 0. Il utilise maintenant la formulation des vraies parties, comme pour les passagers (PASSENGER TRANSPORT), les ravitaillements (SUPPLIES DELIVERED) et les kills à longue distance.

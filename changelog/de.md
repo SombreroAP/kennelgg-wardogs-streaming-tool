@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.28.1
+- **Der weiteste Kill ist nicht mehr in der Session-Stats-Leiste.** Er ist aus den Auswahlmöglichkeiten der Leiste und aus der Schnellauswahl „Fragger“ entfernt, die stattdessen das Geld aus dem Kampf zeigt. Eine Leiste, in der er gewählt war, lässt ihn einfach weg. Im Statistikbild und in der Zusammenfassung am Ende des Streams ist er weiterhin enthalten.
+
 ## 0.28.0
 - **Stats für jede Spielweise, nicht nur K/D/A.** Die Session-Stats-Leiste kann jetzt zeigen, was Medics, Recons, Logistik-Spieler, Builder und Fahrer leisten: Heilungen, gespottete Gegner, gelieferten Nachschub, gebaute Objekte und beförderte Passagiere, dazu das Geld, das jede dieser Rollen eingebracht hat (Medic $, Recon $, Logistik $, Builder $, Transport $, Ziele $, Kampf $). Einstellungen, Clips & Replays: hak sie unter "Leiste auf dem Stream zeigt" an, oder nimm die **Schnellauswahl** für eine fertige Leiste: Fragger, Medic, Recon, Logistik, Builder, Fahrer, Ziele oder Allrounder. Der Grund neben deinem Kontostand zeigt jetzt auch HEILUNG, SPOT, NACHSCHUB, BAU oder TRANSPORT, und das Stats-Bild tauscht seine untere Reihe gegen deine Support-Zahlen, wenn du welche hast.
 - **Behoben: Wiederbelebungen wurden nicht gezählt.** Das Spiel schreibt REVIVE, TEAMMATE REVIVED und HOT ZONE REVIVE; das Plugin kannte nur einen anderen Wortlaut, daher konnte die Zahl der Wiederbelebungen bei 0 bleiben. Jetzt nutzt es den Wortlaut aus echten Matches, genau wie Passagiere (PASSENGER TRANSPORT), Nachschub (SUPPLIES DELIVERED) und Kills auf große Distanz.

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.28.1
+- **La baja más lejana ya no está en la barra de estadísticas de la sesión.** Se ha quitado de las opciones de la barra y de la selección rápida «Fragger», que ahora muestra el dinero de combate en su lugar. Una barra que la tenía simplemente la omite. Sigue en la imagen de estadísticas y en el resumen del final del directo.
+
 ## 0.28.0
 - **Estadísticas para cada forma de jugar, no solo K/D/A.** La barra de estadísticas de la sesión ahora puede mostrar lo que hacen médicos, recons, jugadores de logística, constructores y conductores: curaciones, enemigos marcados, suministros entregados, cosas construidas y pasajeros transportados, y el dinero que aportó cada uno de esos roles (Médico $, Recon $, Logística $, Constructor $, Transporte $, Objetivo $, Combate $). Ajustes, Clips & repeticiones: márcalos en "La barra del directo muestra", o usa la **Selección rápida** para una barra ya hecha: Fragger, Médico, Recon, Logística, Constructor, Conductor, Objetivo o Todoterreno. El motivo junto a tu saldo también dice CURACIÓN, MARCAJE, SUMINISTRO, CONSTRUCCIÓN o TRANSPORTE, y la imagen de estadísticas cambia su fila de abajo por tus números de apoyo cuando los tienes.
 - **Corregido: las reanimaciones no se contaban.** El juego escribe REVIVE, TEAMMATE REVIVED y HOT ZONE REVIVE; el plugin solo conocía otra redacción, así que el número de Reanimaciones podía quedarse en 0. Ahora usa la redacción de partidas reales, igual que los pasajeros (PASSENGER TRANSPORT), los suministros (SUPPLIES DELIVERED) y las bajas a larga distancia.

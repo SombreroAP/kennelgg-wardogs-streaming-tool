@@ -111,7 +111,6 @@ body { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-wei
     spent:     [t("Spent"), "spent",     function (s) { return s.spentText || "$0"; }],
     permin:    [t("$ / min"), "money",   function (s) { return s.perMinText || "-"; }],
     balance:   [t("Balance"), "money",   function (s) { return s.balanceChangeText || "-"; }],
-    longest:   [t("Longest"), "",        function (s) { return s.longest ? t("%1 m").replace("%1", s.longest) : "-"; }],
     // the squad's other jobs, from the reward lines' wording (Session::role)
     heals:        [t("Heals"), "",             function (s) { return String(s.heals || 0); }],
     spots:        [t("Spots"), "",             function (s) { return String(s.spots || 0); }],

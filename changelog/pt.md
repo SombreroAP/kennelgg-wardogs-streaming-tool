@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.28.1
+- **O abate mais longo não está mais na barra de estatísticas da sessão.** Ele saiu das opções da barra e da escolha rápida "Fragger", que agora mostra o dinheiro de combate no lugar. Uma barra que o mostrava simplesmente o deixa de fora. Ele continua na imagem de estatísticas e no resumo do fim da live.
+
 ## 0.28.0
 - **Estatísticas para cada jeito de jogar, não só K/D/A.** A barra de estatísticas da sessão agora pode mostrar o que médicos, recons, jogadores de logística, construtores e motoristas fazem: curas, inimigos spotados, suprimentos entregues, coisas construídas e passageiros transportados, e o dinheiro que cada uma dessas funções trouxe (Médico $, Recon $, Logística $, Construtor $, Transporte $, Objetivo $, Combate $). Configurações, Clipes & replays: marque-os em "A barra na live mostra", ou use a **Escolha rápida** para uma barra pronta: Fragger, Médico, Recon, Logística, Construtor, Motorista, Objetivo ou Versátil. O motivo ao lado do seu saldo também mostra CURA, SPOT, SUPRIMENTO, CONSTRUÇÃO ou TRANSPORTE, e a imagem de estatísticas troca a fileira de baixo pelos seus números de suporte quando você os tem.
 - **Corrigido: os revives não eram contados.** O jogo escreve REVIVE, TEAMMATE REVIVED e HOT ZONE REVIVE; o plugin só conhecia outro texto, então o número de Revives podia ficar em 0. Agora ele usa o texto de partidas reais, assim como passageiros (PASSENGER TRANSPORT), suprimentos (SUPPLIES DELIVERED) e abates de longa distância.

@@ -164,7 +164,7 @@ QString Session::why(const QString &r)
 const QList<Session::Preset> &Session::presets()
 {
 	static const QList<Preset> list = {
-		{"fragger", TX_NOOP("Fragger"), "kda,kd,headshots,longest,net"},
+		{"fragger", TX_NOOP("Fragger"), "kda,kd,headshots,combatCash,net"},
 		{"medic", TX_NOOP("Medic"), "revives,heals,medicCash,net"},
 		{"recon", TX_NOOP("Recon"), "spots,reconCash,kda,net"},
 		{"logistics", TX_NOOP("Logistics"), "supplies,logisticsCash,net,permin"},
@@ -193,7 +193,6 @@ const QList<QPair<QString, QString>> &Session::elements()
 		{"spent", TX_NOOP("Money spent")},
 		{"permin", TX_NOOP("$ per minute in game")},
 		{"balance", TX_NOOP("In-game balance change")},
-		{"longest", TX_NOOP("Longest kill")},
 		{"heals", TX_NOOP("Heals (medic)")},
 		{"spots", TX_NOOP("Enemies spotted (recon)")},
 		{"supplies", TX_NOOP("Supplies delivered (logistics)")},

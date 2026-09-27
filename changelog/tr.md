@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.28.1
+- **En uzak leş artık oturum istatistik çubuğunda yok.** Çubuğun seçeneklerinden ve "Fragger" hızlı seçiminden kaldırıldı; onun yerine çatışmadan kazanılan para gösteriliyor. Onu gösteren bir çubuk artık sadece atlıyor. İstatistik görselinde ve yayın sonu özetinde hâlâ var.
+
 ## 0.28.0
 - **Sadece K/D/A değil, her oyun tarzı için istatistik.** Oturum istatistikleri çubuğu artık medik, keşif, lojistik oyuncuları, inşaatçılar ve sürücülerin yaptıklarını gösterebilir: iyileştirmeler, işaretlenen düşmanlar, teslim edilen ikmal, inşa edilenler ve taşınan yolcular, ayrıca bu rollerin her birinin getirdiği para (Medik $, Keşif $, Lojistik $, İnşa $, Taşıma $, Hedef $, Çatışma $). Ayarlar, Klipler & tekrarlar: onları "Yayındaki çubukta görünenler" içinde işaretle ya da hazır bir çubuk için **Hızlı seçim**'i kullan: Fragger, Medik, Keşifçi, Lojistik, İnşaatçı, Sürücü, Hedef veya Çok yönlü. Bakiyenin yanındaki sebep artık İYİLEŞTİRME, İŞARET, İKMAL, İNŞA veya TAŞIMA da yazıyor, istatistik görseli de destek sayıların varsa alt satırını onlarla değiştiriyor.
 - **Düzeltildi: diriltmeler sayılmıyordu.** Oyun REVIVE, TEAMMATE REVIVED ve HOT ZONE REVIVE yazıyor; eklenti yalnızca başka bir ifadeyi biliyordu, bu yüzden Diriltme sayısı 0'da kalabiliyordu. Artık gerçek maçlardaki ifadeleri kullanıyor; yolcular (PASSENGER TRANSPORT), ikmal (SUPPLIES DELIVERED) ve uzak mesafe leşleri için de aynısı geçerli.

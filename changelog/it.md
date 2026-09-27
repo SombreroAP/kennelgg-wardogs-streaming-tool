@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.28.1
+- **L'uccisione più lunga non è più nella barra delle statistiche della sessione.** È stata tolta dalle scelte della barra e dalla scelta rapida "Fragger", che al suo posto mostra i soldi dal combattimento. Una barra che la mostrava semplicemente la salta. Resta nell'immagine delle statistiche e nel riepilogo di fine stream.
+
 ## 0.28.0
 - **Statistiche per ogni modo di giocare, non solo K/D/A.** La barra delle statistiche sessione ora può mostrare cosa fanno medici, recon, giocatori di logistica, costruttori e piloti: cure, nemici segnalati, rifornimenti consegnati, cose costruite e passeggeri trasportati, e i soldi portati da ciascuno di questi ruoli (Medico $, Recon $, Logistica $, Costruttore $, Trasporto $, Obiettivo $, Combattimento $). Impostazioni, Clip & replay: spuntali in "La barra in diretta mostra", oppure usa la **Scelta rapida** per una barra già pronta: Fragger, Medico, Recon, Logistica, Costruttore, Pilota, Obiettivo o Tuttofare. Il motivo accanto al tuo saldo ora dice anche CURA, SPOT, RIFORNIMENTO, COSTRUZIONE o TRASPORTO, e l'immagine statistiche sostituisce la riga in basso con i tuoi numeri di supporto quando ne hai.
 - **Corretto: le rianimazioni non venivano contate.** Il gioco scrive REVIVE, TEAMMATE REVIVED e HOT ZONE REVIVE; il plugin conosceva solo un'altra dicitura, quindi il numero delle Rianimazioni poteva restare a 0. Ora usa la dicitura delle partite vere, come per i passeggeri (PASSENGER TRANSPORT), i rifornimenti (SUPPLIES DELIVERED) e le uccisioni a lunga distanza.

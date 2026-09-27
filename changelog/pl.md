@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.28.1
+- **Najdłuższego zabójstwa nie ma już na pasku statystyk sesji.** Zniknęło z opcji paska i z szybkiego wyboru „Fragger”, który zamiast niego pokazuje kasę z walki. Pasek, na którym było wybrane, po prostu je pomija. Nadal jest na obrazku ze statystykami i w podsumowaniu po zakończeniu streama.
+
 ## 0.28.0
 - **Statystyki dla każdego stylu gry, nie tylko K/D/A.** Pasek statystyk sesji może teraz pokazywać, co robią medycy, zwiadowcy, logistycy, budowniczowie i kierowcy: leczenia, wykrytych wrogów, dostarczone zaopatrzenie, zbudowane rzeczy i przewiezionych pasażerów, a także kasę, którą przyniosła każda z tych ról (Medyk $, Zwiad $, Logistyka $, Budowa $, Transport $, Cele $, Walka $). Ustawienia, Klipy & powtórki: zaznacz je w "Pasek na streamie pokazuje" albo użyj opcji **Szybki wybór**, żeby dostać gotowy pasek: Fragger, Medyk, Zwiadowca, Logistyk, Budowniczy, Kierowca, Cele albo Uniwersalny. Powód obok twojego stanu konta pokazuje też LECZENIE, SPOT, DOSTAWA, BUDOWA albo TRANSPORT, a obrazek ze statystykami zamienia dolny rząd na twoje liczby wsparcia, jeśli je masz.
 - **Naprawione: podniesienia nie były liczone.** Gra pisze REVIVE, TEAMMATE REVIVED i HOT ZONE REVIVE; wtyczka znała tylko inne sformułowanie, więc liczba podniesień mogła stać na 0. Teraz używa sformułowań z prawdziwych meczów, tak samo jak pasażerowie (PASSENGER TRANSPORT), dostawy (SUPPLIES DELIVERED) i zabójstwa z dużej odległości.

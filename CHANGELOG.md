@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.28.1
+- **Longest kill is no longer on the session stats bar.** It is gone from the bar's choices and from the Fragger quick pick, which shows combat money in its place. A bar that had it simply leaves it out. It is still on the stats image and in the end-of-stream summary.
+
 ## 0.28.0
 - **Stats for every way to play, not just K/D/A.** The session stats bar can now show what medics, recon, logistics players, builders and drivers do: heals, enemies spotted, supplies delivered, things built and passengers transported, and the money each of those roles brought in (medic $, recon $, logistics $, builder $, transport $, objective $, combat $). Settings, Clips & replays: tick them in "On-stream bar shows", or use **Quick pick** for a ready-made bar: Fragger, Medic, Recon, Logistics, Builder, Driver, Objective or All-round. The reason beside your balance says HEAL, SPOT, SUPPLY, BUILD or TRANSPORT too, and the stats image swaps its bottom row for your support numbers when you have them.
 - **Fixed: revives were not counted.** The game writes REVIVE, TEAMMATE REVIVED and HOT ZONE REVIVE; the plugin only knew another wording, so the Revives number could stay at 0. It now uses the wording from real matches, as do passengers (PASSENGER TRANSPORT), supplies (SUPPLIES DELIVERED) and long-range kills.
