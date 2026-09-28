@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.4
+- **Behoben: Der POV wechselte mitten im Gefecht immer wieder zu einem Squad-Mitglied.** Mit der Spielsprache auf Automatisch reichte ein einziges Bild, das dem französischen Niedergegangen-Bildschirm ein wenig ähnelte, damit dein Spiel dauerhaft als Französisch galt. Der französische Text „fand“ dann den Niedergegangen-Bildschirm im normalen Spiel (Lobby, Nebel, Feuergefecht), und der Stream wechselte alle paar Sekunden zu einem Squad-Mitglied. Eine andere Sprache muss jetzt deutlich im Bild sein und einen Moment dort bleiben, bevor sie zählt. Bei allen mit Automatisch wird die gefundene Sprache einmal vergessen; beim nächsten Mal, wenn du niedergehst, wird die richtige wieder gefunden. Danke an DaDao für die Logs.
+
 ## 0.34.3
 - **Behoben: „Das Mikrofon war stumm“ kam nie im Log des Plugins an.** ClipHound bemerkte ein stummes Mikrofon für Sprachbefehle, konnte den Hinweis aber nicht ans Plugin schicken, also fehlte er in „Logs senden“. Jetzt kommt er an. Danke an DaDao für die Logs.
 

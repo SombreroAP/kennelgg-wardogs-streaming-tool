@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.4
+- **Corrigé : le POV passait sans arrêt sur un coéquipier en plein combat.** Avec la langue du jeu sur auto, une seule image qui ressemblait un peu à l'écran à terre en français suffisait pour décider que ton jeu était en français, pour de bon. Le texte français « trouvait » ensuite l'écran à terre en jeu normal (lobby, brouillard, fusillade), et le stream passait sur un coéquipier toutes les quelques secondes. Une autre langue doit maintenant être nettement à l'écran, et y rester un instant, avant de compter. Pour tous ceux en auto, la langue trouvée est oubliée une fois ; la bonne est retrouvée la prochaine fois que tu es à terre. Merci DaDao pour les journaux.
+
 ## 0.34.3
 - **Corrigé : « le micro est silencieux » n'arrivait jamais dans le journal du plugin.** ClipHound remarquait un micro muet pour les commandes vocales mais ne pouvait pas envoyer l'info au plugin, donc Envoyer les journaux n'en gardait aucune trace. Elle arrive maintenant. Merci DaDao pour les journaux.
 

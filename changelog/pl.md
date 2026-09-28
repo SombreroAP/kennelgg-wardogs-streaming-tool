@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.4
+- **Naprawiono: POV w środku walki raz po raz przełączał się na kolegę.** Przy języku gry na automacie wystarczyła jedna klatka trochę podobna do francuskiego ekranu powalenia, żeby na stałe uznać, że gra jest po francusku. Francuski napis „znajdował” potem ekran powalenia w zwykłej grze (lobby, mgła, strzelanina), a stream co kilka sekund przełączał się na kolegę. Teraz inny język musi być wyraźnie na ekranie i utrzymać się tam przez chwilę, zanim się liczy. Wszystkim na automacie znaleziony język zostaje raz zapomniany; właściwy znajdzie się znowu, gdy następnym razem padniesz. Dzięki, DaDao, za logi.
+
 ## 0.34.3
 - **Naprawiono: „mikrofon milczy” nigdy nie trafiało do logu wtyczki.** ClipHound zauważał cichy mikrofon dla komend głosowych, ale nie mógł wysłać tej informacji do wtyczki, więc w Wyślij logi nie było po tym śladu. Teraz dociera. Dzięki DaDao za logi.
 

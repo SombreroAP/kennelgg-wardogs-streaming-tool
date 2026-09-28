@@ -348,6 +348,7 @@ private:
 		bool ok = false;
 		Match game;
 		Match revive;
+		Match alt;                    // the best of the other languages' wordings (game language on auto)
 		int altLang = -1;             // index into altLangs_ when another language's wording scored best
 		std::shared_ptr<AltSet> alts; // the set that index belongs to
 		double progress = -1;
@@ -642,6 +643,13 @@ private:
 	// a shared set, so a worker in flight keeps the set it started with when settings replace it
 	std::shared_ptr<AltSet> altDets_ = std::make_shared<AltSet>();
 	std::vector<std::string> altLangs_;
+	// another language's wording counts only when it is clearly on screen (a real downed screen in
+	// French scores 0.92; the French wording scores up to 0.88 on ordinary English play), and it
+	// becomes the game's language only after holding that for a moment
+	static constexpr double kLangSure = 0.89;
+	static constexpr int kLangHoldMs = 1500;
+	int langRun_ = -1; // the alt language clearly on screen since langSince_, or -1
+	std::chrono::steady_clock::time_point langSince_;
 	static bool loadLangTemplate(Detector &d, const std::string &lang);
 	bool dualOn_ = false, dualAutoOn_ = false;
 	// the POV stinger (stinger.html "pov": covered from 480 ms)

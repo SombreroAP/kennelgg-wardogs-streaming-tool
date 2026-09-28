@@ -4677,12 +4677,12 @@ void Engine::tick()
 			if (capGame_.grab(src, Detector::FrameWidth, bgra, w, h, ls)) {
 				Frame f = Detector::fromBGRA(bgra.data(), w, h, ls);
 				r.game = detGame_.compare(f, quick);
-				// game language on auto: the other wordings get the same look, and the best
-				// score is the one reported, so whichever language the game is in is found
+				// game language on auto: the other wordings get the same look; the best of them
+				// is kept apart and onResult decides whether it is really the one on screen
 				for (size_t i = 0; i < alts->size(); i++) {
 					Match a = (*alts)[i]->compare(f, quick);
-					if (a.score > r.game.score) {
-						r.game = a;
+					if (a.score > r.alt.score) {
+						r.alt = a;
 						r.altLang = (int)i;
 						r.alts = alts;
 					}
@@ -4783,20 +4783,33 @@ void Engine::onResult(Result r)
 		return;
 	}
 	lastWatchError_.clear();
-	if (r.altLang >= 0 && r.alts == altDets_ && r.altLang < (int)altDets_->size() &&
-	    r.game.score >= cfg.threshold) {
-		// another language's wording is the one on screen: it becomes the wording we search,
-		// remembered for next time, and the rest are dropped
-		std::string lang = altLangs_[(size_t)r.altLang];
-		detGame_ = std::move(*(*altDets_)[(size_t)r.altLang]);
-		altDets_ = std::make_shared<AltSet>();
-		altLangs_.clear();
-		cfg.gameLangFound = lang;
-		cfg.save();
-		pushAppConfig(); // ClipHound reads the HUD's weapon names in this language
-		log(tx("Game language: %1 (the damage log matched the %1 wording).").arg(langName(lang)));
-		emit stateChanged();
-	}
+	if (r.altLang >= 0 && r.alts == altDets_ && r.altLang < (int)altDets_->size() && r.alt.score > r.game.score &&
+	    r.alt.score >= std::max(cfg.threshold, kLangSure)) {
+		// another language's wording, clearly on screen: it counts as the downed screen, and once
+		// it has held for a moment it becomes the wording we search, remembered for next time.
+		// One frame used to be enough, and the French wording scores 0.80-0.88 on ordinary play
+		// (a lobby, fog, a browser window): English games were locked to French for good and
+		// "downed" in every fight (LOG-9428, 28 Sep 2026)
+		r.game = r.alt;
+		auto now = std::chrono::steady_clock::now();
+		if (langRun_ != r.altLang) {
+			langRun_ = r.altLang;
+			langSince_ = now;
+		}
+		if (now - langSince_ >= std::chrono::milliseconds(kLangHoldMs)) {
+			std::string lang = altLangs_[(size_t)r.altLang];
+			detGame_ = std::move(*(*altDets_)[(size_t)r.altLang]);
+			altDets_ = std::make_shared<AltSet>();
+			altLangs_.clear();
+			langRun_ = -1;
+			cfg.gameLangFound = lang;
+			cfg.save();
+			pushAppConfig(); // ClipHound reads the HUD's weapon names in this language
+			log(tx("Game language: %1 (the damage log matched the %1 wording).").arg(langName(lang)));
+			emit stateChanged();
+		}
+	} else
+		langRun_ = -1;
 	if (r.game.locked && !lastGame_.locked && detGame_.remembers()) {
 		cfg.memScale = detGame_.memScale();
 		cfg.memX = detGame_.memX();

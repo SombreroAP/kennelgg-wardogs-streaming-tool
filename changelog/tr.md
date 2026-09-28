@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.4
+- **Düzeltildi: POV çatışmanın ortasında sürekli bir takım arkadaşına geçiyordu.** Oyun dili otomatikteyken, Fransızca yere düşme ekranına biraz benzeyen tek bir kare oyununun Fransızca olduğuna kalıcı olarak karar vermeye yetiyordu. Fransızca yazı sonra normal oyunda (lobi, sis, çatışma) yere düşme ekranını "buluyor", yayın birkaç saniyede bir takım arkadaşına geçiyordu. Artık başka bir dilin sayılması için ekranda açıkça görünmesi ve bir süre orada kalması gerekiyor. Otomatikte olan herkesin bulunan dili bir kez unutuluyor; doğru dil bir sonraki yere düşüşünde yeniden bulunuyor. Loglar için teşekkürler DaDao.
+
 ## 0.34.3
 - **Düzeltildi: "mikrofon sessiz" uyarısı eklentinin günlüğüne hiç ulaşmıyordu.** ClipHound sesli komutlar için sessiz mikrofonu fark ediyor ama bunu eklentiye gönderemiyordu, bu yüzden Günlükleri gönder'de iz yoktu. Artık ulaşıyor. Günlükler için teşekkürler DaDao.
 

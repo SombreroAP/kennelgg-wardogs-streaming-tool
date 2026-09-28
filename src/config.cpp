@@ -277,6 +277,7 @@ void Config::load()
 	DEFS(gameLangFound);
 	DEFS(uiLang);
 	DEFB(langAskShown);
+	DEFB(langFoundV2);
 	DEFB(dualStartV2);
 	DEFB(cpuDefaultsV1);
 	DEFB(voiceEnabled);
@@ -498,6 +499,7 @@ void Config::load()
 	GETS(gameLangFound);
 	GETS(uiLang);
 	GETB(langAskShown);
+	GETB(langFoundV2);
 	GETB(dualStartV2);
 	GETB(cpuDefaultsV1);
 	GETB(voiceEnabled);
@@ -616,6 +618,17 @@ void Config::load()
 	}
 	if (voiceWake == "kennel")
 		voiceWake = "hey kennel"; // 0.16.5: what people actually say, and a clearer start
+	// 0.34.4: auto took the game's language from a single frame, and the French wording matches
+	// ordinary play often enough that English games were set to French and went "downed" in every
+	// fight (LOG-9428). Forget what auto found, once, with where it last found it; a real language
+	// is found again at the next down
+	if (!langFoundV2) {
+		langFoundV2 = true;
+		if ((gameLang == "auto" || gameLang.empty()) && !gameLangFound.empty()) {
+			gameLangFound.clear();
+			memScale = memX = memY = 0;
+		}
+	}
 	if (!thresholdV2) {
 		thresholdV2 = true;
 		if (threshold >= 0.83 || threshold < 0.75)
@@ -913,6 +926,7 @@ void Config::save() const
 	SETS(gameLangFound);
 	SETS(uiLang);
 	SETB(langAskShown);
+	SETB(langFoundV2);
 	SETB(dualStartV2);
 	SETB(cpuDefaultsV1);
 	SETB(voiceEnabled);

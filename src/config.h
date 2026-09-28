@@ -303,6 +303,7 @@ struct Config {
 	std::string gameLangFound;   // what auto settled on, so later sessions search one wording only
 	std::string uiLang = "auto"; // the plugin's own language (settings, dock, on-stream text): auto = OBS's
 	bool langAskShown = false;   // the once-only "language not supported" note has been shown
+	bool langFoundV2 = false;    // what auto found was forgotten once (0.34.4): it could be a false French
 	// voice: the microphone goes to ClipHound, which names manual clips from what was said and
 	// listens for commands after a wake word. Off until switched on.
 	bool voiceEnabled = false;

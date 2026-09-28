@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.4
+- **Corrigido: o POV trocava para um parceiro sem parar no meio da luta.** Com o idioma do jogo no automático, bastava um único quadro parecido com a tela de caído em francês para decidir que seu jogo estava em francês, de vez. O texto em francês então "achava" a tela de caído no jogo normal (lobby, neblina, tiroteio), e a live trocava para um parceiro a cada poucos segundos. Agora outro idioma precisa aparecer claramente na tela, e ficar ali por um momento, antes de contar. Para todos no automático, o idioma encontrado é esquecido uma vez; o certo é encontrado de novo na próxima vez que você cair. Valeu, DaDao, pelos logs.
+
 ## 0.34.3
 - **Corrigido: "o microfone está em silêncio" nunca chegava ao log do plugin.** O ClipHound percebia um microfone mudo para os comandos de voz, mas não conseguia mandar o aviso ao plugin, então Enviar logs não tinha registro disso. Agora chega. Valeu DaDao pelos logs.
 

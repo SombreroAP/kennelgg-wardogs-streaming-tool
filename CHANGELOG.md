@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.4
+- **Fixed: the POV swapping to a squad mate over and over mid-fight.** With the game language on auto, one frame that looked a little like the French downed screen was enough to decide your game was in French, for good. The French wording then kept "finding" the downed screen in ordinary play (a lobby, fog, a gunfight), so the stream swapped to a squad mate every few seconds. Another language now has to be clearly on screen, and stay there for a moment, before it counts. Everyone on auto has the language it found forgotten once; the right one is found again the next time you go down. Thanks DaDao for the logs.
+
 ## 0.34.3
 - **Fixed: "the microphone has been silent" never reached the plugin's log.** ClipHound noticed a silent mic for voice commands but could not send the note to the plugin, so Send logs had no trace of it. It arrives now. Thanks DaDao for the logs.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.4
+- **Corregido: el POV cambiaba a un compañero una y otra vez en mitad de un combate.** Con el idioma del juego en automático, bastaba un solo fotograma que se pareciera un poco a la pantalla de caído en francés para decidir que tu juego estaba en francés, para siempre. El texto en francés «encontraba» luego la pantalla de caído en partidas normales (vestíbulo, niebla, un tiroteo), y el directo cambiaba a un compañero cada pocos segundos. Ahora otro idioma tiene que verse con claridad, y seguir ahí un momento, antes de contar. A todos los que están en automático se les olvida una vez el idioma encontrado; el correcto se vuelve a encontrar la próxima vez que caigas. Gracias a DaDao por los registros.
+
 ## 0.34.3
 - **Corregido: «el micrófono está en silencio» nunca llegaba al registro del plugin.** ClipHound notaba un micro en silencio para los comandos de voz pero no podía enviar el aviso al plugin, así que Enviar registros no lo mostraba. Ahora llega. Gracias DaDao por los registros.
 
