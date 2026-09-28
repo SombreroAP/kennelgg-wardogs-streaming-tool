@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.33.1
+- **Corregido: ClipHound no arrancaba** (0.31.2 a 0.33.0). Se detenía al iniciar con «'function' object has no attribute '__mro__'», así que no había clips de bajas, ni recuento de bajas, ni control por voz ni lecturas de NEARBY. Gracias a los streamers que lo avisaron con Enviar registros.
+
 ## 0.33.0
 - **Tus repeticiones mientras estás caído, cuando no hay nadie a quien mostrar.** ¿Juegas solo o nadie de tu escuadra transmite? Marca Ajustes, Escuadra & POV, «Nadie a quien mostrar», y cuando caigas, tras el retraso habitual se reproduce tu última repetición instantánea; cuando termina, la anterior, y así sucesivamente (tras la más antigua, otra vez la más reciente), cada una con el stinger INSTANT REPLAY, hasta que te reanimen, lo que termina con la vuelta habitual al directo. El clip de la propia caída se deja fuera.
 

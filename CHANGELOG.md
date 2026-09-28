@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.33.1
+- **Fixed: ClipHound would not start** (0.31.2 to 0.33.0). It stopped at start with "'function' object has no attribute '__mro__'", so there were no kill clips, kill counts, voice control or NEARBY reads. Thanks to the streamers who reported it with Send logs.
+
 ## 0.33.0
 - **Your replays while you are down, when there is nobody to show.** Playing alone, or nobody in your squad is streaming? Tick Settings, Squad & POV, "Nobody to show", and when you go down your last instant replay plays after the usual delay; when it ends, the one before it, and so on (back to the newest after the oldest), each with the INSTANT REPLAY stinger, until you are revived, which ends it with the usual way back to live. The clip of the down itself is left out.
 

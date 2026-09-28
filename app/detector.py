@@ -14,7 +14,6 @@ from colors import relation
 import weapons as W
 
 
-@dataclass
 def _name_like(text: str) -> bool:
     """Could this column be a player name (a clan tag, the name, a distance)? Scenery read as text is long,
     many short words, and mostly not letters. Only rows without you in them are held to it."""
@@ -27,6 +26,7 @@ def _name_like(text: str) -> bool:
     return alnum >= 3 and alnum >= 0.7 * len(t.replace(" ", "")) and len(words) <= 3
 
 
+@dataclass
 class FeedEvent:
     killer: str          # OCR text of the killer column
     victim: str          # OCR text of the victim column

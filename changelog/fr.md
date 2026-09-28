@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.33.1
+- **Corrigé : ClipHound ne démarrait pas** (0.31.2 à 0.33.0). Il s'arrêtait au démarrage avec « 'function' object has no attribute '__mro__' », donc pas de clips de kill, pas de comptage des kills, pas de commande vocale ni de lecture NEARBY. Merci aux streamers qui l'ont signalé avec Envoyer les journaux.
+
 ## 0.33.0
 - **Tes replays pendant que tu es à terre, quand il n'y a personne à montrer.** Tu joues seul, ou personne dans ton escouade ne streame ? Coche Paramètres, Escouade & POV, « Personne à montrer », et quand tu tombes, ton dernier replay instantané passe après le délai habituel ; quand il se termine, celui d'avant, et ainsi de suite (le plus récent à nouveau après le plus ancien), chacun avec le stinger INSTANT REPLAY, jusqu'à ce que tu sois réanimé, ce qui y met fin avec le retour habituel au direct. Le clip de la mise à terre elle-même est laissé de côté.
 

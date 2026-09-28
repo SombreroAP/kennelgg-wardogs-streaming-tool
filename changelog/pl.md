@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.33.1
+- **Naprawiono: ClipHound się nie uruchamiał** (0.31.2 do 0.33.0). Zatrzymywał się przy starcie z „'function' object has no attribute '__mro__'”, więc nie było klipów z zabójstw, liczenia zabójstw, sterowania głosem ani odczytu NEARBY. Dzięki streamerom, którzy zgłosili to przez Wyślij logi.
+
 ## 0.33.0
 - **Twoje powtórki, gdy leżysz, a nie ma kogo pokazać.** Grasz sam albo nikt z drużyny nie streamuje? Zaznacz Ustawienia, Drużyna & POV, „Nie ma kogo pokazać”, a gdy padniesz, po zwykłym opóźnieniu poleci twoja ostatnia szybka powtórka; gdy się skończy, ta wcześniejsza i tak dalej (po najstarszej znów najnowsza), każda ze stingerem INSTANT REPLAY, aż ktoś cię podniesie, co kończy to zwykłym powrotem na żywo. Klip samego powalenia jest pomijany.
 

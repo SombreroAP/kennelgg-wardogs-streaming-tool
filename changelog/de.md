@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.33.1
+- **Behoben: ClipHound startete nicht** (0.31.2 bis 0.33.0). Er brach beim Start mit „'function' object has no attribute '__mro__'“ ab, also gab es keine Kill-Clips, keine Kill-Zählung, keine Sprachsteuerung und kein NEARBY. Danke an die Streamer, die es mit Logs senden gemeldet haben.
+
 ## 0.33.0
 - **Deine Replays, während du am Boden bist und niemand zum Zeigen da ist.** Spielst du allein oder streamt niemand in deinem Squad? Hake Einstellungen, Squad & POV, „Niemand zum Zeigen“ an, und wenn du niedergehst, läuft nach der üblichen Verzögerung dein letztes Instant Replay; ist es zu Ende, das davor und so weiter (nach dem ältesten wieder das neueste), jedes mit dem INSTANT-REPLAY-Stinger, bis du wiederbelebt wirst. Das beendet es mit dem üblichen Weg zurück zum Live-Bild. Der Clip des Niederschlags selbst wird ausgelassen.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.33.1
+- **Düzeltildi: ClipHound başlamıyordu** (0.31.2 ile 0.33.0 arası). Başlangıçta "'function' object has no attribute '__mro__'" hatasıyla duruyordu; bu yüzden leş klipleri, leş sayımı, sesli kontrol ve NEARBY okuması yoktu. Günlükleri gönder ile bildiren yayıncılara teşekkürler.
+
 ## 0.33.0
 - **Yerdeyken, gösterecek kimse yoksa kendi tekrarların.** Yalnız mı oynuyorsun, ya da takımında kimse yayın yapmıyor mu? Ayarlar, Takım & POV'da "Gösterecek kimse yok"u işaretle; yere düştüğünde her zamanki gecikmeden sonra son anında tekrarın oynar, bitince ondan öncekisi ve böyle devam eder (en eskisinden sonra yine en yenisi), her biri INSTANT REPLAY stinger'ıyla; diriltildiğinde her zamanki canlıya dönüşle biter. Yere düşmenin kendi klibi dahil edilmez.
 

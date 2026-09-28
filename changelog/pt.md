@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.33.1
+- **Corrigido: o ClipHound não iniciava** (0.31.2 a 0.33.0). Ele parava ao iniciar com "'function' object has no attribute '__mro__'", então não havia clipes de abate, contagem de abates, controle por voz nem leitura do NEARBY. Obrigado aos streamers que avisaram com Enviar logs.
+
 ## 0.33.0
 - **Seus replays enquanto você está caído, quando não há ninguém para mostrar.** Jogando sozinho, ou ninguém do seu squad está transmitindo? Marque Configurações, Squad & POV, "Ninguém para mostrar", e quando você cair, depois do atraso de sempre toca o seu último replay instantâneo; quando ele acaba, o anterior, e assim por diante (depois do mais antigo, o mais recente de novo), cada um com o stinger INSTANT REPLAY, até você ser revivido, o que encerra com a volta de sempre para o ao vivo. O clipe da própria queda fica de fora.
 
