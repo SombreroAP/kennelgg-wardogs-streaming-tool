@@ -315,7 +315,7 @@ public slots:
 	void applyNow(bool on, const QString &why);
 	void toggle();
 	void toggleDual();
-	void setDual(bool on, const QString &why);
+	void setDual(bool on, const QString &why, bool byDetector = false);
 
 	void setActive(int idx);
 	void setEnabled(bool on);
@@ -495,6 +495,13 @@ private:
 		int64_t amt;
 	};
 	std::deque<LineAmt> lineLog_;
+	/// Money the wallet match booked (REWARD/KILL) that a late line may still name: claimed, not counted twice.
+	struct Booked {
+		qint64 t;
+		int64_t amt;
+		int role;
+	};
+	QList<Booked> booked_;
 	int64_t gapSeen_ = 0; // the wallet vs the tallied lines: how far apart, and since when (ms)
 	qint64 gapSince_ = 0;
 	void cashTick();
@@ -555,14 +562,18 @@ private:
 	QDateTime lastChatReplay_;
 	void replayTick();
 	bool popoutsShown_ = false;
-	int whooshGen_ = 0;
-	QTimer replayLenTimer_; // the clip length goes to OBS once the spin box settles
-	bool replayRestarting_ =
-		false; // one replay-buffer restart at a time          // the whoosh dial: the stinger page is reloaded once the turning stops
-	QString sessionRole() const; // the bar's preset id (Session::presets), "custom" when none fits
-	QString nameGuess_;          // ClipHound's reading of your in-game name, when it differs from the one set
-	QString closestName() const; // the nearest squad mate in the last NEARBY read, "" = none
-	QString popoutNote_;         // the unnamed pop-out we last mentioned, so the log says it once
+	int whooshGen_ = 0;             // the whoosh dial: the stinger page is reloaded once the turning stops
+	QTimer replayLenTimer_;         // the clip length goes to OBS once the spin box settles
+	bool replayRestarting_ = false; // one replay-buffer restart at a time
+	int replayRetryTick_ = 0;
+	std::chrono::steady_clock::time_point nearbyAskedAt_{}; // the last "read NEARBY now"
+	bool manualShow_ = false;
+	bool inventoryShow_ = false;  // the view on screen is the magazine-packing swap
+	QString povStateName() const; // the view on screen was put up by hand (not by being downed)
+	QString sessionRole() const;  // the bar's preset id (Session::presets), "custom" when none fits
+	QString nameGuess_;           // ClipHound's reading of your in-game name, when it differs from the one set
+	QString closestName() const;  // the nearest squad mate in the last NEARBY read, "" = none
+	QString popoutNote_;          // the unnamed pop-out we last mentioned, so the log says it once
 	Access lastAccess_ = Access::Unknown;
 	QString lastRosterStatus_;
 	void checkAccess(); // say it once when the roster locks or unlocks
@@ -575,6 +586,7 @@ private:
 	QString appStatus_;
 	QJsonObject twitch_;
 	qint64 appPid_ = 0;
+	qint64 otherAppPid_ = 0; // a second ClipHound we already warned about
 	QDateTime appStartedAt_;
 	bool appCrashReported_ = false;
 	Detector detGame_, detRevive_;
@@ -643,6 +655,7 @@ private:
 	std::chrono::steady_clock::time_point fullSince_; // last poll the log scored a clean match in that spot
 	static constexpr int kHoldMs = 3000;              // how long a washed-out log is held as still there
 	std::chrono::steady_clock::time_point downSince_, lastReviveSeen_;
+	std::chrono::steady_clock::time_point downEndedAt_{}; // the detection last let go (downs merge within 20 s)
 	Match lastGame_, lastRevive_;
 	double reviveProgress_ = -1;
 	mutable std::mutex frameMx_;

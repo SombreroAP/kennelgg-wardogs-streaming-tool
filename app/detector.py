@@ -15,6 +15,18 @@ import weapons as W
 
 
 @dataclass
+def _name_like(text: str) -> bool:
+    """Could this column be a player name (a clan tag, the name, a distance)? Scenery read as text is long,
+    many short words, and mostly not letters. Only rows without you in them are held to it."""
+    t = re.sub(r"\[?\d+\s*m\]?\s*$", "", (text or "").strip())       # a distance read into the column
+    t = re.sub(r"^\S{0,6}?[\[\(\{][^\]\)\}]{0,8}[\]\)\}]\s*", "", t)  # a clan tag
+    if not t or len(t) > 28:
+        return False
+    alnum = sum(c.isalnum() for c in t)
+    words = t.split()
+    return alnum >= 3 and alnum >= 0.7 * len(t.replace(" ", "")) and len(words) <= 3
+
+
 class FeedEvent:
     killer: str          # OCR text of the killer column
     victim: str          # OCR text of the victim column
@@ -172,6 +184,7 @@ class KillDetector:
         from namelearn import NameLearner
         self.learner = NameLearner()
         self.name_guess = ""   # the plugin collects it (main loop) and clears it
+        self.squad_names = []  # the squad's in-game names (a list, or a function giving it): set by main
         self.my_team = cfg.get("my_team", "auto")      # 'red' | 'blue' | 'green' | 'auto' (set by main from the HUD)
         self.rules = cfg.get("rules") or []
         self.dump_rows = dump_rows
@@ -290,6 +303,16 @@ class KillDetector:
         team = self.my_team if self.my_team in ("red", "blue", "green") else "unknown"
         killer_rel = "me" if killer_me else relation(kcol, team)
         victim_rel = "me" if victim_me else relation(vcol, team)
+        # "squad" is a colour guess, and a badge after a name reads as orange (4K log: 16 of 19 rows called
+        # strangers squad). When the squad's in-game names are known, only they are squad: else one of your
+        # kills could be clipped as a team kill
+        squad = [n for n in (self.squad_names() if callable(self.squad_names) else self.squad_names) or [] if n]
+        if squad:
+            vtop = Counter(victims).most_common(1)[0][0]
+            if killer_rel == "squad" and not any(name_matches(top, n) for n in squad):
+                killer_rel = "unknown"
+            if victim_rel == "squad" and not any(name_matches(vtop, n) for n in squad):
+                victim_rel = "unknown"
         dist, conf = vote_distance(sum((r.dists for r in row.reads), []))
         dist = dist or 0
         if not (killer_me or victim_me) and dist:
@@ -297,6 +320,10 @@ class KillDetector:
             g = self.learner.add(Counter(names).most_common(1)[0][0], Counter(victims).most_common(1)[0][0], dist)
             if g:
                 self.name_guess = g
+        if not (killer_me or victim_me):  # after the name learner: it needs your rows while it learns
+            vtop = Counter(victims).most_common(1)[0][0]
+            if not (_name_like(top) and (_name_like(vtop) or crash)):
+                return None                            # scenery read as a row (logs: "wee, et aa a eae em, ...")
         if not (killer_me or victim_me or "squad" in (killer_rel, victim_rel)):
             return None                                # someone else's kill
         # weapon icon: majority of reads; skull / explosion are small and flicker on busy

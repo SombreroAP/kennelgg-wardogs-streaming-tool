@@ -126,7 +126,21 @@ class Runs:
             raise RuntimeError(r.stderr.strip()[-200:] or "no output")
         new_dur = self._duration(out)
         cur = self._find(path) or path   # the plugin may have renamed it while we cut
-        os.replace(out, cur)
+        # Windows will not replace a file another program is reading (the highlights builder, a player):
+        # wait for it a little, and leave the clip as it was rather than a stray .trim file (logs: WinError 5)
+        for attempt in range(6):
+            try:
+                os.replace(out, cur)
+                break
+            except PermissionError:
+                if attempt == 5:
+                    try:
+                        os.remove(out)
+                    except OSError:
+                        pass
+                    raise
+                time.sleep(2)
+                cur = self._find(path) or cur
         side["trimmed"] = True
         side["trimmed_from_s"] = round(dur, 2)
         side["duration_s"] = round(new_dur, 2)

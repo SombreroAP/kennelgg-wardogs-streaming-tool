@@ -450,6 +450,18 @@ QList<Engine::Banner> Engine::banners() const
 			add(b);
 		}
 	}
+	if (clips.lostHotkeyClips() > 0) {
+		Banner b;
+		b.id = QString("lostclips:%1")
+			       .arg(clips.lostHotkeyClips() / 5); // back after dismissing if more are lost
+		b.level = 2;
+		b.text =
+			tx("<b>%1 clips lost</b>: the clip hotkey fired, but no clip file appeared. Start Aitum Backtrack's "
+			   "output (or turn on OBS's replay buffer in Settings, Clips & replays).")
+				.arg(clips.lostHotkeyClips());
+		b.actions = {Fix("settings:clips", tx("Clips & replays"))};
+		add(b);
+	}
 	if (!nameGuess_.isEmpty() && QString::fromStdString(cfg.appPlayerName) != nameGuess_) {
 		Banner b;
 		b.id = "nameguess:" + nameGuess_;

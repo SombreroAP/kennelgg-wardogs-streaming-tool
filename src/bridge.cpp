@@ -14,6 +14,10 @@ Bridge::Bridge(QObject *parent) : QObject(parent)
 
 bool Bridge::listen(quint16 port)
 {
+	// already open on it: nothing to do (closing and opening again at start dropped a ClipHound that had
+	// connected in between)
+	if (server_.isListening() && server_.serverPort() == port)
+		return true;
 	close();
 	if (!server_.listen(QHostAddress::LocalHost, port)) {
 		obs_log(LOG_WARNING, "bridge: cannot listen on 127.0.0.1:%u (%s)", port,

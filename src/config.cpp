@@ -508,6 +508,7 @@ void Config::load()
 	GETD(boxW);
 	GETD(boxH);
 	muteWhileDowned = getStrings(d, "muteWhileDowned");
+	notedHandles = getStrings(d, "notedHandles");
 	onTop = getStrings(d, "onTop");
 	onTopV = getStrings(d, "onTopV");
 	clipHotkeys = getStrings(d, "clipHotkeys");
@@ -907,6 +908,7 @@ void Config::save() const
 	SETD(boxW);
 	SETD(boxH);
 	setStrings(d, "muteWhileDowned", muteWhileDowned);
+	setStrings(d, "notedHandles", notedHandles);
 	setStrings(d, "onTop", onTop);
 	setStrings(d, "onTopV", onTopV);
 	setStrings(d, "clipHotkeys", clipHotkeys);

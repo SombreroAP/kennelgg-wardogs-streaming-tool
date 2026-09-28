@@ -2,6 +2,14 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.31.2
+Fixes from the first logs streamers sent in:
+- **Clips that never saved now say so.** With Aitum Backtrack's output not started, the clip hotkeys went nowhere and the clips were lost without a word (25 in one two-hour stream). The dock now shows how many were lost and what to start. A replay buffer that could not be started is tried again every minute instead of staying off until OBS restarts.
+- **The POV stays on the squad mate you asked for.** A view you put up yourself (Stream Deck, voice, the dock) is no longer taken down by the picture check. "A squad mate is reviving you" no longer fires when you are the one reviving, closing the inventory no longer swaps back within a second, and the closest-squad-mate pick no longer swaps twice in a row on one missed reading.
+- **Session money adds up.** A reward line read a few seconds late no longer counts twice and then shows up as SPENT, zone rewards count as objective money, and each down counts once (one session showed 411 downs against 4 deaths).
+- **A cleaner kill feed.** Scenery read as kill-feed rows no longer fills the dock's events, and a stranger with a coloured badge is no longer taken for a squad mate (which could have clipped your kill as a team kill). NEARBY distances read right at 1440p and 4K.
+- **Smaller fixes:** turning the session stats overlay back on keeps where you put it; highlights and trimming no longer miss clips renamed into a run; highlights work no longer pauses for one dropped frame; a new stats image never overwrites the last one; the "a copy was already running" warning at every start is gone; a leftover audio capture that failed at every start is removed; a silent microphone is written to the log.
+
 ## 0.31.1
 - **Your kills and deaths count even if your in-game name was never set.** ClipHound tells your rows in the kill feed by your name: with none set (or your Discord name instead) it counted none of your kills or deaths and made no kill clips. The kill feed shows a distance only on your own rows, so ClipHound now reads your name off those: an empty name fills itself in, and a different one gets a note on the dock with a one-click fix.
 - **Fixed: a squad mate's view showing your own stream, or the same view under every name.** A slot whose name did not match its pop-out's Discord username (BGB for _bgb_, or a slot renamed after it was added) lost its pop-out after a while and fell back to Discord's main window. A slot now keeps the exact window it is on for as long as that window is open, a window you picked for a slot yourself counts as theirs, and names are matched ignoring punctuation.

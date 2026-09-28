@@ -157,9 +157,19 @@ class Voice:
             secs = self._got / RATE
             rms = (self._sq / max(1, self._got)) ** 0.5
             db = 20 * np.log10(max(rms, 1e-9) / 32768.0)
-            print(f"[voice] mic: {secs:.0f} s received in the last {int(now - self._report_at + 30)} s, level {db:.0f} dBFS"
+            window = now - getattr(self, "_window_start", now - 30)   # 30 s the first time, 120 s after
+            print(f"[voice] mic: {secs:.0f} s received in the last {window:.0f} s, level {db:.0f} dBFS"
                   + ("  (silence - is the right source picked, and is it unmuted in Windows?)" if db < -60 else ""))
+            silent = db < -60
+            if silent != getattr(self, "_said_silent", False):
+                # the plugin's log (and Send logs) had no trace of a mic silent all evening
+                self._said_silent = silent
+                try:
+                    self.b.send({"type": "voice_mic", "silent": silent, "db": round(float(db))})
+                except Exception:
+                    pass
             self._got, self._sq, self._report_at = 0, 0.0, now + 120
+            self._window_start = now
         with self._lock:
             n = len(a)
             end = self._ring_pos + n

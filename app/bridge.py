@@ -118,7 +118,7 @@ class Bridge:
         if self.cfg is None:
             return
         c = self.cfg
-        self.send({"type": "app_config", "values": {
+        self.send({"type": "app_config", "pid": os.getpid(), "values": {
             "app_version": _app_version(),
             "player_name": c["detection"].get("player_name", ""),
             "library": (c.get("obs") or {}).get("library", ""),
@@ -503,7 +503,7 @@ class BridgeOBS:
             tags.insert(0, info["kind"])
         if info.get("distance_m"):
             tags.append(f"{int(info['distance_m'])}m")
-        if self.b.pov_state != "up":
+        if self.b.pov_state in ("downed", "reviving"):   # not an inventory swap or a view put up by hand
             tags.append("downed")
         lib = self.cfg.get("library")
 

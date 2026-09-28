@@ -127,6 +127,7 @@ def main():
     weapons.set_language(cfg["detection"].get("game_lang", ""))
     if bridge is not None:
         bridge.on_hud = reader.on_hud
+        det.squad_names = lambda: bridge.nearby_cfg.get("names") or []   # the plugin's squad, by in-game name
         reader.on_change = lambda name: bridge.send({"type": "holding", "name": name})
         # the kill ticker under the crosshair: reasons for money the corner lines miss (ticker.py)
         import ticker

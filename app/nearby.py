@@ -209,7 +209,11 @@ def read(roi_bgr: np.ndarray, names: list[str], cache: dict | None = None,
     notes = {"rows": 0, "chips": 0, "texts": [], "dists": []}
     if roi_bgr is None or roi_bgr.size == 0 or not names:
         return [], notes
-    up = cv2.resize(roi_bgr, None, fx=SCALE, fy=SCALE, interpolation=cv2.INTER_CUBIC)
+    # SCALE is for 1080p text (~14 px): a 1440p or 4K frame has bigger text already, and tripling it again
+    # read "[LEL]notcal 998m / 771m / 831m" for a squad mate 75 m away (4K log). Scale to the 1080p size
+    import ocr
+    f = SCALE * ocr.REF_FRAME_H / max(360, ocr._frame_h)
+    up = cv2.resize(roi_bgr, None, fx=f, fy=f, interpolation=cv2.INTER_CUBIC if f >= 1 else cv2.INTER_AREA)
     gray = cv2.cvtColor(up, cv2.COLOR_BGR2GRAY)
     mask, spans = _rows_of(gray)
     nameCrops, chipCrops, rowCrops = [], [], []
@@ -335,7 +339,7 @@ class Watcher:
             return
         # Nothing is read while you are alive: the plugin asks (nearby_now) the moment the damage
         # log appears, which starts a burst, and the burst is held while a squad mate is on screen.
-        busy = now < self.b.nearby_burst or self.b.pov_state != "up"
+        busy = now < self.b.nearby_burst or self.b.pov_state in ("downed", "reviving")
         if not force and not busy:
             return
         if not force and now - self.last < float(c.get("interval", 0.4)):

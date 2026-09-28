@@ -156,6 +156,7 @@ void Clips::pollWatches()
 			logEntry(e);
 			emit saved(e);
 			done = true;
+			lostHotkeyClips_ = 0;
 		}
 		for (const QFileInfo &fi : vert) {
 			QDir d = fi.dir();
@@ -172,6 +173,19 @@ void Clips::pollWatches()
 				w.vertPath = target; // its partner has not landed yet: kept for it
 		}
 		if (w.since.secsTo(now) > 90) {
+			if (w.vertPath.isEmpty()) {
+				// nothing came at all: the hotkey went to nobody (Backtrack's output not started, or its folder
+				// is somewhere we do not look). It used to be dropped without a word: 25 clips of a 2 h stream
+				lostHotkeyClips_++;
+				if (!lostSaidAt_.isValid() || lostSaidAt_.secsTo(now) > 600) {
+					lostSaidAt_ = now;
+					emit logged(
+						tx("No clip file appeared for '%1' 90 s after its clip hotkey fired (%2 lost so "
+						   "far). Is Aitum Backtrack running, with its output started?")
+							.arg(w.title.isEmpty() ? tx("(untitled)") : w.title)
+							.arg(lostHotkeyClips_));
+				}
+			}
 			if (!w.vertPath.isEmpty()) {
 				// only a vertical file ever came: better a portrait clip than none
 				Entry e{w.since, w.title, w.tags, w.vertPath, w.momentS, w.firstS, w.kills, w.info};
@@ -621,12 +635,28 @@ void Clips::ensureReplayBuffer()
 	if (obs_frontend_replay_buffer_active())
 		return;
 	obs_frontend_replay_buffer_start();
-	if (obs_frontend_replay_buffer_active())
-		emit logged(tx("Replay buffer started (Kennel needs it for clips)."));
-	else
-		emit logged(tx("REPLAY BUFFER IS OFF and could not be started: enable it in OBS "
-			       "Settings → Output → Replay Buffer (60-120 s), then restart OBS. Until "
-			       "then clips only fire your hotkeys."));
+	// it starts asynchronously: judged a moment later (checked at once it read "off" while starting)
+	QTimer::singleShot(2500, this, [this]() {
+		if (obs_frontend_replay_buffer_active()) {
+			emit logged(replayOff_ ? tx("Replay buffer is running now: clips save again.")
+					       : tx("Replay buffer started (Kennel needs it for clips)."));
+			replayOff_ = false;
+		} else if (!replayOff_) {
+			replayOff_ = true;
+			emit logged(
+				tx("REPLAY BUFFER IS OFF and could not be started: enable it in OBS "
+				   "Settings → Output → Replay Buffer (60-120 s). The plugin tries again every minute; "
+				   "until it runs, clips only fire your hotkeys."));
+		}
+	});
+}
+
+void Clips::retryReplayBuffer()
+{
+	// only after our own start failed: a buffer you stopped yourself stays stopped. A log that sat 12 hours
+	// with it off (the setting fixed at once, but no restart of OBS) made no clip all evening
+	if (replayOff_ && autoStartReplay && useReplay && !obs_frontend_replay_buffer_active())
+		ensureReplayBuffer();
 }
 
 QList<QPair<QString, QString>> Clips::allHotkeys()

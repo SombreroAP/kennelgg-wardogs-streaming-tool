@@ -71,6 +71,11 @@ public:
 	/// read for the labelling window, newest first, up to `max`.
 	std::vector<Entry> allClips(int max = 300) const;
 	QString lastPath() const { return history_.empty() ? QString() : history_.back().path; }
+	/// Clip hotkeys fired since the last file that landed, with no file after 90 s (Backtrack not running):
+	/// the dock says so. 0 once a hotkey clip lands again.
+	int lostHotkeyClips() const { return lostHotkeyClips_; }
+	/// Try the replay buffer again when our own start of it failed (Engine calls it every minute).
+	void retryReplayBuffer();
 
 signals:
 	void saved(const Entry &e);
@@ -101,6 +106,9 @@ private:
 		QString vertPath; // a vertical Backtrack file found before its horizontal partner
 	};
 	std::deque<Watch> watches_;
+	int lostHotkeyClips_ = 0;
+	bool replayOff_ = false; // our start of the replay buffer failed: retried every minute
+	QDateTime lostSaidAt_;
 	/// Give a vertical Backtrack file to the entry it belongs with (the newest within 30 s of `when`).
 	bool attachVertical(const QDateTime &when, const QString &path);
 	QTimer watchTimer_;

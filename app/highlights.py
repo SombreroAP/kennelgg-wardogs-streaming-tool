@@ -126,6 +126,7 @@ class Highlights:
         self.queue: list[dict] = []    # clips waiting for a segment
         self.paused_until = 0.0        # OBS was dropping frames: hold off until then
         self._lagged = None
+        self._total = None
         self._lock = threading.Lock()
         self._busy = False
         self._building = False
@@ -143,10 +144,17 @@ class Highlights:
         """{lagged, total, dropped}: counters since OBS started. A rise in lagged or dropped frames
         since the last report means OBS is short of GPU or network right now: back off."""
         lagged = int(o.get("lagged", 0)) + int(o.get("dropped", 0))
+        total = int(o.get("total", 0))
         if self._lagged is not None and lagged > self._lagged:
-            self.paused_until = time.time() + 30.0
-            print(f"[highlights] OBS dropped {lagged - self._lagged} frame(s): segment work paused 30 s")
+            # a frame or two now and then is normal (184 of 377k in one evening): that paused the work 166
+            # times. Back off only when OBS is really short: several frames, or more than 1 % of them
+            rise = lagged - self._lagged
+            frames = max(1, total - (self._total or 0))
+            if rise >= 10 or rise / frames > 0.01:
+                self.paused_until = time.time() + 30.0
+                print(f"[highlights] OBS dropped {rise} of {frames} frame(s): segment work paused 30 s")
         self._lagged = lagged
+        self._total = total
 
     def on_build(self, o: dict):
         """{clips:[{path,title,tags,when}], out, player, max}: build the compilation now."""
@@ -231,6 +239,11 @@ class Highlights:
         """The action cut out of the file. vertical: the portrait twin of a clip, sized 9:16, its window
         taken from the landscape clip's sidecar (side_of)."""
         w, h = (H, W) if vertical else (W, H)
+        # the plugin renames a clip into a run ("name [2 of 3].mp4") after it was saved: the old path is gone
+        from runs import Runs
+        path = Runs._find(path) or path
+        if side_of:
+            side_of = Runs._find(side_of) or side_of
         start, length = self._window(path, side_of)
         out = self._seg_path(path, start, length, w, h)
         if os.path.exists(out) and os.path.getsize(out) > 0:

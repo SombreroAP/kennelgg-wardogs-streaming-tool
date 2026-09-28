@@ -70,6 +70,10 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&dualTimer_, &QTimer::timeout, this, &Engine::dualTick);
 	connect(&healthTimer_, &QTimer::timeout, this, &Engine::sendObsHealth);
 	connect(&healthTimer_, &QTimer::timeout, this, &Engine::vehicleDualCheck);
+	connect(&healthTimer_, &QTimer::timeout, this, [this]() {
+		if (++replayRetryTick_ % 12 == 0) // the health timer runs every 5 s: once a minute
+			clips.retryReplayBuffer();
+	});
 	sessionStart_ = QDateTime::currentDateTime();
 	connect(&roster, &Roster::changed, this, &Engine::checkAccess);
 	connect(&roster, &Roster::polled, this, &Engine::checkAccess);
@@ -101,16 +105,13 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&bridge, &Bridge::message, this, &Engine::onBridgeMessage);
 	connect(&bridge, &Bridge::clientConnected, this, [this]() {
 		appStatus_ = tx("connected");
-		if (appLaunchedAt_.isValid() && appLaunchedAt_.msecsTo(QDateTime::currentDateTime()) < 1200)
-			log(tx("Companion app connected - too soon to be the ClipHound just started: a copy was already "
-			       "running. If voice or clips misbehave, close every ClipHound.exe in Task Manager and press "
-			       "Start ClipHound on the dock."));
-		else
-			log(tx("Companion app connected."));
+		// whether it is the copy we started is told by its process id (app_config "pid"): the time it took to
+		// connect said "a copy was already running" at every start, because a fresh one connects in under 1.2 s
+		log(tx("Companion app connected."));
 		QJsonObject o;
 		o["type"] = "config";
 		o["gameSource"] = QString::fromStdString(cfg.gameSource);
-		o["povState"] = applied_ ? "downed" : "up";
+		o["povState"] = povStateName();
 		bridge.sendJson(o);
 		// the microphone a moment later, once the app has its footing
 		QTimer::singleShot(1500, this, [this]() {
@@ -736,7 +737,11 @@ void Engine::start()
 			log(tx("Squad mates watching the Discord call now share one capture (%1 moved over).")
 				    .arg(folded));
 	}
-	if (!cfg.discordAudio1) {
+	if (cfg.discordAudio1) {
+		int n = sw.removeDiscordAudio(cfg); // leftovers of slots removed since: gone quietly
+		if (n)
+			log(tx("Removed %1 old audio capture(s) the plugin no longer uses.").arg(n));
+	} else {
 		int n = sw.removeDiscordAudio(cfg);
 		cfg.discordAudio1 = true;
 		cfg.save();
@@ -750,12 +755,21 @@ void Engine::start()
 					      .arg(n)));
 	}
 	armPopoutWatch();
+	// once per slot and Discord user, not at every start: a Discord name that differs from the in-game name is
+	// normal (logs: the same three notes in 10 of 10 sessions)
 	for (const auto &f : cfg.friends)
 		if (f.kind == FriendKind::Discord && !f.handle.empty() &&
-		    QString::fromStdString(f.handle).compare(QString::fromStdString(f.name), Qt::CaseInsensitive) != 0)
+		    QString::fromStdString(f.handle).compare(QString::fromStdString(f.name), Qt::CaseInsensitive) !=
+			    0) {
+			std::string key = f.name + "|" + f.handle;
+			if (std::find(cfg.notedHandles.begin(), cfg.notedHandles.end(), key) != cfg.notedHandles.end())
+				continue;
+			cfg.notedHandles.push_back(key);
+			cfg.save();
 			log(tx("Squad: the slot named %1 is set to %2's stream. If that is not who it should show, remove "
 			       "it and add them again with Add.")
 				    .arg(QString::fromStdString(f.name), QString::fromStdString(f.handle)));
+		}
 #ifdef _WIN32
 	// Two copies of this plugin both load, and the second one gets no bridge port: ClipHound then
 	// connects to the wrong one and everything looks like it is "starting" for ever.
@@ -2285,6 +2299,15 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		if (!err.isEmpty())
 			log(tx("Chat replay from %1 not played: %2.").arg(who, err));
 	} else if (type == "app_config" && o.contains("values")) {
+		qint64 pid = (qint64)o.value("pid").toDouble();
+		if (pid > 0 && appPid_ > 0 && pid != appPid_ && appRunning() && pid != otherAppPid_) {
+			otherAppPid_ = pid;
+			log(tx("Another ClipHound (pid %1) is connected besides the one the plugin started (pid %2). If "
+			       "voice or clips misbehave, close every ClipHound.exe in Task Manager and press Start "
+			       "ClipHound on the dock.")
+				    .arg(pid)
+				    .arg(appPid_));
+		}
 		QJsonObject v = o.value("values").toObject();
 		QString av = v.value("app_version").toString();
 		if (av != appVersion_) {
@@ -2440,6 +2463,14 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		// the app's voice module is up: the settings sent at connect may have come too early
 		if (cfg.voiceEnabled)
 			applyVoice();
+	} else if (type == "voice_mic") {
+		// ClipHound hears the microphone the plugin sends it: silent for two minutes, or back
+		if (o.value("silent").toBool())
+			log(tx("Voice: the microphone has been silent for the last two minutes (%1 dBFS). Is the right "
+			       "source picked in Settings, Voice, and is it unmuted in Windows?")
+				    .arg(o.value("db").toInt()));
+		else
+			log(tx("Voice: the microphone is heard again."));
 	} else if (type == "voice_status") {
 		QString s = o.value("text").toString();
 		if (s != voiceStatus_) {
@@ -2541,6 +2572,7 @@ void Engine::broadcastState()
 void Engine::resetSession(const QString &why)
 {
 	session_.reset();
+	booked_.clear();
 	cashStab_ = tourney::Stabilizer();
 	tallied_.clear();
 	dropPending_ = false;
@@ -2679,13 +2711,39 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 			// both carry amounts, so both count.
 			QString reason = QString::fromStdString(e.txt).toUpper().simplified();
 			if (e.hasAmt && e.amt > 0) {
-				lineLog_.push_back({QDateTime::currentMSecsSinceEpoch(), e.amt});
+				qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+				lineLog_.push_back({nowMs, e.amt});
 				while (lineLog_.size() > 200)
 					lineLog_.pop_front();
-				session_.earned += e.amt;
+				// a line read after the wallet match already booked its money (as REWARD/KILL): it names that
+				// money, it is not more of it. Counted again, the next match took it back as SPENT (logs: +$720
+				// then -$720 five seconds later, Earned and Spent both inflated)
+				int64_t fresh = e.amt;
+				while (fresh > 0 && !booked_.isEmpty()) {
+					Booked &b = booked_.first();
+					if (nowMs - b.t > 60000) {
+						booked_.removeFirst();
+						continue;
+					}
+					int64_t take = std::min(fresh, b.amt);
+					session_.roleEarned[b.role] -= take; // moved to the role the line names
+					session_.roleEarned[Session::role(reason)] += take;
+					if (reason.contains("ZONE"))
+						session_.zoneEarned += take;
+					b.amt -= take;
+					fresh -= take;
+					if (b.amt <= 0)
+						booked_.removeFirst();
+				}
+				if (fresh <= 0) {
+					changed = true;
+					continue; // all of it was already counted
+				}
+				const int64_t amt = fresh;
+				session_.earned += amt;
 				if (reason.contains("ZONE"))
-					session_.zoneEarned += e.amt;
-				session_.roleEarned[Session::role(reason)] += e.amt;
+					session_.zoneEarned += amt;
+				session_.roleEarned[Session::role(reason)] += amt;
 				// what it was for, in the words the bar has room for: a code from the reason's words
 				// (KILL, REVIVE, HEAL, SPOT, SUPPLY...), translated on the page. A game in another language,
 				// or letters that could not settle, is just REWARD - never letter salad on stream
@@ -2694,9 +2752,9 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 					// a reward line the plugin has no role for: in the log, so its wording can be added
 					unknownReasons_.insert(reason);
 					blog(LOG_INFO, "[kennelgg] reward line not recognised: \"%s\" +$%lld",
-					     reason.toUtf8().constData(), (long long)e.amt);
+					     reason.toUtf8().constData(), (long long)amt);
 				}
-				session_.noteMoney(e.amt, why);
+				session_.noteMoney(amt, why);
 				changed = true;
 			}
 			if (reason.isEmpty())
@@ -2816,10 +2874,12 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				if (asKill > 0) {
 					session_.noteMoney(asKill, "KILL");
 					session_.roleEarned[Session::Combat] += asKill;
+					booked_.append({now, asKill, Session::Combat});
 				}
 				if (left > 0) {
 					session_.noteMoney(left, "REWARD");
 					session_.roleEarned[Session::Other] += left;
+					booked_.append({now, left, Session::Other});
 				}
 				if (asKill > 0)
 					log(tx("Session balance: %1 of it the kill ticker shows as kill money.")
@@ -3192,21 +3252,27 @@ QString Engine::addSessionOverlay()
 		return tx("could not create a browser source (is the Browser Source available in this OBS?)");
 	}
 	obs_sceneitem_t *item = obs_scene_find_source(scene, name);
+	bool added = !item;
 	if (!item)
 		item = obs_scene_add(scene, src);
 	if (item) {
-		struct vec2 pos = {0, 0}, bounds = {(float)ovi.base_width, (float)ovi.base_height};
-		obs_sceneitem_set_pos(item, &pos);
-		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
-		obs_sceneitem_set_bounds(item, &bounds);
+		// placed only when it is first added: turning it back on used to undo where you had moved and sized
+		// it (27 Sep log: on again 8 times, 5-7 s apart)
+		if (added) {
+			struct vec2 pos = {0, 0}, bounds = {(float)ovi.base_width, (float)ovi.base_height};
+			obs_sceneitem_set_pos(item, &pos);
+			obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
+			obs_sceneitem_set_bounds(item, &bounds);
+		}
 		obs_sceneitem_set_visible(item, true);
 	}
 	cfg.sessionOverlayOn = true;
 	cfg.save();
 	obs_source_release(src);
 	obs_source_release(ss);
-	log(tx("Session stats: the overlay is in your scene (%1); move and size it like any source.")
-		    .arg(QString(name)));
+	if (added)
+		log(tx("Session stats: the overlay is in your scene (%1); move and size it like any source.")
+			    .arg(QString(name)));
 	QTimer::singleShot(1500, this, [this]() { broadcastState(); });
 	return "";
 }
@@ -4061,7 +4127,13 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 			     .arg((int)std::lround(density * 100))
 			     .arg((int)std::lround(Picture::kMinArea * 100))
 			     .arg((int)std::lround(Picture::kMinDensity * 100)));
-	if (onScreen) {
+	if (onScreen && manualShow_) {
+		// you put them up yourself: a dark scene or Discord's window around the stream can fail the check
+		// (26 Sep log: shows from the Stream Deck taken down, pressed again 7 s later). Yours to take down
+		log(tx("Picture check: %1's feed does not look like a game picture, but you put it up yourself, so it "
+		       "stays.")
+			    .arg(QString::fromStdString(act->name)));
+	} else if (onScreen) {
 		// somebody else whose picture comes from another capture: live first, then unknown. The
 		// roster may still call this one live, so anyLiveFriend() could hand them straight back
 		int alt = -1;
@@ -4157,6 +4229,7 @@ void Engine::askNearbyNow()
 	QJsonObject o;
 	o["type"] = "nearby_now";
 	bridge.sendJson(o);
+	nearbyAskedAt_ = clock_::now();
 }
 
 /// Make the squad mate the game says is nearest the active one. Cheap and safe to call often.
@@ -4169,7 +4242,10 @@ void Engine::pickClosest(const QString &why, bool decisive)
 	int idx = closestFriend(&d, &problem);
 	if (idx < 0) {
 		// nobody near you has a picture: any live squad mate beats staying on one who does not
-		if (cfg.active() && feedState(*cfg.active()) != Feed::Live) {
+		// on screen, this waits like any swap: one missed NEARBY read swapped twice in 300 ms (logs)
+		bool calm = !applied_ ||
+			    clock_::now() - lastPick_ >= std::chrono::seconds(std::clamp(cfg.nearCooldownS, 3, 30));
+		if (calm && cfg.active() && feedState(*cfg.active()) != Feed::Live) {
 			int alt = anyLiveFriend();
 			if (alt >= 0 && alt != cfg.activeFriend && feedState(cfg.friends[alt]) == Feed::Live) {
 				log((problem.isEmpty()
@@ -4183,7 +4259,10 @@ void Engine::pickClosest(const QString &why, bool decisive)
 				return;
 			}
 		}
-		if (clock_::now() - lastNearbyWarn_ > std::chrono::seconds(60)) {
+		// a reading asked for a moment ago is still on its way: not "no reading yet" (20 of 91 of those came
+		// within 10 ms of asking)
+		bool asking = !nearbyFresh() && clock_::now() - nearbyAskedAt_ < std::chrono::seconds(3);
+		if (!asking && clock_::now() - lastNearbyWarn_ > std::chrono::seconds(60)) {
 			lastNearbyWarn_ = clock_::now();
 			if (!problem.isEmpty())
 				log(tx("Closest squad mate: %1.").arg(problem));
@@ -4212,6 +4291,8 @@ void Engine::pickClosest(const QString &why, bool decisive)
 		int cur = nearbyDistanceOf(cfg.activeFriend);
 		if (cur >= 0 && cfg.nearMaxM > 0 && d > cfg.nearMaxM)
 			return; // too far to be the one coming for you: stay on who is on screen
+		if (cur >= 0 && d > cur - std::max(0, cfg.nearMarginM))
+			return; // not enough closer than who is on screen to be worth a swap (the margin, in metres)
 		auto left = std::chrono::seconds(std::clamp(cfg.nearCooldownS, 3, 30)) - (clock_::now() - lastPick_);
 		if (left.count() > 0) {
 			if (clock_::now() - lastNearbyWarn_ > std::chrono::seconds(5)) {
@@ -4371,6 +4452,20 @@ void Engine::webLiveTick()
 		else
 			it = webLive_.erase(it);
 	}
+}
+
+/// What is on screen, for ClipHound: "up" (your POV), "downed", "inventory" (magazine packing) or "shown"
+/// (put up by hand). Only "downed" (and "reviving") makes it read NEARBY and tag clips "downed": an inventory
+/// swap sent "downed" and it read NEARBY through the inventory screen (logs: 26 of 35 "no reading" lines)
+QString Engine::povStateName() const
+{
+	if (!applied_)
+		return "up";
+	if (inventoryShow_)
+		return "inventory";
+	if (manualShow_ && !detected_)
+		return "shown";
+	return "downed";
 }
 
 void Engine::sendPov(const QString &state)
@@ -4593,7 +4688,10 @@ void Engine::onResult(Result r)
 	}
 	lastGame_ = r.game;
 	lastRevive_ = r.revive;
-	if (r.revive.score >= cfg.reviveThreshold) {
+	// "REVIVING" is on screen when you revive someone too: it only means you are being revived while you are
+	// down (26 Sep log: 93 of 114 "reviving you" came with nobody down, and left ClipHound tagging every clip
+	// "downed" and reading NEARBY non-stop)
+	if (r.revive.score >= cfg.reviveThreshold && detected_) {
 		bool was = revivingRecent();
 		lastReviveSeen_ = clock_::now();
 		reviveProgress_ = r.progress;
@@ -4683,7 +4781,12 @@ void Engine::detect(const Match &m)
 	int minDown = fast ? 0 : cfg.minDownMs;
 	if (!detected_ && downRun_ >= cfg.downFrames) {
 		detected_ = true;
-		session_.downs++;
+		// one down, however often the detection drops and comes back during it (a revive ring, the killcam
+		// moving behind the log): uploaded sessions had 411 downs against 4 deaths, one every 2.7 s in another
+		bool newDown = downEndedAt_.time_since_epoch().count() == 0 ||
+			       clock_::now() - downEndedAt_ > std::chrono::seconds(20);
+		if (newDown)
+			session_.downs++;
 		peakScore_ = m.score;
 		downX_ = m.x;
 		downY_ = m.y;
@@ -4693,9 +4796,9 @@ void Engine::detect(const Match &m)
 		// the clip is of you going down: it does not wait for (or need) a squad mate to swap to. It used to be
 		// made inside the swap, so with no squad mate added, or a revive inside the delay, there was none
 		// (27 Sep 2026 report)
-		if (cfg.clipOnDowned && !applied_)
-			clips.request("downed", {"downed"}, "pov");
-		askNearbyNow(); // fresh NEARBY reading while the delay runs
+		if (cfg.clipOnDowned && newDown) // a flicker inside one down is not a second clip (it would also
+			clips.request("downed", {"downed"}, "pov"); // eat the clip gap a kill clip needs)
+		askNearbyNow();                                     // fresh NEARBY reading while the delay runs
 		pickClosest(TX_NOOP("downed"), true);
 		// whoever is about to be shown must have a picture: a squad mate the roster has in voice
 		// but not streaming shows nothing, so a live one takes their place, or you stay on your own
@@ -4728,7 +4831,9 @@ void Engine::detect(const Match &m)
 		}
 	} else if (detected_ && upRun_ >= needUp && clock_::now() - downSince_ >= std::chrono::milliseconds(minDown)) {
 		detected_ = false;
+		downEndedAt_ = clock_::now();
 		detGame_.holdThreshold = 0;
+		bool delayRunning = downDelay_.isActive();
 		downDelay_.stop();
 		if (povPending_ && povTarget_ && !applied_)
 			povTarget_ = false; // revived while SWITCHING POV was on its way: it plays, nothing swaps
@@ -4746,8 +4851,11 @@ void Engine::detect(const Match &m)
 						     : tx("damage log gone (%1)").arg(m.score, 0, 'f', 3));
 			else
 				upDelay_.start(wait);
-		} else
-			log(tx("Damage log gone before the delay ended - no switch."));
+		} else {
+			sendPov("up");    // ClipHound heard "reviving" or "downed" hints for this down: it is over
+			if (delayRunning) // not after a manual back to your POV during a long down (26 Sep log)
+				log(tx("Damage log gone before the delay ended - no switch."));
+		}
 	}
 }
 
@@ -4755,6 +4863,16 @@ void Engine::detect(const Match &m)
 
 void Engine::applyNow(bool on, const QString &why)
 {
+	// who asked: a view put up by hand (Stream Deck, voice, the dock) is not taken down by the picture check
+	if (!on)
+		manualShow_ = false;
+	else if (why.startsWith("controller") || why.startsWith("voice") || why == "button" ||
+		 why.startsWith("setup test"))
+		manualShow_ = true;
+	else if (why.startsWith("downed") || why.startsWith("inventory") || why.startsWith("companion"))
+		manualShow_ = false;
+	if (on)
+		inventoryShow_ = why.startsWith("inventory");
 	// cut straight away: no stinger wanted, or not a swap anyone should watch
 	bool instant = !cfg.povStinger || stopping_ || !cfg.active() || why == "paused" ||
 		       why.startsWith("squad mate removed") || why.startsWith("setup test");
@@ -4866,7 +4984,7 @@ void Engine::applySwitch(bool on, const QString &why)
 		if (!on)
 			dualAnimate(1, cfg.povStinger ? 500 : 0); // as SWITCHING POV uncovers
 	}
-	sendPov(on ? "downed" : "up");
+	sendPov(povStateName());
 	// the events list names why: downed, the inventory, a voice or Stream Deck command, a button
 	{
 		QString w = why.toLower();
@@ -5475,7 +5593,7 @@ void Engine::showInDual(int idx, const QString &why)
 	setDual(true, why);
 }
 
-void Engine::setDual(bool on, const QString &why)
+void Engine::setDual(bool on, const QString &why, bool byDetector)
 {
 	if (on && !cfg.dual()) {
 		// nobody picked for the small window yet: the first squad mate, which is what the Dual POV
@@ -5490,7 +5608,7 @@ void Engine::setDual(bool on, const QString &why)
 	}
 	// turned on by hand it stays on; only a window the vehicle detector opened is its to close
 	if (on)
-		dualAutoOn_ = false;
+		dualAutoOn_ = byDetector; // set before the log line below, which says whether it is forced
 	bool show = on && !applied_;
 	if (!on && dualOn_ && !applied_) {
 		// shrinks away first; the window is taken down when it has gone
@@ -5532,9 +5650,18 @@ void Engine::onInventory(bool open)
 		// a screen that comes and goes (a menu the reader half-recognises) must not flip the stream
 		// back and forth: after one swap back, the inventory is not swapped for again for 15 s
 		invQuietUntil_ = now + 15000;
-		// back to your own POV, unless you went down meanwhile: then the downed swap owns it
-		if (applied_ && !detected_)
-			applyNow(false, TX_NOOP("inventory closed"));
+		// back to your own POV, unless you went down meanwhile: then the downed swap owns it. Not before the
+		// POV has been up a moment: a peek at the inventory made 0.7 s swaps, each with a stinger
+		if (applied_ && !detected_) {
+			qint64 shown = std::chrono::duration_cast<std::chrono::milliseconds>(clock_::now() - downSince_)
+					       .count();
+			int hold = std::min(cfg.povMinS, 2) * 1000; // your inventory, not a down: 2 s at most
+			int wait = (int)std::max<qint64>(0, hold - shown);
+			QTimer::singleShot(wait, this, [this]() {
+				if (applied_ && !detected_ && !invApplied_ && inventoryShow_)
+					applyNow(false, TX_NOOP("inventory closed"));
+			});
+		}
 		return;
 	}
 	if (!cfg.invSwitch || !cfg.enabled || applied_ || detected_ || !cfg.active() || now < invQuietUntil_)
@@ -5614,8 +5741,8 @@ void Engine::vehicleDualCheck()
 			return;
 		}
 		vehicleNotLiveLogged_ = false;
-		setDual(true, tx("in a vehicle: %1").arg(vehicleSeat_));
-		dualAutoOn_ = dualOn_; // after the call: setDual clears it, and this one was the detector's
+		setDual(true, tx("in a vehicle: %1").arg(vehicleSeat_), true);
+		dualAutoOn_ = dualOn_; // the detector's, if it opened
 	} else if (dualAutoOn_ && st == Feed::Off) {
 		dualAutoOn_ = false;
 		setDual(false, tx("%1 is not live any more").arg(who));

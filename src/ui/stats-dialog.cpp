@@ -6,6 +6,7 @@
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QPixmap>
@@ -111,7 +112,12 @@ QString StatsDialog::savePath(Engine *e)
 			dir = QFileInfo(it->path).absolutePath();
 	if (dir.isEmpty())
 		dir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-	return dir + "/Session stats " + e->session().start.toString("yyyy-MM-dd HH-mm") + ".png";
+	// a new file for each save (the same name was written over three times in one log)
+	QString base = dir + "/Session stats " + e->session().start.toString("yyyy-MM-dd HH-mm");
+	QString p = base + ".png";
+	for (int n = 2; QFile::exists(p); ++n)
+		p = base + QString(" (%1).png").arg(n);
+	return p;
 }
 
 QString StatsDialog::save()

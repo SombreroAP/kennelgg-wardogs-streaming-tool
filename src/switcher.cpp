@@ -321,6 +321,21 @@ int Switcher::removeDiscordAudio(Config &cfg)
 				names.push_back(f.audioSource);
 			f.audioSource.clear();
 		}
+	// and any audio capture of ours the config no longer names (a slot removed since): "Kennel.gg · x audio"
+	// failed to start at every OBS start in 7 of 10 sessions
+	obs_enum_sources(
+		[](void *data, obs_source_t *s) {
+			auto *list = (std::vector<std::string> *)data;
+			const char *n = obs_source_get_name(s), *id = obs_source_get_unversioned_id(s);
+			std::string name = n ? n : "";
+			bool ours = name.rfind("Kennel.gg \xC2\xB7 ", 0) == 0 || name.rfind("Kennel \xC2\xB7 ", 0) == 0;
+			bool audio = id && std::string(id).rfind("wasapi_", 0) == 0;
+			if (ours && audio && name.size() > 6 && name.compare(name.size() - 6, 6, " audio") == 0 &&
+			    std::find(list->begin(), list->end(), name) == list->end())
+				list->push_back(name);
+			return true;
+		},
+		&names);
 	int gone = 0;
 	for (const auto &name : names) {
 		obs_source_t *src = obs_get_source_by_name(name.c_str());

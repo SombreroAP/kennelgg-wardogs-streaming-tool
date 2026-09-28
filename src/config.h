@@ -59,6 +59,7 @@ struct Config {
 	std::vector<Friend> friends;
 	int activeFriend = 0;
 	std::vector<std::string> muteWhileDowned;
+	std::vector<std::string> notedHandles; // "slot|handle" pairs already pointed out once at start
 	/// Sources that stay above everything the plugin adds: the streamer's camera, their alerts.
 	/// First in the list is the topmost.
 	std::vector<std::string> onTop;
