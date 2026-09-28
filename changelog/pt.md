@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.33.4
+- **Corrigido: Escanear um VOD dizia "tesseract is not installed".** As partes do escaneamento rodam como processos próprios e não sabiam onde fica o Tesseract do ClipHound; agora sabem, tanto para gravações quanto para links da Twitch. Valeu, Adventure Bear.
+
 ## 0.33.3
 - **Corrigido: um nome longo cortado na imagem das estatísticas.** O nome, cada número e cada rótulo agora diminuem para caber, então nada sai da borda nem invade a coluna ao lado.
 - **A imagem das estatísticas mostra a função que você jogou.** O card de um médico começa com revives, curas e dinheiro de médico, o de um motorista com passageiros, o de um reconhecimento com avistamentos, e assim por diante, com a função ao lado da data. O fundo é a imagem do kit de imprensa que combina com a função (o arrasto de um ferido para médicos, o lançamento de suprimentos para logística, o sniper de ghillie para reconhecimento); Outro fundo passa primeiro pelas imagens da função.

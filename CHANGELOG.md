@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.33.4
+- **Fixed: Scan a VOD said "tesseract is not installed".** The parts of the scan run as their own processes and did not know where ClipHound's own Tesseract is; they do now, for recordings and Twitch links alike. Thanks Adventure Bear.
+
 ## 0.33.3
 - **Fixed: a long name cut off on the stats image.** The name, every number and every label now shrink to fit, so nothing runs off the edge or into the next column.
 - **The stats image shows the role you played.** A medic's card leads with revives, heals and medic money, a driver's with passengers, a recon's with spots, and so on, with the role beside the date. The background is the press-kit shot that fits the role (the revive drag for medics, the supply drop for logistics, the ghillie sniper for recon); Another background goes through the role's shots first.

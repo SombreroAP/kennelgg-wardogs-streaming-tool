@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.33.4
+- **Düzeltildi: VOD tara "tesseract is not installed" diyordu.** Taramanın parçaları kendi süreçleri olarak çalışıyor ve ClipHound'un kendi Tesseract'ının nerede olduğunu bilmiyordu; artık biliyor, hem kayıtlar hem Twitch bağlantıları için. Teşekkürler Adventure Bear.
+
 ## 0.33.3
 - **Düzeltildi: istatistik görselinde uzun bir ad kesiliyordu.** Ad, her sayı ve her etiket artık sığacak kadar küçülüyor; hiçbir şey kenardan taşmıyor ya da yandaki sütuna girmiyor.
 - **İstatistik görseli oynadığın rolü gösteriyor.** Bir sıhhiyecinin kartı diriltmeler, iyileştirmeler ve sıhhiye parasıyla, bir sürücününki yolcularla, bir keşifçininki işaretlemelerle başlıyor; rol de tarihin yanında yazıyor. Arka plan role uyan basın kiti görseli (sıhhiyeciler için yaralı sürükleme, lojistik için ikmal atışı, keşif için ghillie keskin nişancı); Başka arka plan önce rolün görsellerini dolaşıyor.

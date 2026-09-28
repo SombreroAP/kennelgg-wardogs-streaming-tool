@@ -225,7 +225,21 @@ def _scan_slice(job: dict, progress, cancel):
     return out
 
 
+def _use_bundled_tesseract():
+    """A slice is its own process: it never ran main.py's setup, so it looked for Tesseract on PATH and did not
+    find it (LOG-8AD5). The installer puts it next to ClipHound.exe."""
+    import sys
+    if not getattr(sys, "frozen", False):
+        return
+    tess = os.path.join(os.path.dirname(sys.executable), "tesseract", "tesseract.exe")
+    if os.path.exists(tess):
+        os.environ.setdefault("TESSDATA_PREFIX", os.path.join(os.path.dirname(tess), "tessdata"))
+        import pytesseract
+        pytesseract.pytesseract.tesseract_cmd = tess
+
+
 def _slice_entry(job, progress, cancel, results):
+    _use_bundled_tesseract()
     try:
         results.put((job["idx"], _scan_slice(job, progress, cancel), None))
     except Exception as e:

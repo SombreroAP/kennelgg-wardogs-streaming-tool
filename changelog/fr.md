@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.33.4
+- **Corrigé : Scanner une VOD disait « tesseract is not installed ».** Les parties du scan tournent dans leurs propres processus et ne savaient pas où se trouve le Tesseract de ClipHound ; c'est réglé, pour les enregistrements comme pour les liens Twitch. Merci Adventure Bear.
+
 ## 0.33.3
 - **Corrigé : un nom long coupé sur l'image des stats.** Le nom, chaque nombre et chaque libellé rétrécissent maintenant pour tenir, pour que rien ne déborde ni n'empiète sur la colonne suivante.
 - **L'image des stats montre le rôle que tu as joué.** La carte d'un médic commence par les réanimations, les soins et l'argent de médic, celle d'un pilote par les passagers, celle d'un éclaireur par les repérages, et ainsi de suite, avec le rôle à côté de la date. Le fond est l'image du kit presse qui colle au rôle (le blessé traîné à l'abri pour les médics, le largage de ravitaillement pour la logistique, le sniper en ghillie pour la recon) ; Autre fond passe d'abord par les images du rôle.
