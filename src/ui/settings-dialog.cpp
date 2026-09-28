@@ -3,6 +3,7 @@
 #include "ui/quick-add.h"
 #include "voice-phrases.h"
 #include "i18n.h"
+#include "ui/send-logs.h"
 #include "ui/kmsg.h"
 #include <QTextBrowser>
 #include <QButtonGroup>
@@ -3173,6 +3174,19 @@ QWidget *SettingsDialog::buildAboutTab()
 		hv->addWidget(lbl, 1);
 		hv->addWidget(watch);
 		v->addWidget(gv);
+	}
+	{
+		auto *gs = new QGroupBox(tx("Something not right? Send us your logs"), w);
+		auto *hs = new QHBoxLayout(gs);
+		auto *lbl =
+			muted(tx("One click sends the plugin's, OBS's and ClipHound's logs to Kennel.gg, with a note "
+				 "if you like. You get a reference to mention in #obs-streaming-tool-chat."),
+			      gs);
+		auto *send = new QPushButton(tx("Send logs to Kennel.gg..."), gs);
+		connect(send, &QPushButton::clicked, this, [this]() { SendLogs::open(e_, this); });
+		hs->addWidget(lbl, 1);
+		hs->addWidget(send);
+		v->addWidget(gs);
 	}
 	auto *ver = new QGroupBox(tx("This build"), w);
 	auto *vf = new QFormLayout(ver);

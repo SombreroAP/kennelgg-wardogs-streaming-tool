@@ -63,6 +63,7 @@ target_sources(
     src/http.cpp
     src/voice.cpp
     src/ui/dock.cpp
+    src/ui/send-logs.cpp
     src/ui/clips-dialog.cpp
     src/ui/squad.cpp
     src/ui/quick-add.cpp
