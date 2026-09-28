@@ -377,8 +377,10 @@ QWizardPage *SetupWizard::pageClips()
 	tr->addWidget(clipResult_, 1);
 	f->addRow(tr);
 	connect(clipTest_, &QPushButton::clicked, this, [this]() {
-		if (replaySecs_->value() != e_->cfg.replaySeconds)
+		if (replaySecs_->value() != e_->cfg.replaySeconds) {
 			e_->setReplaySecondsByUser(replaySecs_->value());
+			e_->applyReplaySecondsNow(); // the test clip is about to be saved: not after the settle time
+		}
 		if (!obs_frontend_replay_buffer_active()) {
 			obs_frontend_replay_buffer_start();
 			clipResult_->setText(tx("Starting OBS's replay buffer... press again in five seconds."));

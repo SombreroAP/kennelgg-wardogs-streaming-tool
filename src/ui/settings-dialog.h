@@ -1,6 +1,7 @@
 #pragma once
 #include <QMap>
 #include <QDialog>
+#include <QTimer>
 #include <QLabel>
 #include <QComboBox>
 #include <QCheckBox>
@@ -67,6 +68,10 @@ public:
 
 private:
 	Engine *e_;
+	// the live apply (sources, ClipHound, the Stream Deck): once a held spin box or a dragged slider settles,
+	// not at every step (27 Sep 2026 log: 43 full applies in 30 s from one drag)
+	QTimer *applyTimer_ = nullptr;
+	void applyPending();
 	// switch
 	QComboBox *scene_ = nullptr, *game_ = nullptr, *gameDetect_ = nullptr;
 	QTableWidget *friends_;

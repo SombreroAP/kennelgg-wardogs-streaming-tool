@@ -121,6 +121,9 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	});
 	stateTimer_.setSingleShot(true);
 	stateTimer_.setInterval(150);
+	replayLenTimer_.setSingleShot(true);
+	replayLenTimer_.setInterval(1200);
+	connect(&replayLenTimer_, &QTimer::timeout, this, &Engine::applyReplaySecondsNow);
 	connect(&stateTimer_, &QTimer::timeout, this, &Engine::broadcastState);
 	connect(this, &Engine::stateChanged, this, [this]() {
 		if (!stateTimer_.isActive())
@@ -261,6 +264,19 @@ void Engine::setReplaySecondsByUser(int seconds)
 {
 	cfg.replaySeconds = std::clamp(seconds, 5, 300);
 	cfg.save();
+	// written to OBS once the value settles: holding the spin box used to write every step and restart the
+	// replay buffer over and over, and a restart could land while the last one was still stopping (27 Sep
+	// 2026 log: 36 writes and 7 restarts in 10 s, three of them left the buffer off)
+	replayLenTimer_.start();
+}
+
+void Engine::applyReplaySecondsNow()
+{
+	replayLenTimer_.stop();
+	if (replayRestarting_) {
+		replayLenTimer_.start(); // a restart is under way: this value goes in once it is done
+		return;
+	}
 	switch (clips.setReplaySeconds(cfg.replaySeconds)) {
 	case Clips::ReplayChange::None:
 		return;
@@ -269,12 +285,17 @@ void Engine::setReplaySecondsByUser(int seconds)
 		return;
 	case Clips::ReplayChange::NeedsRestart:
 		log(tx("Clip length set to %1 s - restarting OBS's replay buffer so it takes.").arg(cfg.replaySeconds));
+		replayRestarting_ = true;
 		obs_frontend_replay_buffer_stop();
 		QTimer::singleShot(2500, this, [this]() {
-			if (stopping_ || obs_frontend_replay_buffer_active())
+			if (stopping_) {
+				replayRestarting_ = false;
 				return;
-			obs_frontend_replay_buffer_start();
+			}
+			if (!obs_frontend_replay_buffer_active())
+				obs_frontend_replay_buffer_start();
 			QTimer::singleShot(1500, this, [this]() {
+				replayRestarting_ = false;
 				if (stopping_)
 					return;
 				log(obs_frontend_replay_buffer_active()
@@ -2280,11 +2301,14 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 				pushAppConfig();
 		}
 	} else if (type == "twitch_status") {
+		// ClipHound answers every settings push with its status: say it only when it changes
+		bool same = twitch_.value("state") == o.value("state") && twitch_.value("login") == o.value("login") &&
+			    twitch_.value("error") == o.value("error");
 		twitch_ = o;
 		QString st = o.value("state").toString();
-		if (st == "ok" && !o.value("login").toString().isEmpty())
+		if (!same && st == "ok" && !o.value("login").toString().isEmpty())
 			log(tx("Twitch: logged in as %1.").arg(o.value("login").toString()));
-		else if (st == "error")
+		else if (!same && st == "error")
 			log(tx("Twitch login: %1").arg(o.value("error").toString()));
 		emit twitchStatusChanged();
 	} else if (type == "nearby") {

@@ -683,6 +683,10 @@ SettingsDialog::SettingsDialog(Engine *engine, QWidget *parent) : QDialog(parent
 
 SettingsDialog::~SettingsDialog()
 {
+	if (applyTimer_ && applyTimer_->isActive()) {
+		applyTimer_->stop();
+		applyPending(); // closed within the settle time: the last change still applies
+	}
 	e_->wantPreview(false);
 	if (previewing_)
 		e_->previewLook(false);
@@ -3852,9 +3856,21 @@ void SettingsDialog::saveAndApply()
 		return;
 	collect();
 	e_->cfg.save();
+	// the rest touches OBS sources and ClipHound: once the change settles (a held spin box steps ~5x a second)
+	if (!applyTimer_) {
+		applyTimer_ = new QTimer(this);
+		applyTimer_->setSingleShot(true);
+		applyTimer_->setInterval(400);
+		connect(applyTimer_, &QTimer::timeout, this, &SettingsDialog::applyPending);
+	}
+	applyTimer_->start();
+}
+
+void SettingsDialog::applyPending()
+{
 	e_->reloadConfig();
-	// and to ClipHound at once: chat replays, chat clips and markers are its to act on, and it heard
-	// of a change only at the next unrelated push before
+	// and to ClipHound: chat replays, chat clips and markers are its to act on, and it heard of a change
+	// only at the next unrelated push before
 	e_->pushAppConfig();
 	emit e_->stateChanged(); // the session bar and the Stream Deck redraw from the new settings
 }

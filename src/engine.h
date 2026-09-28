@@ -169,6 +169,7 @@ public:
 	void applyReplaySeconds();
 	/// The user changed the length in our settings: write it into OBS, restart the buffer if it runs.
 	void setReplaySecondsByUser(int seconds);
+	void applyReplaySecondsNow();
 	void syncAppPort();
 	QString appStatus() const { return appStatus_; }
 	bool appConnected() const { return bridge.clients() > 0; }
@@ -552,7 +553,10 @@ private:
 	QDateTime lastChatReplay_;
 	void replayTick();
 	bool popoutsShown_ = false;
-	int whooshGen_ = 0;          // the whoosh dial: the stinger page is reloaded once the turning stops
+	int whooshGen_ = 0;
+	QTimer replayLenTimer_; // the clip length goes to OBS once the spin box settles
+	bool replayRestarting_ =
+		false; // one replay-buffer restart at a time          // the whoosh dial: the stinger page is reloaded once the turning stops
 	QString sessionRole() const; // the bar's preset id (Session::presets), "custom" when none fits
 	QString closestName() const; // the nearest squad mate in the last NEARBY read, "" = none
 	QString popoutNote_;         // the unnamed pop-out we last mentioned, so the log says it once
