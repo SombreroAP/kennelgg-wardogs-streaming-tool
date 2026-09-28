@@ -21,6 +21,7 @@ public:
 	/// was just removed): the look overlay off, the game audio this plugin muted back as it was.
 	/// The caller hides every squad mate's feed (hideAllFriends).
 	void backToOwn(const Config &cfg);
+	void fitToCanvas(obs_source_t *src, obs_sceneitem_t *item, bool web);
 	/// Warm mode: friend source present in the scene, transparent and muted.
 	void armWarm(const Config &cfg);
 	void armOne(const Config &cfg, const Friend &f);

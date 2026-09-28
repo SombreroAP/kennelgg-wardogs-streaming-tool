@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.29.2
+- **Günlükleri gönder, tek tıkla.** Bir şeyler ters mi gidiyor? Panelin altındaki (ya da ⋯ menüsündeki veya Günlükler penceresindeki) **Günlükleri gönder** düğmesine bas, istersen ne olduğunu yaz; eklentinin günlüğü ve ayarları, bu OBS oturumunun günlüğü ve ClipHound'un günlüğü doğrudan Kennel.gg'ye gider. #obs-streaming-tool-chat kanalında belirtmen için LOG-7F3A gibi bir referans kodu alırsın. Gizli hiçbir şey gönderilmez (hesap bağlantısı, anahtar ya da şifre yok), kliplerin, videon, sesin veya sohbetin asla gönderilmez ve günlükler 60 gün saklanır.
+- **Takım arkadaşının görüntüsü her seferinde ekranı kaplıyor.** Görüntü yalnızca ilk eklendiğinde tam ekran yapılıyordu; bu yüzden tuval büyüdükten (1080p'den 1440p'ye) ya da görüntü yanlışlıkla sürüklendikten sonra küçük kalıyor, ekranın yaklaşık dörtte üçünde duruyordu. Artık her gösterildiğinde yeniden tam ekran yapılıyor ve Twitch, Kick, YouTube veya VDO.Ninja görüntüsü tuval boyutunda işleniyor. Ayarlar, Takım & POV: kendi düzenini korumak için "Takım arkadaşının görüntüsü her gösterildiğinde tüm ekranı kaplasın" seçeneğinin işaretini kaldır.
+
 ## 0.29.1
 - **Düzeltildi: yayın, paylaşımı durdurmuş bir takım arkadaşında takılı kalabiliyordu.** Bir Discord takım arkadaşının paylaşımı, onun POV'u ekrandayken bittiğinde seninkine dönüş reddediliyordu ("Önce bir takım arkadaşı ekle."), bu yüzden yayın onun görüntüsünde kalıyor ve Ben düğmesi sadece bu mesajı tekrarlıyordu. Kendi POV'una dönmek artık her zaman çalışıyor.
 - **Düzeltildi: ekipman satıcısında POV'un ileri geri gidip gelmesi.** Şarjör doldurma geçişi satıcı ekranını envanter sanıyor ve bir an sonra bırakıyordu, tekrar tekrar. Satıcı ekranı artık ayırt ediliyor, envanter ipucunun düzgün okunması gerekiyor (yarım kelime değil), okunamayan tek bir kare artık kapanma sayılmıyor ve geri döndükten sonra 15 saniye boyunca yeni bir envanter geçişi olmuyor.

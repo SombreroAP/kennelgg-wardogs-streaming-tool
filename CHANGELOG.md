@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.29.2
+- **Send logs, in one click.** Something not right? Press **Send logs** at the bottom of the dock (or in the ⋯ menu, or the Logs window), say what happened if you like, and the plugin's log and settings, this OBS session's log and ClipHound's log go straight to Kennel.gg. You get a reference such as LOG-7F3A to mention in #obs-streaming-tool-chat. Nothing secret is sent (no account link, no keys, no passwords), never your clips, video, voice or chat, and logs are kept for 60 days.
+- **The squad mate's feed fills the screen every time.** It was placed full screen only when first added, so after the canvas grew (1080p to 1440p) or the feed was dragged by accident it stayed smaller, at about three quarters of the screen. Now it is put back to full screen each time it is shown, and a Twitch, Kick, YouTube or VDO.Ninja feed renders at your canvas size. Settings, Squad & POV: untick "Fill the whole screen with the squad mate's feed each time it is shown" to keep a layout of your own.
+
 ## 0.29.1
 - **Fixed: the stream could get stuck on a squad mate who had stopped sharing.** When a Discord squad mate's share ended while their POV was on screen, the switch back to yours was refused ("Add a squad mate first"), so the stream stayed on their feed and the Me button only repeated that message. Going back to your own POV now always works.
 - **Fixed: the POV flipping back and forth at the equipment vendor.** The magazine-packing swap took the vendor screen for the inventory and let go a moment later, over and over. The vendor screen is now told apart, the inventory hint has to be read properly (not half a word), one unreadable frame no longer counts as closing it, and after a swap back there is no new inventory swap for 15 seconds.

@@ -1129,6 +1129,10 @@ QWidget *SettingsDialog::buildSwitchTab()
 	auto *g4 = new QGroupBox(tx("Extras"), w);
 	auto *v4 = new QVBoxLayout(g4);
 	bringFront_ = new QCheckBox(tx("Move the squad mate's feed to the top of the scene when shown"), g4);
+	povFill_ = new QCheckBox(tx("Fill the whole screen with the squad mate's feed each time it is shown"), g4);
+	povFill_->setToolTip(tx("Puts their feed back to full screen every time, even if the canvas size changed or it "
+				"was moved by accident. Untick it to keep a layout of your own (a feed in a frame, "
+				"say)."));
 	invSwitch_ =
 		new QCheckBox(tx("Magazine packing / inventory POV switching: show a squad mate while your inventory "
 				 "screen is open (needs ClipHound)"),
@@ -1148,6 +1152,7 @@ QWidget *SettingsDialog::buildSwitchTab()
 		g4);
 	preload_->setChecked(e_->cfg.preloadFeeds);
 	v4->addWidget(bringFront_);
+	v4->addWidget(povFill_);
 	v4->addWidget(preload_);
 	connect(preload_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	v4->addWidget(keepWarm_);
@@ -1169,9 +1174,11 @@ QWidget *SettingsDialog::buildSwitchTab()
 	connect(rosterUrl_, &QLineEdit::editingFinished, this, [this]() { saveAndApply(); });
 	connect(rosterChannel_, &QLineEdit::editingFinished, this, [this]() { saveAndApply(); });
 	connect(bringFront_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	connect(povFill_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(keepWarm_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 
 	bringFront_->setChecked(e_->cfg.bringToFront);
+	povFill_->setChecked(e_->cfg.povFill);
 	keepWarm_->setChecked(e_->cfg.keepWarm);
 	fillSources();
 	fillFriends();
@@ -3587,6 +3594,7 @@ void SettingsDialog::collect()
 		if (mute_->item(i)->checkState() == Qt::Checked)
 			c.muteWhileDowned.push_back(mute_->item(i)->data(Qt::UserRole).toString().toStdString());
 	c.bringToFront = bringFront_->isChecked();
+	c.povFill = povFill_->isChecked();
 	c.playerName = playerName_->text().trimmed().toStdString();
 	if (sceneV_) {
 		QString d = sceneV_->currentData().toString();

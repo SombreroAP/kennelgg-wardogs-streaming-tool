@@ -79,6 +79,7 @@ struct Config {
 	bool lookPosV1 = false;       // one-time move off the bottom-left corner
 	bool audioAutoPicked = false; // desktop audio was ticked automatically once
 	bool bringToFront = true;
+	bool povFill = true; // fit the squad mate's feed to the whole canvas each time it is shown
 	bool keepWarm = true;
 	/// Discord squad mates are shown only while their capture holds a game picture: never the call
 	/// grid, a text channel or a "stream ended" card (Picture::look decides).
@@ -283,10 +284,10 @@ struct Config {
 		true; // look for "REVIVING" on the friend's feed and switch back instantly when the damage log goes
 	double reviveThreshold = 0.80;
 	std::string gameLang =
-		"auto";            // damage-log wording: auto | en | es (auto tries every language until one matches)
-	std::string gameLangFound; // what auto settled on, so later sessions search one wording only
+		"auto";              // damage-log wording: auto | en | es (auto tries every language until one matches)
+	std::string gameLangFound;   // what auto settled on, so later sessions search one wording only
 	std::string uiLang = "auto"; // the plugin's own language (settings, dock, on-stream text): auto = OBS's
-	bool langAskShown = false; // the once-only "language not supported" note has been shown
+	bool langAskShown = false;   // the once-only "language not supported" note has been shown
 	// voice: the microphone goes to ClipHound, which names manual clips from what was said and
 	// listens for commands after a wake word. Off until switched on.
 	bool voiceEnabled = false;

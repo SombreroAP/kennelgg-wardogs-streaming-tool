@@ -6,6 +6,12 @@
 #include "ui/squad.h"
 #include "ui/flow-layout.h"
 #include "i18n.h"
+#include "http.h"
+#include <QRegularExpression>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QLineEdit>
+#include <QFormLayout>
 #include <QTextBrowser>
 #include <QVBoxLayout>
 #include <functional>
@@ -250,6 +256,7 @@ void Dock::build()
 		m->addAction(tx("Setup video (YouTube)"), this,
 			     []() { QDesktopServices::openUrl(QUrl(Config::setupVideoUrl())); });
 		m->addAction(tx("Logs..."), this, [this]() { openLogs(); });
+		m->addAction(tx("Send logs to Kennel.gg..."), this, [this]() { openSendLogs(); });
 		m->addAction(tx("Clips: titles and tags..."), this, [this]() { openClips(); });
 		auto *chap = m->addAction(tx("Copy YouTube chapters (last stream)"), this, [this]() {
 			QApplication::clipboard()->setText(e_->lastChapters());
@@ -607,7 +614,18 @@ void Dock::build()
 	last_ = new QLabel(this);
 	last_->setObjectName("small");
 	last_->setWordWrap(true);
-	v->addWidget(last_);
+	{
+		// the latest thing the plugin did, and one click to send us everything when something is off
+		auto *row = new QHBoxLayout();
+		row->addWidget(last_, 1);
+		auto *send = new QPushButton(tx("Send logs"), this);
+		send->setObjectName("mini");
+		send->setToolTip(tx("Something not right? Send the plugin's, OBS's and ClipHound's logs to Kennel.gg "
+				    "in one click."));
+		connect(send, &QPushButton::clicked, this, &Dock::openSendLogs);
+		row->addWidget(send, 0, Qt::AlignTop);
+		v->addLayout(row);
+	}
 	v->addStretch(1);
 
 	connect(e_, &Engine::stateChanged, this, &Dock::refresh);
@@ -1120,8 +1138,10 @@ void Dock::openLogs()
 	auto *obsLogs = new QPushButton(tx("Open OBS log folder"), d);
 	auto *appFolder = new QPushButton(tx("Open ClipHound folder"), d);
 	auto *cfgFolder = new QPushButton(tx("Open plugin config folder"), d);
-	for (auto *b : {copy, obsLogs, appFolder, cfgFolder})
+	auto *sendLogs = new QPushButton(tx("Send logs to Kennel.gg..."), d);
+	for (auto *b : {copy, obsLogs, appFolder, cfgFolder, sendLogs})
 		row->addWidget(b);
+	connect(sendLogs, &QPushButton::clicked, this, &Dock::openSendLogs);
 	row->addStretch(1);
 	v->addLayout(row);
 	connect(copy, &QPushButton::clicked, d, [txt, copy]() {
@@ -1137,6 +1157,142 @@ void Dock::openLogs()
 		[appDir]() { QDesktopServices::openUrl(QUrl::fromLocalFile(appDir)); });
 	connect(cfgFolder, &QPushButton::clicked, d,
 		[]() { QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(Config::configDir()))); });
+	showOnScreen(d);
+}
+
+/// The newest OBS log (this session's), its last `bytes`.
+static QString obsLogTail(qint64 bytes)
+{
+	QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).section('/', 0, -2) +
+		 "/obs-studio/logs");
+	QFileInfoList l = dir.entryInfoList({"*.txt"}, QDir::Files, QDir::Time);
+	if (l.isEmpty())
+		return QString();
+	QFile f(l.first().absoluteFilePath());
+	if (!f.open(QIODevice::ReadOnly))
+		return QString();
+	if (f.size() > bytes)
+		f.seek(f.size() - bytes);
+	return l.first().fileName() + "\n" + QString::fromUtf8(f.readAll());
+}
+
+/// The plugin's settings as sent with the logs: every key, minus anything secret (the account token, the
+/// roster address with its key, passwords).
+static QString settingsForLogs()
+{
+	QFile f(QString::fromStdString(Config::configDir()) + "/config.json");
+	if (!f.open(QIODevice::ReadOnly))
+		return QString();
+	QJsonObject o = QJsonDocument::fromJson(f.readAll()).object();
+	static const QRegularExpression secret("token|secret|password|passwd|pwd|key$|rosterurl|accountid",
+					       QRegularExpression::CaseInsensitiveOption);
+	for (const QString &k : o.keys())
+		if (k.contains(secret))
+			o.insert(k, "(removed)");
+	return QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Indented));
+}
+
+void Dock::openSendLogs()
+{
+	auto *d = new QDialog((QWidget *)obs_frontend_get_main_window());
+	d->setAttribute(Qt::WA_DeleteOnClose);
+	d->setWindowTitle(tx("Send logs to Kennel.gg"));
+	d->resize(520, 420);
+	auto *v = new QVBoxLayout(d);
+	auto *intro =
+		new QLabel(tx("This sends what we need to see what went wrong: the plugin's log and settings "
+			      "(without your account link or any key), this OBS session's log and ClipHound's log. "
+			      "Never your clips, video, voice or chat. Logs are kept for 60 days."),
+			   d);
+	intro->setWordWrap(true);
+	v->addWidget(intro);
+	v->addWidget(new QLabel(tx("What happened? (optional, but it helps a lot)"), d));
+	auto *note = new QPlainTextEdit(d);
+	note->setPlaceholderText(tx("e.g. the POV got stuck on my squad mate at about 21:18"));
+	v->addWidget(note, 1);
+	auto *form = new QFormLayout();
+	auto *contact = new QLineEdit(QString::fromStdString(e_->cfg.myDiscord), d);
+	contact->setPlaceholderText(tx("so we can get back to you"));
+	form->addRow(tx("Your Discord name"), contact);
+	v->addLayout(form);
+	auto *result = new QLabel(d);
+	result->setWordWrap(true);
+	result->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	v->addWidget(result);
+	auto *row = new QHBoxLayout();
+	auto *copyRef = new QPushButton(tx("Copy the reference"), d);
+	copyRef->hide();
+	auto *cancel = new QPushButton(tx("Close"), d);
+	auto *send = new QPushButton(tx("Send"), d);
+	send->setDefault(true);
+	row->addWidget(copyRef);
+	row->addStretch(1);
+	row->addWidget(cancel);
+	row->addWidget(send);
+	v->addLayout(row);
+	connect(cancel, &QPushButton::clicked, d, &QDialog::close);
+	QPointer<QDialog> alive(d);
+	connect(send, &QPushButton::clicked, d, [this, d, alive, note, contact, result, send, copyRef]() {
+		send->setEnabled(false);
+		result->setText(tx("Sending..."));
+		QString appDir = QFileInfo(e_->cfg.appPath.empty() ? Engine::defaultAppPath()
+								   : QString::fromStdString(e_->cfg.appPath))
+					 .absolutePath();
+		QString plugin = QString("=== Kennel.gg Wardogs plugin %1 ===\n").arg(PLUGIN_VERSION);
+		plugin +=
+			QString("state: %1 | game source: %2 | squad mate: %3 | replay buffer: %4 | ClipHound: %5\n\n")
+				.arg(QString::fromStdString(e_->stateText()),
+				     QString::fromStdString(e_->cfg.gameSource),
+				     e_->cfg.active() ? QString::fromStdString(e_->cfg.active()->name) : "(none)",
+				     obs_frontend_replay_buffer_active() ? "running" : "NOT running",
+				     e_->appConnected() ? "connected" : "not connected");
+		plugin += e_->recentLog().join('\n');
+		QJsonObject o;
+		o["version"] = QString(PLUGIN_VERSION);
+		o["note"] = note->toPlainText().left(2000);
+		o["contact"] = contact->text().trimmed().left(80);
+		o["plugin_log"] = plugin;
+		o["settings"] = settingsForLogs();
+		o["cliphound_log"] = tailOf(appDir + "/cliphound.log", 4000);
+		o["obs_log"] = obsLogTail(2 * 1024 * 1024);
+		QByteArray body = QJsonDocument(o).toJson(QJsonDocument::Compact);
+		if (body.size() > 4 * 1024 * 1024 - 4096) { // the server takes 4 MB: the OBS log gives way
+			o["obs_log"] = obsLogTail(1024 * 1024);
+			body = QJsonDocument(o).toJson(QJsonDocument::Compact);
+		}
+		QString hdr = "Content-Type: application/json\r\n";
+		if (!e_->cfg.accountToken.empty())
+			hdr += "Authorization: Bearer " + QString::fromStdString(e_->cfg.accountToken) + "\r\n";
+		Http::requestAsync(
+			this, "POST", "https://kennel.gg/api/stats/logs", body, hdr, 30000,
+			QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),
+			[this, alive, result, send, copyRef](Http::Result r) {
+				QString code = QJsonDocument::fromJson(r.body).object().value("code").toString();
+				if (r.ok && !code.isEmpty())
+					e_->log(tx("Logs sent to Kennel.gg: %1.").arg(code));
+				if (!alive)
+					return;
+				if (r.ok && !code.isEmpty()) {
+					result->setText(
+						tx("Sent. Your reference is <b>%1</b> - mention it in "
+						   "#obs-streaming-tool-chat on the Kennel.gg Discord so we can find "
+						   "your logs.")
+							.arg(code));
+					copyRef->show();
+					QObject::connect(copyRef, &QPushButton::clicked, copyRef, [code, copyRef]() {
+						QApplication::clipboard()->setText(code);
+						copyRef->setText(tx("Copied"));
+					});
+				} else {
+					QString msg =
+						QJsonDocument::fromJson(r.body).object().value("message").toString();
+					result->setText(tx("Could not send (%1). Try again in a minute, or use Logs... "
+							   "and Copy all.")
+								.arg(msg.isEmpty() ? r.error : msg));
+					send->setEnabled(true);
+				}
+			});
+	});
 	showOnScreen(d);
 }
 

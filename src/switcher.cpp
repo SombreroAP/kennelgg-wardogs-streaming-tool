@@ -2124,6 +2124,41 @@ void Switcher::dualScale(const Config &cfg, double k)
 	obs_source_release(ss);
 }
 
+/// A squad mate's feed over the whole canvas: from the corner, scaled to fit with its shape kept. A
+/// browser feed (Twitch, Kick, YouTube, VDO.Ninja) also renders at the canvas size, not a smaller page
+/// scaled up. Placed only once used to leave it at the old size after the canvas grew (1080p -> 1440p:
+/// three quarters of the screen, 0.26.6 report) or wherever it was dragged by accident.
+void Switcher::fitToCanvas(obs_source_t *src, obs_sceneitem_t *item, bool web)
+{
+	struct obs_video_info ovi;
+	obs_get_video_info(&ovi);
+	struct vec2 pos = {0, 0}, bounds = {(float)ovi.base_width, (float)ovi.base_height};
+	struct vec2 curPos, curBounds;
+	obs_sceneitem_get_pos(item, &curPos);
+	obs_sceneitem_get_bounds(item, &curBounds);
+	if (curPos.x != pos.x || curPos.y != pos.y || curBounds.x != bounds.x || curBounds.y != bounds.y ||
+	    obs_sceneitem_get_bounds_type(item) != OBS_BOUNDS_SCALE_INNER || obs_sceneitem_get_rot(item) != 0.0f) {
+		obs_sceneitem_set_alignment(item, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
+		obs_sceneitem_set_rot(item, 0.0f);
+		obs_sceneitem_set_pos(item, &pos);
+		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
+		obs_sceneitem_set_bounds_alignment(item, 0); // centred inside the canvas
+		obs_sceneitem_set_bounds(item, &bounds);
+	}
+	if (web && src) {
+		obs_data_t *st = obs_source_get_settings(src);
+		if (obs_data_get_int(st, "width") != (long long)ovi.base_width ||
+		    obs_data_get_int(st, "height") != (long long)ovi.base_height) {
+			obs_data_t *up = obs_data_create();
+			obs_data_set_int(up, "width", ovi.base_width);
+			obs_data_set_int(up, "height", ovi.base_height);
+			obs_source_update(src, up);
+			obs_data_release(up);
+		}
+		obs_data_release(st);
+	}
+}
+
 void Switcher::backToOwn(const Config &cfg)
 {
 	updateLook(cfg, false);
@@ -2171,6 +2206,8 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 		} else {
 			if (on && cfg.bringToFront)
 				moveToTop(item);
+			if (on && cfg.povFill)
+				fitToCanvas(src, item, f->isWeb());
 			if (cfg.keepWarm) {
 				ensureHideFilter(src);
 				obs_source_t *hf = obs_source_get_filter_by_name(src, Config::hideFilterName());

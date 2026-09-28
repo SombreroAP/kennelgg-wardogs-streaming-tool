@@ -84,6 +84,7 @@ void Config::load()
 	DEFS(sceneName);
 	DEFI(activeFriend);
 	DEFB(bringToFront);
+	DEFB(povFill);
 	DEFB(keepWarm);
 	DEFI(chatClips);
 	DEFB(twitchMarkers);
@@ -296,6 +297,7 @@ void Config::load()
 	GETS(sceneName);
 	GETI(activeFriend);
 	GETB(bringToFront);
+	GETB(povFill);
 	GETB(keepWarm);
 	GETI(chatClips);
 	GETB(twitchMarkers);
@@ -693,6 +695,7 @@ void Config::save() const
 	SETS(sceneName);
 	SETI(activeFriend);
 	SETB(bringToFront);
+	SETB(povFill);
 	SETB(keepWarm);
 	SETI(chatClips);
 	SETB(twitchMarkers);

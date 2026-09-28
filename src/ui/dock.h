@@ -30,6 +30,9 @@ public slots:
 	void openSettings(const QString &page = QString());
 	void openWizard();
 	void openLogs();
+	/// The plugin's, OBS's and ClipHound's logs to kennel.gg in one click (0.29.2), with a note; answers
+	/// with a reference to quote in the Discord.
+	void openSendLogs();
 	void openSquad();
 	void openClips(const QString &focusPath = QString());
 	/// "Get stats image": the session as a picture for social media.
