@@ -2399,6 +2399,11 @@ void Engine::resetSession(const QString &why)
 	killRuns_.clear();
 	lineLog_.clear();
 	lastCashAt_ = 0;
+	startCand_ = -1;
+	startCandAt_ = 0;
+	startCandN_ = 0;
+	lastBalEventAt_ = 0;
+	balHiddenBefore_ = 0;
 	log(tx("Session stats: counting from now (%1).").arg(txv(why)));
 	emit stateChanged();
 }
@@ -2479,9 +2484,28 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 	bool changed = false;
 	for (const auto &e : ev) {
 		if (e.kind == tourney::Event::Bal) {
+			// how long the balance had been out of sight when this value came: a big change across a
+			// menu, a death or a loading screen can be real money (a payout); one while it was on
+			// screen all along is far more likely a misread
+			if (e.v != session_.balanceNow)
+				balHiddenBefore_ = lastBalEventAt_ ? t - lastBalEventAt_ : 0;
+			lastBalEventAt_ = t;
 			if (!session_.haveBalance) {
-				session_.haveBalance = true;
-				session_.balanceStart = e.v;
+				// the start only once it has held: seen again 5 s or more later (the stabilizer repeats a
+				// steady balance every 10 s). A menu screen read in a font
+				// the reader does not know (the vendor's header, $573,198 read as $537,158) once became
+				// the start, and the difference was later "earned" in one go (0.26.6 report)
+				if (e.v != startCand_) {
+					startCand_ = e.v;
+					startCandAt_ = t;
+					startCandN_ = 0;
+				}
+				if (++startCandN_ >= 2 && t - startCandAt_ >= 5000) {
+					session_.haveBalance = true;
+					// minus what the reward lines counted while it was being confirmed, so those are
+					// not taken back again as a gap
+					session_.balanceStart = e.v - session_.net();
+				}
 			} else if (dropPending_) {
 				if (e.v >= dropFrom_)
 					dropPending_ = false; // it came back: a misread, not a purchase
@@ -2598,7 +2622,27 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 			gapSeen_ = gap; // still moving (a line may be read a moment after the balance changed)
 			gapSince_ = t;
 		} else if (t - gapSince_ >= 4000) {
-			if (gap > 0) {
+			// A change of $10,000 or more that no reward line and no kill run accounts for, while
+			// the balance was on screen: the start (or the last reading) was a misread, not money.
+			// The session balance keeps its tally and the wallet it is measured against moves.
+			int64_t explained = 0;
+			{
+				qint64 now = QDateTime::currentMSecsSinceEpoch();
+				for (const auto &k : killRuns_)
+					if (now - k.last <= 120000)
+						explained += std::max<int64_t>(0, k.amount - k.credited);
+			}
+			bool misread = std::llabs(gap) >= 10000 && balHiddenBefore_ < 45000 &&
+				       (gap < 0 || explained * 2 < gap) && !dropPending_;
+			if (misread) {
+				session_.balanceStart += gap;
+				log(tx("Session balance: your wallet read %1 against what the session had counted, with "
+				       "nothing on screen to earn or spend it - taken as a misread of the balance, not money.")
+					    .arg(Session::money(gap, true)));
+				gapSeen_ = 0;
+				gapSince_ = 0;
+				changed = true;
+			} else if (gap > 0) {
 				// the kill ticker first: money a kill run showed that the corner lines around it did
 				// not, is kill money; whatever is left is REWARD
 				qint64 now = QDateTime::currentMSecsSinceEpoch();
@@ -2634,11 +2678,13 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				session_.spent += -gap;
 				session_.noteMoney(gap, "SPENT");
 			}
-			log(tx("Session balance matched to your wallet: %1 the reward lines had not accounted for.")
-				    .arg(Session::money(gap, true)));
-			gapSeen_ = 0;
-			gapSince_ = 0;
-			changed = true;
+			if (!misread) {
+				log(tx("Session balance matched to your wallet: %1 the reward lines had not accounted for.")
+					    .arg(Session::money(gap, true)));
+				gapSeen_ = 0;
+				gapSince_ = 0;
+				changed = true;
+			}
 		}
 	}
 	if (changed)
@@ -4481,13 +4527,23 @@ void Engine::applySwitch(bool on, const QString &why)
 {
 	if (applying_)
 		return;
-	if (!cfg.active()) {
+	// Going back to your own POV never needs a squad mate: the one on screen may have just been removed
+	// (their Discord share ended) while the stinger covered the switch. Refusing left the stream on a
+	// feed that no longer existed, and every press of Me said "Add a squad mate first" (0.26.6 report).
+	bool noMate = !cfg.active();
+	if (noMate && on) {
 		log(tx("Add a squad mate first."));
 		return;
 	}
+	if (noMate && !applied_ && !lookPreview_)
+		return; // already on your own POV: nothing to undo
 	applying_ = true;
-	auto errors = sw.apply(cfg, on);
-	{
+	std::vector<std::string> errors;
+	if (noMate)
+		sw.backToOwn(cfg);
+	else
+		errors = sw.apply(cfg, on);
+	if (!noMate) {
 		std::string ev = sw.applyVertical(cfg, on); // the same swap on the portrait canvas, if set
 		if (!ev.empty()) {
 			errors.push_back(tx("vertical: %1").arg(QString::fromStdString(ev)).toStdString());
@@ -5191,16 +5247,20 @@ void Engine::setDual(bool on, const QString &why)
 /// ClipHound read the vehicle keybind list: a seat name, "vehicle" (in one, seat unclear) or "none".
 void Engine::onInventory(bool open)
 {
+	qint64 now = QDateTime::currentMSecsSinceEpoch();
 	if (!open) {
 		if (!invApplied_)
 			return;
 		invApplied_ = false;
+		// a screen that comes and goes (a menu the reader half-recognises) must not flip the stream
+		// back and forth: after one swap back, the inventory is not swapped for again for 15 s
+		invQuietUntil_ = now + 15000;
 		// back to your own POV, unless you went down meanwhile: then the downed swap owns it
 		if (applied_ && !detected_)
 			applyNow(false, TX_NOOP("inventory closed"));
 		return;
 	}
-	if (!cfg.invSwitch || !cfg.enabled || applied_ || detected_ || !cfg.active())
+	if (!cfg.invSwitch || !cfg.enabled || applied_ || detected_ || !cfg.active() || now < invQuietUntil_)
 		return;
 	// only onto a squad mate who is actually streaming (0.26.4: a stream that could not be vouched
 	// for used to be enough)

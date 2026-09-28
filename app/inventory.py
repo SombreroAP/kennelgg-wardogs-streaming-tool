@@ -53,16 +53,25 @@ def is_open(frame: np.ndarray) -> tuple[bool, str]:
 
 
 OPEN_AFTER_S = 2.0     # the screen has to be up this long before the swap
-CLOSE_MISSES = 1       # the first crop without it and it is closed: back to your POV at once
+CLOSE_MISSES = 2       # two crops in a row without it (about 2 s): one unreadable frame is not a close
+
+
+# The equipment vendor's screen has a backpack grid and its own top bar ("EQUIPMENT VENDOR", tabs up
+# to LOOSE AMMO), which half-read as "NEAMMO" and passed for COMBINE AMMO at 0.6: the stream flipped
+# to a squad mate and back every few seconds while someone shopped (0.26.6 report). The vendor is
+# not the inventory; and a half word is not enough.
+_NOT_INVENTORY = ("VENDOR", "EQUIP", "OVERVI", "LOOSE")  # stems: the crop often cuts the word
 
 
 def read_crops(combine_bgr, tab_bgr) -> tuple[bool, str]:
     """(open, what was read) from the two crops the plugin sends."""
-    a = _read(combine_bgr) if combine_bgr is not None else ""
-    if _close(a, "COMBINE AMMO", 0.6) or "COMBINE" in a.upper():
-        return True, a
     b = _read(tab_bgr) if tab_bgr is not None else ""
-    if _close(b, "INVENTORY", 0.7):
+    if any(w in b.upper() for w in _NOT_INVENTORY):
+        return False, b
+    a = _read(combine_bgr) if combine_bgr is not None else ""
+    if _close(a, "COMBINE AMMO", 0.75) or "COMBINE" in a.upper():
+        return True, a
+    if _close(b, "INVENTORY", 0.75):
         return True, b
     return False, (a + " | " + b).strip(" |")
 

@@ -1475,5 +1475,6 @@
 "Update now downloads it in the background while you carry on. You choose when to install it: that closes OBS for about a minute and opens it again, with all your settings kept.": "「今すぐ更新」を押すと、そのまま作業を続けながらバックグラウンドでダウンロードします。インストールのタイミングは自分で選べます: OBSが1分ほど終了して再び起動し、設定はすべてそのまま残ります。",
 "Download opens the download page. Close OBS, run the installer, and your settings are kept.": "「ダウンロード」でダウンロードページが開きます。OBSを閉じてインストーラーを実行してください。設定はそのまま残ります。",
 "Skip this version": "このバージョンをスキップ",
-"Later": "後で"
+"Later": "後で",
+"Session balance: your wallet read %1 against what the session had counted, with nothing on screen to earn or spend it - taken as a misread of the balance, not money.": "セッション収支: 所持金がセッションの集計と %1 ずれていましたが、画面上に稼いだり使ったりする場面がなかったため、お金ではなく所持金の読み取りミスとして扱いました。"
 }

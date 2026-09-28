@@ -1,5 +1,10 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.29.1
+- **Corrigido: a live podia ficar presa em um parceiro de squad que tinha parado de compartilhar.** Quando o compartilhamento de um parceiro de squad no Discord terminava enquanto o POV dele estava na tela, a volta para o seu era recusada ("Adicione um parceiro de squad primeiro."), então a live ficava no feed dele e o botão Eu só repetia essa mensagem. Voltar para o seu próprio POV agora sempre funciona.
+- **Corrigido: o POV indo e voltando no vendedor de equipamentos.** A troca ao encher carregadores confundia a tela do vendedor com o inventário e soltava um instante depois, sem parar. Agora a tela do vendedor é diferenciada, a dica do inventário precisa ser lida direito (não meia palavra), um único quadro ilegível não conta mais como fechar, e depois de voltar não há nova troca de inventário por 15 segundos.
+- **Corrigido: um saldo lido errado contado como dinheiro ganho.** Uma sessão podia tomar uma leitura errada do seu saldo como ponto de partida e depois somar a diferença de uma vez como ganhos (+$36,040 em um relatório). Agora o saldo inicial precisa se manter por alguns segundos antes de contar, e um salto de $10,000 ou mais que nenhuma recompensa ou sequência de abates explica, enquanto seu saldo estava na tela, é tratado como leitura errada e não como dinheiro.
+
 ## 0.29.0
 - **Atualizar é um clique.** Quando sai uma versão nova, ao abrir o OBS uma janela **Novidades** lista tudo o que mudou desde a sua, no seu idioma (nunca enquanto você está ao vivo; se estava, ela espera a live acabar). **Atualizar agora** baixa em segundo plano enquanto você continua e confere com o checksum da versão. Depois, **Instalar e reiniciar o OBS** fecha o OBS, instala e abre o OBS de novo, com todas as configurações mantidas. **Mais tarde** pergunta de novo na próxima vez; **Pular esta versão** para de perguntar até a próxima.
 - O aviso de atualização do painel agora é âmbar e diz o que há de novo, com os botões Atualizar agora e Novidades, e o plugin procura uma versão nova a cada 6 horas, em vez de só quando o OBS abre.

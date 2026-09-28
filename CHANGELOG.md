@@ -2,6 +2,11 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.29.1
+- **Fixed: the stream could get stuck on a squad mate who had stopped sharing.** When a Discord squad mate's share ended while their POV was on screen, the switch back to yours was refused ("Add a squad mate first"), so the stream stayed on their feed and the Me button only repeated that message. Going back to your own POV now always works.
+- **Fixed: the POV flipping back and forth at the equipment vendor.** The magazine-packing swap took the vendor screen for the inventory and let go a moment later, over and over. The vendor screen is now told apart, the inventory hint has to be read properly (not half a word), one unreadable frame no longer counts as closing it, and after a swap back there is no new inventory swap for 15 seconds.
+- **Fixed: a misread balance counted as money earned.** A session could take a misread of your balance as its starting point and later add the difference as earnings in one go (+$36,040 in one report). The starting balance now has to hold for a few seconds before it counts, and a jump of $10,000 or more that no reward or kill run accounts for, while your balance was on screen, is treated as a misread rather than money.
+
 ## 0.29.0
 - **Updating is one click.** When a new version is out, a **What's new** window lists everything that changed since yours, in your language, when OBS starts (never while you are live; if you were, it waits until the stream ends). **Update now** downloads it in the background while you carry on and checks it against the release's checksum. Then **Install and restart OBS** closes OBS, installs, and opens OBS again, with every setting kept. **Later** asks again next time; **Skip this version** stops asking until the next one.
 - The dock's update note is now amber and says what is new, with Update now and What's new buttons, and the plugin checks for a new version every 6 hours rather than only when OBS starts.

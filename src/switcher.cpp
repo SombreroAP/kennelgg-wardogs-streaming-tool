@@ -2124,6 +2124,21 @@ void Switcher::dualScale(const Config &cfg, double k)
 	obs_source_release(ss);
 }
 
+void Switcher::backToOwn(const Config &cfg)
+{
+	updateLook(cfg, false);
+	for (auto &input : cfg.muteWhileDowned) {
+		if (!prevMute_.count(input))
+			continue;
+		if (obs_source_t *src = obs_get_source_by_name(input.c_str())) {
+			obs_source_set_muted(src, prevMute_[input]);
+			obs_source_release(src);
+		}
+		prevMute_.erase(input);
+	}
+	applyFriendAudio(cfg, false);
+}
+
 std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 {
 	std::vector<std::string> errors;

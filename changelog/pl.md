@@ -1,5 +1,10 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.29.1
+- **Naprawiono: stream mógł utknąć na koledze z drużyny, który przestał udostępniać.** Gdy udostępnianie kolegi z drużyny na Discordzie kończyło się, kiedy jego POV był na ekranie, powrót do twojego był odrzucany ("Najpierw dodaj kolegę z drużyny."), więc stream zostawał na jego obrazie, a przycisk Ja tylko powtarzał ten komunikat. Powrót do własnego POV teraz zawsze działa.
+- **Naprawiono: POV przeskakujące w tę i z powrotem u sprzedawcy wyposażenia.** Przełączanie przy ładowaniu magazynków brało ekran sprzedawcy za ekwipunek i chwilę później puszczało, raz za razem. Ekran sprzedawcy jest teraz rozpoznawany osobno, podpowiedź ekwipunku musi zostać poprawnie odczytana (nie pół słowa), jedna nieczytelna klatka nie liczy się już jako zamknięcie, a po powrocie przez 15 sekund nie ma nowego przełączenia na ekwipunek.
+- **Naprawiono: błędnie odczytany stan portfela liczony jako zarobione pieniądze.** Sesja mogła wziąć błędny odczyt twojego portfela za punkt startowy, a potem doliczyć różnicę za jednym razem jako zarobek (+$36,040 w jednym raporcie). Stan początkowy musi się teraz utrzymać przez kilka sekund, zanim zostanie policzony, a skok o $10,000 lub więcej, którego nie wyjaśnia żadna nagroda ani seria zabójstw, gdy twój portfel był na ekranie, jest traktowany jako błędny odczyt, a nie pieniądze.
+
 ## 0.29.0
 - **Aktualizacja to jedno kliknięcie.** Gdy wyjdzie nowa wersja, przy starcie OBS okno **Co nowego** pokazuje wszystko, co zmieniło się od twojej, w twoim języku (nigdy podczas transmisji na żywo; jeśli byłeś na żywo, czeka do końca streamu). **Aktualizuj teraz** pobiera ją w tle, a ty robisz swoje, i sprawdza ją z sumą kontrolną wydania. Potem **Zainstaluj i uruchom ponownie OBS** zamyka OBS, instaluje i otwiera OBS ponownie, a wszystkie ustawienia zostają. **Później** zapyta znowu następnym razem; **Pomiń tę wersję** nie pyta aż do kolejnej.
 - Powiadomienie o aktualizacji w doku jest teraz bursztynowe i mówi, co nowego, z przyciskami Aktualizuj teraz i Co nowego, a wtyczka sprawdza nową wersję co 6 godzin, a nie tylko przy starcie OBS.

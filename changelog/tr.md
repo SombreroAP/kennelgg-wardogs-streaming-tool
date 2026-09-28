@@ -1,5 +1,10 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.29.1
+- **Düzeltildi: yayın, paylaşımı durdurmuş bir takım arkadaşında takılı kalabiliyordu.** Bir Discord takım arkadaşının paylaşımı, onun POV'u ekrandayken bittiğinde seninkine dönüş reddediliyordu ("Önce bir takım arkadaşı ekle."), bu yüzden yayın onun görüntüsünde kalıyor ve Ben düğmesi sadece bu mesajı tekrarlıyordu. Kendi POV'una dönmek artık her zaman çalışıyor.
+- **Düzeltildi: ekipman satıcısında POV'un ileri geri gidip gelmesi.** Şarjör doldurma geçişi satıcı ekranını envanter sanıyor ve bir an sonra bırakıyordu, tekrar tekrar. Satıcı ekranı artık ayırt ediliyor, envanter ipucunun düzgün okunması gerekiyor (yarım kelime değil), okunamayan tek bir kare artık kapanma sayılmıyor ve geri döndükten sonra 15 saniye boyunca yeni bir envanter geçişi olmuyor.
+- **Düzeltildi: yanlış okunan bakiye kazanılan para olarak sayılıyordu.** Bir oturum, bakiyenin yanlış okunmasını başlangıç noktası alıp farkı daha sonra tek seferde kazanç olarak ekleyebiliyordu (bir raporda +$36,040). Başlangıç bakiyesinin sayılması için artık birkaç saniye sabit kalması gerekiyor ve bakiyen ekrandayken hiçbir ödülün ya da leş serisinin açıklamadığı $10,000 veya daha büyük bir sıçrama para değil, yanlış okuma sayılıyor.
+
 ## 0.29.0
 - **Güncelleme tek tık.** Yeni bir sürüm çıktığında, OBS açılırken bir **Yenilikler** penceresi seninkinden bu yana değişen her şeyi kendi dilinde listeler (yayındayken asla; yayındaysan yayın bitene kadar bekler). **Şimdi güncelle** sen devam ederken arka planda indirir ve sürümün sağlama toplamıyla doğrular. Ardından **Yükle ve OBS'i yeniden başlat** OBS'i kapatır, yükler ve OBS'i yeniden açar; tüm ayarların korunur. **Sonra** bir dahaki sefere yine sorar; **Bu sürümü atla** bir sonraki sürüme kadar sormaz.
 - Paneldeki güncelleme notu artık kehribar renginde ve neyin yeni olduğunu söylüyor, Şimdi güncelle ve Yenilikler düğmeleriyle; eklenti de yalnızca OBS açılırken değil, 6 saatte bir yeni sürüm olup olmadığına bakıyor.

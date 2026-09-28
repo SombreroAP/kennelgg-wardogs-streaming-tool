@@ -340,7 +340,13 @@ private:
 	void onVehicle(const QString &seat);
 	/// ClipHound saw the inventory screen open (for two seconds) or close.
 	void onInventory(bool open);
-	bool invApplied_ = false; // the swap on screen is the inventory's to undo
+	bool invApplied_ = false;  // the swap on screen is the inventory's to undo
+	qint64 invQuietUntil_ = 0; // no inventory swap before this (after one swap back)
+	// the session's starting balance: a candidate until it has held (Engine::onCashReading)
+	int64_t startCand_ = -1;
+	qint64 startCandAt_ = 0;
+	int startCandN_ = 0;
+	qint64 lastBalEventAt_ = 0, balHiddenBefore_ = 0; // how long the balance was unseen before a new value
 	void clearNearby();
 	void pickClosest(const QString &why, bool decisive = false);
 	void switchTo(int idx, const QString &why);

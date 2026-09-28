@@ -1475,5 +1475,6 @@
 "Update now downloads it in the background while you carry on. You choose when to install it: that closes OBS for about a minute and opens it again, with all your settings kept.": "«Обновить сейчас» скачивает её в фоне, пока ты продолжаешь. Когда установить, решаешь ты: OBS закроется примерно на минуту и откроется снова, все настройки сохранятся.",
 "Download opens the download page. Close OBS, run the installer, and your settings are kept.": "«Скачать» открывает страницу загрузки. Закрой OBS, запусти установщик, и твои настройки сохранятся.",
 "Skip this version": "Пропустить эту версию",
-"Later": "Позже"
+"Later": "Позже",
+"Session balance: your wallet read %1 against what the session had counted, with nothing on screen to earn or spend it - taken as a misread of the balance, not money.": "Баланс за сессию: кошелёк показал %1 относительно того, что насчитала сессия, хотя на экране не было ничего, на чём их заработать или потратить, - принято за ошибку чтения баланса, а не за деньги."
 }

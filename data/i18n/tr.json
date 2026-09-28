@@ -1475,5 +1475,6 @@
 "Update now downloads it in the background while you carry on. You choose when to install it: that closes OBS for about a minute and opens it again, with all your settings kept.": "\"Şimdi güncelle\" sen devam ederken arka planda indirir. Ne zaman yükleneceğini sen seçersin: bu, OBS'i yaklaşık bir dakikalığına kapatıp yeniden açar ve tüm ayarların korunur.",
 "Download opens the download page. Close OBS, run the installer, and your settings are kept.": "\"İndir\" indirme sayfasını açar. OBS'i kapat, yükleyiciyi çalıştır; ayarların korunur.",
 "Skip this version": "Bu sürümü atla",
-"Later": "Sonra"
+"Later": "Sonra",
+"Session balance: your wallet read %1 against what the session had counted, with nothing on screen to earn or spend it - taken as a misread of the balance, not money.": "Oturum bakiyesi: cüzdanın, oturumun saydığına göre %1 gösterdi ama ekranda bunu kazandıracak ya da harcatacak bir şey yoktu - para değil, bakiyenin yanlış okunması sayıldı."
 }

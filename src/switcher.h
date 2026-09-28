@@ -17,6 +17,10 @@ public:
 
 	/// Show the active squad mate (on) or go back to the streamer's own POV. Returns problems, if any.
 	std::vector<std::string> apply(const Config &cfg, bool on);
+	/// Back to your own POV when there is no squad mate to switch from any more (the one on screen
+	/// was just removed): the look overlay off, the game audio this plugin muted back as it was.
+	/// The caller hides every squad mate's feed (hideAllFriends).
+	void backToOwn(const Config &cfg);
 	/// Warm mode: friend source present in the scene, transparent and muted.
 	void armWarm(const Config &cfg);
 	void armOne(const Config &cfg, const Friend &f);

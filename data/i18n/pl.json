@@ -1475,5 +1475,6 @@
 "Update now downloads it in the background while you carry on. You choose when to install it: that closes OBS for about a minute and opens it again, with all your settings kept.": "\"Aktualizuj teraz\" pobiera ją w tle, a ty robisz swoje. Sam decydujesz, kiedy ją zainstalować: to zamyka OBS na około minutę i otwiera go ponownie, a wszystkie twoje ustawienia zostają.",
 "Download opens the download page. Close OBS, run the installer, and your settings are kept.": "\"Pobierz\" otwiera stronę pobierania. Zamknij OBS, uruchom instalator, a twoje ustawienia zostaną.",
 "Skip this version": "Pomiń tę wersję",
-"Later": "Później"
+"Later": "Później",
+"Session balance: your wallet read %1 against what the session had counted, with nothing on screen to earn or spend it - taken as a misread of the balance, not money.": "Bilans sesji: portfel pokazał %1 względem tego, co naliczyła sesja, choć na ekranie nie było nic, za co można by to zarobić lub wydać - uznane za błędny odczyt portfela, a nie pieniądze."
 }

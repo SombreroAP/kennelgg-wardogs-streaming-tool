@@ -1475,5 +1475,6 @@
 "Update now downloads it in the background while you carry on. You choose when to install it: that closes OBS for about a minute and opens it again, with all your settings kept.": "'지금 업데이트'를 누르면 계속 하던 일을 하는 동안 백그라운드에서 다운로드합니다. 설치 시점은 직접 고릅니다: 설치하면 OBS가 1분 정도 종료되었다가 다시 열리며, 모든 설정은 그대로 유지됩니다.",
 "Download opens the download page. Close OBS, run the installer, and your settings are kept.": "'다운로드'를 누르면 다운로드 페이지가 열립니다. OBS를 닫고 설치 프로그램을 실행하세요. 설정은 그대로 유지됩니다.",
 "Skip this version": "이 버전 건너뛰기",
-"Later": "나중에"
+"Later": "나중에",
+"Session balance: your wallet read %1 against what the session had counted, with nothing on screen to earn or spend it - taken as a misread of the balance, not money.": "세션 손익: 지갑이 세션이 집계한 금액과 %1 차이 났지만 화면에 벌거나 쓸 만한 일이 없었으므로, 돈이 아니라 잔액을 잘못 읽은 것으로 처리했습니다."
 }
