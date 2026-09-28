@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.29.3
+- **BETA etiketi.** Panel adının yanında BETA gösteriyor, Kurulum'un ilk sayfası da eklentinin beta aşamasında olduğunu söylüyor: hâlâ geliştiriliyor ve sık değişiyor, ara sıra hata olabilir; bir sorun olduğunda günlüklerin nereye gönderileceğini de anlatıyor.
+- **Günlükleri gönder, Ayarlar > Yardım'a taşındı.** Panelin altındaki düğme kalktı; artık Ayarlar > Yardım'da ("Bir sorun mu var? Günlüklerini bize gönder") ve hâlâ panelin ⋯ menüsünde ve Günlükler penceresinde.
+
 ## 0.29.2
 - **Günlükleri gönder, tek tıkla.** Bir şeyler ters mi gidiyor? Panelin altındaki (ya da ⋯ menüsündeki veya Günlükler penceresindeki) **Günlükleri gönder** düğmesine bas, istersen ne olduğunu yaz; eklentinin günlüğü ve ayarları, bu OBS oturumunun günlüğü ve ClipHound'un günlüğü doğrudan Kennel.gg'ye gider. #obs-streaming-tool-chat kanalında belirtmen için LOG-7F3A gibi bir referans kodu alırsın. Gizli hiçbir şey gönderilmez (hesap bağlantısı, anahtar ya da şifre yok), kliplerin, videon, sesin veya sohbetin asla gönderilmez ve günlükler 60 gün saklanır.
 - **Takım arkadaşının görüntüsü her seferinde ekranı kaplıyor.** Görüntü yalnızca ilk eklendiğinde tam ekran yapılıyordu; bu yüzden tuval büyüdükten (1080p'den 1440p'ye) ya da görüntü yanlışlıkla sürüklendikten sonra küçük kalıyor, ekranın yaklaşık dörtte üçünde duruyordu. Artık her gösterildiğinde yeniden tam ekran yapılıyor ve Twitch, Kick, YouTube veya VDO.Ninja görüntüsü tuval boyutunda işleniyor. Ayarlar, Takım & POV: kendi düzenini korumak için "Takım arkadaşının görüntüsü her gösterildiğinde tüm ekranı kaplasın" seçeneğinin işaretini kaldır.

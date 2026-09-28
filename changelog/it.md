@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.29.3
+- **Un'etichetta BETA.** Il pannello mostra BETA accanto al nome, e la prima pagina della configurazione dice che il plugin è in beta: ancora in costruzione e cambia spesso, quindi aspettati qualche bug, e dove inviare i log se qualcosa non va.
+- **Invia i log si sposta in Impostazioni, Aiuto.** Il pulsante in fondo al pannello non c'è più; ora è in Impostazioni, Aiuto ("Qualcosa non va? Inviaci i tuoi log"), e resta nel menu ⋯ del pannello e nella finestra dei log.
+
 ## 0.29.2
 - **Invia log, con un clic.** Qualcosa non va? Premi **Invia log** in fondo al pannello (o nel menu ⋯, o nella finestra Log), racconta cosa è successo se vuoi, e il log e le impostazioni del plugin, il log di questa sessione di OBS e il log di ClipHound arrivano dritti a Kennel.gg. Ricevi un riferimento come LOG-7F3A da citare in #obs-streaming-tool-chat. Non viene inviato niente di segreto (niente collegamento all'account, niente chiavi, niente password), mai le tue clip, i video, la voce o la chat, e i log vengono conservati per 60 giorni.
 - **Il feed del compagno di squadra riempie lo schermo ogni volta.** Veniva messo a schermo intero solo alla prima aggiunta, quindi dopo che il canvas cresceva (da 1080p a 1440p) o il feed veniva spostato per sbaglio restava più piccolo, a circa tre quarti dello schermo. Ora viene rimesso a schermo intero ogni volta che è mostrato, e un feed Twitch, Kick, YouTube o VDO.Ninja viene reso alla dimensione del tuo canvas. Impostazioni, Squadra & POV: togli la spunta a "Riempi tutto lo schermo con il feed del compagno di squadra ogni volta che è mostrato" per tenere un layout tuo.

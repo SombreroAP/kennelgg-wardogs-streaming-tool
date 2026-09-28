@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.29.3
+- **Una etiqueta BETA.** El panel muestra BETA junto a su nombre, y la primera página de la configuración dice que el plugin está en beta: todavía se está construyendo y cambia a menudo, así que espera algún fallo, y dónde enviar los registros si algo no va bien.
+- **Enviar registros pasa a Ajustes, Ayuda.** El botón de la parte inferior del panel desaparece; ahora está en Ajustes, Ayuda («¿Algo no va bien? Envíanos tus registros»), y sigue en el menú ⋯ del panel y en la ventana de registros.
+
 ## 0.29.2
 - **Enviar registros, con un clic.** ¿Algo no va bien? Pulsa **Enviar registros** abajo en el panel (o en el menú ⋯, o en la ventana Registros), cuenta qué pasó si quieres, y el registro y los ajustes del plugin, el registro de esta sesión de OBS y el de ClipHound van directos a Kennel.gg. Recibes una referencia como LOG-7F3A para mencionarla en #obs-streaming-tool-chat. No se envía nada secreto (ni la vinculación de la cuenta, ni claves, ni contraseñas), nunca tus clips, vídeo, voz ni chat, y los registros se guardan 60 días.
 - **La señal del compañero llena la pantalla cada vez.** Solo se ponía a pantalla completa al añadirla por primera vez, así que si luego crecía el lienzo (de 1080p a 1440p) o la señal se movía sin querer, se quedaba más pequeña, a unas tres cuartas partes de la pantalla. Ahora vuelve a pantalla completa cada vez que se muestra, y una señal de Twitch, Kick, YouTube o VDO.Ninja se renderiza al tamaño de tu lienzo. Ajustes, Escuadra & POV: desmarca "Llenar toda la pantalla con la señal del compañero cada vez que se muestre" para mantener tu propia composición.

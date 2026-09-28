@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.29.3
+- **Uma etiqueta BETA.** O painel mostra BETA ao lado do nome, e a primeira página da configuração diz que o plugin está em beta: ainda está sendo construído e muda com frequência, então espere um ou outro bug, e para onde enviar os logs se algo der errado.
+- **Enviar logs foi para Configurações, Ajuda.** O botão no fim do painel saiu; agora está em Configurações, Ajuda ("Algo errado? Envie seus logs para nós"), e continua no menu ⋯ do painel e na janela de logs.
+
 ## 0.29.2
 - **Enviar logs, com um clique.** Algo errado? Clique em **Enviar logs** na parte de baixo do painel (ou no menu ⋯, ou na janela Logs), conte o que aconteceu se quiser, e o log e as configurações do plugin, o log desta sessão do OBS e o log do ClipHound vão direto para o Kennel.gg. Você recebe uma referência como LOG-7F3A para mencionar no #obs-streaming-tool-chat. Nada secreto é enviado (nem vínculo de conta, nem chaves, nem senhas), nunca seus clipes, vídeo, voz ou chat, e os logs ficam guardados por 60 dias.
 - **O feed do parceiro de squad preenche a tela toda vez.** Ele só era colocado em tela cheia quando adicionado pela primeira vez, então depois que a tela do OBS crescia (de 1080p para 1440p) ou o feed era arrastado sem querer, ele ficava menor, com cerca de três quartos da tela. Agora ele volta para tela cheia sempre que aparece, e um feed da Twitch, Kick, YouTube ou VDO.Ninja é renderizado no tamanho da sua tela do OBS. Configurações, Squad & POV: desmarque "Preencher a tela inteira com o feed do parceiro de squad sempre que ele aparecer" para manter um layout seu.

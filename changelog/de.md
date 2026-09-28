@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.29.3
+- **Ein BETA-Hinweis.** Das Dock zeigt BETA neben seinem Namen, und die erste Seite der Einrichtung sagt, dass das Plugin in der Beta ist: Es wird noch gebaut und ändert sich oft, rechne also mit dem einen oder anderen Fehler – und wohin du Logs schickst, wenn etwas nicht stimmt.
+- **Logs senden ist jetzt unter Einstellungen, Hilfe.** Der Button unten im Dock ist weg; er ist jetzt in Einstellungen, Hilfe („Stimmt etwas nicht? Schick uns deine Logs“) und weiterhin im ⋯-Menü des Docks und im Log-Fenster.
+
 ## 0.29.2
 - **Logs senden, mit einem Klick.** Stimmt was nicht? Drück **Logs senden** unten im Dock (oder im ⋯-Menü oder im Logs-Fenster), schreib dazu, was passiert ist, wenn du magst, und Log und Einstellungen des Plugins, das Log dieser OBS-Sitzung und das Log von ClipHound gehen direkt an Kennel.gg. Du bekommst eine Referenz wie LOG-7F3A, die du in #obs-streaming-tool-chat nennst. Nichts Geheimes wird gesendet (keine Kontoverknüpfung, keine Schlüssel, keine Passwörter), nie deine Clips, dein Video, deine Stimme oder dein Chat, und Logs werden 60 Tage aufbewahrt.
 - **Der Feed des Squad-Mitglieds füllt jedes Mal den Bildschirm.** Er wurde nur beim ersten Hinzufügen auf Vollbild gesetzt; wuchs danach die Leinwand (1080p auf 1440p) oder wurde der Feed versehentlich verschoben, blieb er kleiner, bei etwa drei Vierteln des Bildschirms. Jetzt wird er bei jedem Zeigen wieder auf Vollbild gesetzt, und ein Twitch-, Kick-, YouTube- oder VDO.Ninja-Feed wird in deiner Leinwandgröße gerendert. Einstellungen, Squad & POV: Nimm den Haken bei "Feed des Squad-Mitglieds bei jedem Zeigen bildschirmfüllend anzeigen" raus, um ein eigenes Layout zu behalten.

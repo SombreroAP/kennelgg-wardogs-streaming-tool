@@ -2,7 +2,7 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
-## Unreleased
+## 0.29.3
 - **A BETA tag.** The dock shows BETA beside its name, and the first page of Setup says the plugin is in beta: still being built, changing often, so expect the odd bug, and where to send logs when something is not right.
 - **Send logs moved to Settings, Help.** The button at the bottom of the dock is gone; it is now in Settings, Help ("Something not right? Send us your logs"), and still in the dock's ⋯ menu and the Logs window.
 

@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.29.3
+- **Une étiquette BÊTA.** Le dock affiche BÊTA à côté de son nom, et la première page de la configuration indique que le plugin est en bêta : encore en construction et souvent modifié, attends-toi donc à quelques bugs, avec l'endroit où envoyer les journaux si quelque chose ne va pas.
+- **Envoyer les journaux passe dans Paramètres, Aide.** Le bouton en bas du dock disparaît ; il est maintenant dans Paramètres, Aide (« Quelque chose ne va pas ? Envoie-nous tes journaux »), et toujours dans le menu ⋯ du dock et la fenêtre des journaux.
+
 ## 0.29.2
 - **Envoyer les journaux, en un clic.** Un souci ? Appuie sur **Envoyer les journaux** en bas du dock (ou dans le menu ⋯, ou dans la fenêtre Journaux), dis ce qui s'est passé si tu veux, et le journal et les paramètres du plugin, le journal de cette session OBS et celui de ClipHound partent directement chez Kennel.gg. Tu reçois une référence comme LOG-7F3A à indiquer dans #obs-streaming-tool-chat. Rien de secret n'est envoyé (pas de liaison de compte, pas de clés, pas de mots de passe), jamais tes clips, ta vidéo, ta voix ou ton chat, et les journaux sont conservés 60 jours.
 - **Le flux du coéquipier remplit l'écran à chaque fois.** Il n'était mis en plein écran qu'au premier ajout, donc après un agrandissement du canevas (1080p à 1440p) ou un déplacement accidentel du flux, il restait plus petit, à environ trois quarts de l'écran. Maintenant il est remis en plein écran à chaque affichage, et un flux Twitch, Kick, YouTube ou VDO.Ninja est rendu à la taille de ton canevas. Paramètres, Escouade & POV : décoche « Remplir tout l'écran avec le flux du coéquipier à chaque affichage » pour garder ta propre disposition.
