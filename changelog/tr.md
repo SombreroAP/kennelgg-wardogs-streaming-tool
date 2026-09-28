@@ -1,5 +1,11 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.2
+- **Clutch.** Ayarlar, Takım & POV: yerde olan bir takım arkadaşını asla gösterme. Onların yayınları da seninki gibi yere düşme ekranı için okunur; ekranda yere düşen, ayakta olan sıradakiyle değiştirilir, tüm takım yerdeyse köşede canlı sen varken tekrarların oynar, ta ki sen ya da biri kaldırılana kadar.
+- **Düzeltildi: takım arkadaşının POV'u Twitch reklamıyla açılıyordu.** Twitch oynatıcı her yüklendiğinde reklam oynatır ve yayın her geçişte yeniden yükleniyordu. Artık her takım arkadaşının yayını yüklü, gizli ve sessiz kalıyor, reklam kimsenin görmediği yerde oynuyor. Herkes için açıldı (Ayarlar, Takım & POV: "Her takım arkadaşının yayınını yüklü tut"); her biri için bant genişliği kullanır.
+- **Başka oyun yayınlayan takım arkadaşları atlanır.** Kategorisi WARDOGS olmayan (maçlar arasında Just Chatting gibi) Twitch veya Kick takım arkadaşı gösterilmez; kategorisi yeniden WARDOGS olduğu anda geri gelir.
+- **Düzeltildi: Yenilikler'deki Şimdi güncelle hiçbir şey yapmıyordu**, güncelleme zaten kendiliğinden inmişse. Artık kuruyor.
+
 ## 0.34.1
 - **Düzeltildi: bir takım arkadaşının POV'u yayında takılı kalıyordu.** Takımda kimse yokken (ya da ekrandakini çıkardıktan sonra) tarayıcı sayfası ve isim plakası önceki oturumdan kalabiliyordu, ve Ben (dock, Stream Deck, ses) hiçbir şey yapmıyordu çünkü eklenti zaten kendi POV'unda olduğunu sanıyordu. Artık OBS açılırken, bir takım arkadaşı çıkarılınca ve Ben'e her bastığında temizleniyorlar.
 

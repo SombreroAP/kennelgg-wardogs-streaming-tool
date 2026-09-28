@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.2
+- **Clutch.** Settings, Squad & POV: never show a squad mate who is down too. Their streams are read for the downed screen like yours; one who goes down on screen is swapped for the next one up, and with the whole squad down your replays play, you live in the corner, until you or one of them is revived.
+- **Fixed: a squad mate's POV opening on a Twitch advert.** Twitch plays a pre-roll every time its player loads, and the feed reloaded on every swap. Every squad mate's stream now stays loaded, hidden and silent, so the ad plays out where nobody sees it. Turned on for everyone (Settings, Squad & POV: "Keep every squad mate's feed loaded"); it uses their bandwidth for each one.
+- **Squad mates streaming another game are skipped.** A Twitch or Kick squad mate whose category is not WARDOGS (Just Chatting between matches, say) is not swapped to; they are back the moment their category is WARDOGS again.
+- **Fixed: Update now in What's new did nothing** once the update had already downloaded by itself. It installs it now.
+
 ## 0.34.1
 - **Fixed: a squad mate's POV stuck on stream.** With nobody in the squad (or after removing the one on screen), their browser page and name plate could stay up from an earlier session, and Me (dock, Stream Deck, voice) did nothing because the plugin thought you were already on your own POV. They are now cleared when OBS starts, when a squad mate is removed, and whenever you press Me.
 

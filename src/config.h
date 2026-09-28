@@ -87,7 +87,8 @@ struct Config {
 	/// Discord squad mates are shown only while their capture holds a game picture: never the call
 	/// grid, a text channel or a "stream ended" card (Picture::look decides).
 	bool pictureCheck = true;
-	bool preloadFeeds = false;   // every squad mate's feed loaded and playing, hidden and silent
+	bool preloadFeeds = true;    // every squad mate's feed loaded and playing, hidden and silent
+	bool preloadV1 = false;      // turned on once for everyone (0.34.2): no pre-roll ad on every swap
 	bool friendAudio = true;     // the squad mate on screen is the one feed with sound on your stream
 	bool audioDefaults2 = false; // one-time move to "nothing of yours is muted by default"
 	bool audioDefaults3 = false; // ...and once more: nothing muted, and no sound taken from their feed
@@ -271,9 +272,11 @@ struct Config {
 	bool invSwitch = true;      // magazine packing: a squad mate's POV while the inventory screen is open
 	bool downedReplays = false; // downed with no squad mate to show: your replays, newest first, until revived
 	bool downedReplaysAlways = false; // ...even when a squad mate streams: replays instead of their POV (0.33.2)
-	bool reelFromDown = true;         // the reel starts with the moment you went down (a clip saved at the down)
-	bool clipOnDowned = false;        // also clip when you get downed (the moment before is in the buffer)
-	bool clipUseReplay = true;        // save OBS's own replay buffer on a clip
+	bool clutch =
+		false; // never a downed squad mate's POV: the next one up, else my replays with me live small (0.34.2)
+	bool reelFromDown = true;  // the reel starts with the moment you went down (a clip saved at the down)
+	bool clipOnDowned = false; // also clip when you get downed (the moment before is in the buffer)
+	bool clipUseReplay = true; // save OBS's own replay buffer on a clip
 	std::vector<std::string> clipHotkeys; // OBS hotkey names fired on every clip (e.g. Aitum Backtrack "save")
 	std::string backtrackFolder; // where Aitum Backtrack writes; new files there after a trigger get our name
 

@@ -129,6 +129,7 @@ void Config::load()
 	DEFS(sessionOverlayMode);
 	DEFB(pictureCheck);
 	DEFB(preloadFeeds);
+	DEFB(preloadV1);
 	DEFB(friendAudio);
 	DEFB(audioDefaults2);
 	DEFB(audioDefaults3);
@@ -267,6 +268,7 @@ void Config::load()
 	DEFB(downedReplays);
 	DEFB(downedReplaysAlways);
 	DEFB(reelFromDown);
+	DEFB(clutch);
 	DEFB(clipUseReplay);
 	DEFS(backtrackFolder);
 	DEFS(playerName);
@@ -348,6 +350,7 @@ void Config::load()
 	GETS(sessionOverlayMode);
 	GETB(pictureCheck);
 	GETB(preloadFeeds);
+	GETB(preloadV1);
 	GETB(friendAudio);
 	GETB(audioDefaults2);
 	GETB(audioDefaults3);
@@ -486,6 +489,7 @@ void Config::load()
 	GETB(downedReplays);
 	GETB(downedReplaysAlways);
 	GETB(reelFromDown);
+	GETB(clutch);
 	GETB(clipUseReplay);
 	GETS(backtrackFolder);
 	GETS(playerName);
@@ -664,6 +668,14 @@ void Config::load()
 		muteWhileDowned.clear();
 		audioAutoPicked = true;
 	}
+	// 0.34.2: Twitch plays a pre-roll ad every time its player page loads, and one shared page reloaded on
+	// every swap, so a squad mate's POV came up as an advert most of the time (DaDao, 28 Sep 2026). Each
+	// stream now stays loaded, hidden and silent, and the ad plays out where nobody sees it. On once for
+	// everyone; the Switch tab turns it off.
+	if (!preloadV1) {
+		preloadV1 = true;
+		preloadFeeds = true;
+	}
 	// 0.9.1: the squad mate on screen is the one feed with sound, on by default, and the unmute
 	// moves with the picture. The Switch tab turns it off.
 	if (!audioDefaults5) {
@@ -753,6 +765,7 @@ void Config::save() const
 	SETS(sessionOverlayMode);
 	SETB(pictureCheck);
 	SETB(preloadFeeds);
+	SETB(preloadV1);
 	SETB(friendAudio);
 	SETB(audioDefaults2);
 	SETB(audioDefaults3);
@@ -891,6 +904,7 @@ void Config::save() const
 	SETB(downedReplays);
 	SETB(downedReplaysAlways);
 	SETB(reelFromDown);
+	SETB(clutch);
 	SETB(clipUseReplay);
 	SETS(backtrackFolder);
 	SETS(playerName);

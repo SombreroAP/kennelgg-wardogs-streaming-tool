@@ -1234,7 +1234,10 @@ void Dock::openWhatsNew()
 	auto *row = new QHBoxLayout();
 	auto *skip = new QPushButton(tx("Skip this version"), d);
 	auto *later = new QPushButton(tx("Later"), d);
-	auto *go = new QPushButton(self ? tx("Update now") : tx("Download"), d);
+	auto *go = new QPushButton(!self               ? tx("Download")
+				   : e_->updateReady() ? tx("Install and restart OBS")
+						       : tx("Update now"),
+				   d);
 	go->setDefault(true);
 	row->addWidget(skip);
 	row->addStretch(1);
@@ -1247,7 +1250,11 @@ void Dock::openWhatsNew()
 	});
 	connect(later, &QPushButton::clicked, d, &QDialog::close);
 	connect(go, &QPushButton::clicked, d, [this, d]() {
-		e_->startUpdate();
+		// already downloaded by itself (0.34.0): Update now installs it instead of doing nothing (LOG-255B)
+		if (e_->updateReady())
+			e_->installUpdate();
+		else
+			e_->startUpdate();
 		d->close();
 	});
 	whatsNew_ = d;

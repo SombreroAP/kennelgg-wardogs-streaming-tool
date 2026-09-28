@@ -1,5 +1,11 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.2
+- **Clutch.** Paramètres, Escouade & POV : ne jamais montrer un coéquipier à terre lui aussi. Leurs streams sont lus pour l'écran à terre comme le tien ; celui qui tombe à l'écran est remplacé par le suivant encore debout, et quand toute l'escouade est à terre, tes replays passent avec toi en direct dans le coin, jusqu'à ce que toi ou l'un d'eux soit relevé.
+- **Corrigé : le POV d'un coéquipier s'ouvrait sur une pub Twitch.** Twitch passe une pub à chaque chargement de son lecteur, et le flux se rechargeait à chaque changement. Le stream de chaque coéquipier reste maintenant chargé, caché et muet, donc la pub passe là où personne ne la voit. Activé pour tout le monde (Paramètres, Escouade & POV : « Garder le flux de chaque coéquipier chargé ») ; cela consomme de la bande passante pour chacun.
+- **Les coéquipiers qui streament un autre jeu sont ignorés.** Un coéquipier Twitch ou Kick dont la catégorie n'est pas WARDOGS (Just Chatting entre deux parties, par exemple) n'est pas affiché ; il revient dès que sa catégorie redevient WARDOGS.
+- **Corrigé : Mettre à jour dans Nouveautés ne faisait rien** quand la mise à jour s'était déjà téléchargée toute seule. Elle s'installe maintenant.
+
 ## 0.34.1
 - **Corrigé : le POV d'un coéquipier restait bloqué à l'écran.** Sans personne dans l'escouade (ou après avoir retiré celui affiché), sa page navigateur et sa plaque de nom pouvaient rester d'une session précédente, et Moi (dock, Stream Deck, voix) ne faisait rien car le plugin pensait que tu étais déjà sur ton propre POV. Ils sont maintenant retirés au démarrage d'OBS, quand un coéquipier est retiré et à chaque appui sur Moi.
 

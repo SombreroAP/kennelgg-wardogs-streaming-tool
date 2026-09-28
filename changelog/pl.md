@@ -1,5 +1,11 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.2
+- **Clutch.** Ustawienia, Drużyna & POV: nigdy nie pokazuj kolegi, który też padł. Ich streamy są sprawdzane pod kątem ekranu powalenia tak jak twój; kto padnie na ekranie, zostaje zamieniony na następnego, który stoi, a gdy padnie cała drużyna, lecą twoje powtórki z tobą na żywo w rogu, dopóki ty albo ktoś z nich nie zostanie podniesiony.
+- **Naprawiono: POV kolegi zaczynał się od reklamy Twitcha.** Twitch puszcza reklamę przy każdym załadowaniu odtwarzacza, a feed przeładowywał się przy każdej zmianie. Teraz stream każdego kolegi zostaje załadowany, ukryty i wyciszony, więc reklama leci tam, gdzie nikt jej nie widzi. Włączone dla wszystkich (Ustawienia, Drużyna & POV: „Trzymaj załadowany feed każdego kolegi”); zużywa łącze na każdy z nich.
+- **Koledzy streamujący inną grę są pomijani.** Kolega z Twitcha lub Kicka, którego kategoria to nie WARDOGS (np. Just Chatting między meczami), nie jest pokazywany; wraca, gdy tylko jego kategoria znów będzie WARDOGS.
+- **Naprawiono: Aktualizuj teraz w Nowościach nic nie robiło**, gdy aktualizacja pobrała się już sama. Teraz ją instaluje.
+
 ## 0.34.1
 - **Naprawiono: POV kolegi zostawał na streamie.** Gdy nikogo nie było w drużynie (albo po usunięciu tego na ekranie), jego strona w przeglądarce i tabliczka z nazwą mogły zostać z poprzedniej sesji, a Ja (dock, Stream Deck, głos) nic nie robiło, bo wtyczka myślała, że już jesteś na swoim POV. Teraz znikają przy starcie OBS, po usunięciu kolegi i za każdym naciśnięciem Ja.
 

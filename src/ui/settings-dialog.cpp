@@ -1555,6 +1555,17 @@ QWidget *SettingsDialog::buildDetectTab()
 	f->addRow(QString(), reelRow);
 	connect(downedAlways_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(reelFromDown_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	clutch_ = new QCheckBox(
+		tx("Clutch: never show a squad mate who is down too - the next one up, and when the whole "
+		   "squad is down, my replays with me live in the corner"),
+		g);
+	clutch_->setChecked(e_->cfg.clutch);
+	clutch_->setToolTip(
+		tx("Their streams are read for the downed screen, the same way yours is. A squad mate who goes down "
+		   "while on screen is swapped for the next one who is up; with everyone down, your replays play "
+		   "(your own POV live, bottom right) until you or one of them is revived."));
+	f->addRow(tx("Clutch"), clutch_);
+	connect(clutch_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(povStinger_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(povMin_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
 	auto *mdRow = new QHBoxLayout();
@@ -3722,6 +3733,8 @@ void SettingsDialog::collect()
 		c.downedReplaysAlways = downedAlways_->isChecked();
 	if (reelFromDown_)
 		c.reelFromDown = reelFromDown_->isChecked();
+	if (clutch_)
+		c.clutch = clutch_->isChecked();
 	c.pollMs = pollMs_->value();
 	c.autoDetect = auto_->isChecked();
 	c.watchRevive = revive_->isChecked();

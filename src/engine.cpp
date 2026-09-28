@@ -442,6 +442,8 @@ void Engine::loadTemplates()
 			loadLangTemplate(detGame_, "en");
 			want = "en";
 		}
+		loadLangTemplate(detMate_, want);
+		detMate_.threshold = cfg.threshold;
 		if (!fixed && cfg.gameLangFound.empty())
 			for (const char *l : kLangs) {
 				if (want == l)
@@ -3991,6 +3993,8 @@ QString Engine::feedStateText(const Friend &f) const
 	case Feed::Live:
 		return tx("live");
 	case Feed::Off:
+		if (webOtherGame_.contains(webLiveKey(f)))
+			return tx("playing %1").arg(webOtherGame_.value(webLiveKey(f)));
 		return noGamePicture(f) ? tx("no game picture") : tx("not streaming");
 	default:
 		return "";
@@ -4387,6 +4391,14 @@ QString Engine::webLiveKey(const Friend &f)
 
 /// Ask each streaming service whether a squad mate's channel is live. Members of the Kennel.gg
 /// Discord only, like the rest of the squad automation; everyone else sees no change.
+/// A Twitch or Kick category that is WARDOGS ("WARDOGS", "War Dogs", "WARDOGS: Early Access"...).
+bool Engine::isWardogs(const QString &game)
+{
+	QString g = game.toLower();
+	g.remove(QRegularExpression("[^a-z]"));
+	return g.contains("wardogs");
+}
+
 void Engine::webLiveTick()
 {
 	if (stopping_ || rosterAccess() != Access::Ok)
@@ -4404,8 +4416,16 @@ void Engine::webLiveTick()
 			continue;
 		seen.insert(key);
 		webLiveBusy_.insert(key);
-		auto settle = [this, key, ch](Feed state, const QString &note) {
+		auto settle = [this, key, ch](Feed state, QString note, const QString &game = QString()) {
 			webLiveBusy_.remove(key);
+			// live on another game (or Just Chatting between matches): not a WARDOGS POV to swap to. They are
+			// offered again by themselves the moment their category is WARDOGS again (29 Sep 2026 request)
+			if (state == Feed::Live && !game.isEmpty() && !isWardogs(game)) {
+				webOtherGame_[key] = game;
+				state = Feed::Off;
+				note = tx("playing %1").arg(game);
+			} else
+				webOtherGame_.remove(key);
 			Feed was = webLive_.value(key, Feed::Unknown);
 			if (state == Feed::Unknown)
 				webLive_.remove(key);
@@ -4424,7 +4444,7 @@ void Engine::webLiveTick()
 		if (f.kind == FriendKind::Twitch) {
 			// the same query Twitch's own site sends; no account needed
 			QJsonObject q;
-			q["query"] = "query($l:String!){user(login:$l){stream{id}}}";
+			q["query"] = "query($l:String!){user(login:$l){stream{id game{name}}}}";
 			QJsonObject v;
 			v["l"] = ch;
 			q["variables"] = v;
@@ -4443,7 +4463,10 @@ void Engine::webLiveTick()
 						settle(Feed::Unknown, tx("no such channel"));
 						return;
 					}
-					settle(user.toObject()["stream"].isObject() ? Feed::Live : Feed::Off, "");
+					QJsonObject st = user.toObject()["stream"].toObject();
+					QString game = st["game"].toObject()["name"].toString();
+					settle(user.toObject()["stream"].isObject() ? Feed::Live : Feed::Off,
+					       game.isEmpty() ? "" : game, game);
 				});
 		} else if (f.kind == FriendKind::Kick) {
 			Http::requestAsync(this, "GET",
@@ -4459,7 +4482,14 @@ void Engine::webLiveTick()
 							   settle(Feed::Unknown, tx("no answer"));
 							   return;
 						   }
-						   settle(o["livestream"].isObject() ? Feed::Live : Feed::Off, "");
+						   QString game = o["livestream"]
+									  .toObject()["categories"]
+									  .toArray()
+									  .first()
+									  .toObject()["name"]
+									  .toString();
+						   settle(o["livestream"].isObject() ? Feed::Live : Feed::Off,
+							  game.isEmpty() ? "" : game, game);
 					   });
 		} else {
 			// a channel id gets its /live page, a video id its watch page; a live one carries videoDetails with isLive
@@ -4619,10 +4649,25 @@ void Engine::tick()
 	bool wantRevive = applied_ && cfg.watchRevive && cfg.active();
 	std::string gameName = cfg.gameSource, friendName = wantRevive ? cfg.sourceFor(*cfg.active()) : "";
 	bool preview = previewWanted_;
+	// clutch: one squad mate's feed read for the downed screen every half second, in turn (they stay loaded
+	// and hidden while nobody shows them, so a downed one is known before they would be put on screen)
+	std::string mateSrc;
+	QString mateName;
+	if (cfg.clutch && !cfg.friends.empty() && tickN_ % 5 == 0) {
+		int n = (int)cfg.friends.size();
+		for (int k = 0; k < n && mateSrc.empty(); ++k) {
+			const Friend &f = cfg.friends[(mateTurn_ + k) % n];
+			if (!feedUsable(f) || feedState(f) == Feed::Off)
+				continue;
+			mateSrc = cfg.sourceFor(f);
+			mateName = QString::fromStdString(f.name);
+			mateTurn_ = (mateTurn_ + k + 1) % n;
+		}
+	}
 
 	std::shared_ptr<AltSet> alts = altDets_;
 	workers_++;
-	std::thread([this, gameName, friendName, wantRevive, preview, quick, reviveFull, alts]() {
+	std::thread([this, gameName, friendName, wantRevive, preview, quick, reviveFull, alts, mateSrc, mateName]() {
 		WorkerGuard guard(workers_);
 		Result r;
 		obs_source_t *src = obs_get_source_by_name(gameName.c_str());
@@ -4686,6 +4731,19 @@ void Engine::tick()
 				obs_source_release(fs);
 			}
 		}
+		if (!mateSrc.empty()) {
+			r.mateName = mateName;
+			if (obs_source_t *ms = obs_get_source_by_name(mateSrc.c_str())) {
+				std::vector<uint8_t> bgra;
+				int w, h, ls;
+				if (capMate_.grab(ms, Detector::FrameWidth, bgra, w, h, ls)) {
+					Frame f = Detector::fromBGRA(bgra.data(), w, h, ls);
+					r.mate = detMate_.compare(f, false);
+					r.mateOk = true;
+				}
+				obs_source_release(ms);
+			}
+		}
 		QMetaObject::invokeMethod(
 			this, [this, r = std::move(r)]() mutable { onResult(std::move(r)); }, Qt::QueuedConnection);
 	}).detach();
@@ -4693,6 +4751,24 @@ void Engine::tick()
 
 void Engine::onResult(Result r)
 {
+	if (!r.mateName.isEmpty() && r.mateOk) {
+		MateSeen &m = mates_[r.mateName];
+		bool down = r.mate.score >= detMate_.threshold;
+		m.at = QDateTime::currentMSecsSinceEpoch();
+		m.downRun = down ? m.downRun + 1 : 0;
+		m.upRun = down ? 0 : m.upRun + 1;
+		// two reads in a row either way (a second apart at most) before it counts
+		bool was = m.downed;
+		if (m.downRun >= 2)
+			m.downed = true;
+		else if (m.upRun >= 2)
+			m.downed = false;
+		if (m.downed != was) {
+			log(m.downed ? tx("Clutch: %1 is down.").arg(r.mateName)
+				     : tx("Clutch: %1 is up.").arg(r.mateName));
+			clutchStep();
+		}
+	}
 	busy_ = false;
 	if (stopping_)
 		return;
@@ -4850,6 +4926,14 @@ void Engine::detect(const Match &m)
 			clips.request("downed", {"downed"}, "pov");
 		askNearbyNow(); // fresh NEARBY reading while the delay runs
 		pickClosest(TX_NOOP("downed"), true);
+		if (cfg.clutch && !applied_ && cfg.active() && mateDowned(*cfg.active())) {
+			int up = clutchPick();
+			if (up >= 0) {
+				cfg.activeFriend = up;
+				cfg.save();
+				emit stateChanged();
+			}
+		}
 		// whoever is about to be shown must have a picture: a squad mate the roster has in voice
 		// but not streaming shows nothing, so a live one takes their place, or you stay on your own
 		if (!applied_ && cfg.active() && feedState(*cfg.active()) == Feed::Off) {
@@ -5531,7 +5615,8 @@ void Engine::endReplay(const QString &why)
 void Engine::startPip(int delayMs)
 {
 	// instant replays only (not the highlights reel), the main canvas only
-	if (!cfg.replayPip || pendingReplay_.path.isEmpty())
+	// clutch's replays always keep you live in the corner: a revive is what everyone is waiting for
+	if ((!cfg.replayPip && !(cfg.clutch && reelOn_)) || pendingReplay_.path.isEmpty())
 		return;
 	std::string saved = sw.pipBegin(cfg);
 	if (saved.empty())
@@ -6120,11 +6205,13 @@ void Engine::hudSample(const QString &why)
 /// A squad mate the downed swap could show now: one chosen, with a capture, and not known to be off.
 bool Engine::reelWanted() const
 {
-	return cfg.downedReplaysAlways || (cfg.downedReplays && !squadToShow());
+	return cfg.downedReplaysAlways || ((cfg.downedReplays || cfg.clutch) && !squadToShow());
 }
 
 bool Engine::squadToShow() const
 {
+	if (cfg.clutch)
+		return clutchPick() >= 0;
 	const Friend *a = cfg.active();
 	if (a && feedUsable(*a) && feedState(*a) != Feed::Off)
 		return true;
@@ -6378,4 +6465,71 @@ void Engine::clearSquadLeftovers()
 			   : tx("Squad mate feeds hidden (%1 items).").arg(n));
 	if (cfg.keepWarm && cfg.active())
 		sw.armWarm(cfg);
+}
+
+/// Clutch: a squad mate read as down in the last 20 s. Nobody read yet (or not for a while) counts as up.
+bool Engine::mateDowned(const Friend &f) const
+{
+	auto it = mates_.find(QString::fromStdString(f.name));
+	return it != mates_.end() && it->downed && QDateTime::currentMSecsSinceEpoch() - it->at < 20000;
+}
+
+int Engine::clutchPick() const
+{
+	auto ok = [this](const Friend &f) {
+		return feedUsable(f) && feedState(f) != Feed::Off && !mateDowned(f);
+	};
+	if (cfg.active() && ok(*cfg.active()))
+		return cfg.activeFriend;
+	for (size_t i = 0; i < cfg.friends.size(); ++i)
+		if (feedState(cfg.friends[i]) == Feed::Live && ok(cfg.friends[i]))
+			return (int)i;
+	for (size_t i = 0; i < cfg.friends.size(); ++i)
+		if (ok(cfg.friends[i]))
+			return (int)i;
+	return -1;
+}
+
+void Engine::clutchStep()
+{
+	if (!cfg.clutch || !detected_)
+		return;
+	if (applied_ && cfg.active() && mateDowned(*cfg.active())) {
+		// the squad mate on screen went down too: the next one up, or your replays
+		int up = clutchPick();
+		if (up >= 0) {
+			log(tx("Clutch: %1 is down too, showing %2.")
+				    .arg(QString::fromStdString(cfg.active()->name),
+					 QString::fromStdString(cfg.friends[up].name)));
+			setActive(up);
+		} else
+			clutchReel();
+		return;
+	}
+	if (reelOn_) {
+		// someone is back up while your replays play: their POV
+		int up = clutchPick();
+		if (up < 0)
+			return;
+		log(tx("Clutch: %1 is up, showing their POV.").arg(QString::fromStdString(cfg.friends[up].name)));
+		reelOn_ = false;
+		if (replaying())
+			endReplay(TX_NOOP("squad mate up"));
+		cfg.activeFriend = up;
+		cfg.save();
+		QTimer::singleShot(700, this, [this]() {
+			if (detected_ && !applied_ && !reelOn_)
+				applyNow(true, TX_NOOP("downed, squad mate up"));
+		});
+	}
+}
+
+void Engine::clutchReel()
+{
+	log(tx("Clutch: the whole squad is down - playing your replays until someone is revived."));
+	applyNow(false, TX_NOOP("squad down"));
+	QTimer::singleShot(900, this, [this]() {
+		if (detected_ && !applied_ && !reelOn_ && !replaying())
+			startReel();
+	});
 }

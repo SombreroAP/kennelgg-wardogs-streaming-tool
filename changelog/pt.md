@@ -1,5 +1,11 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.2
+- **Clutch.** Configurações, Squad & POV: nunca mostrar um parceiro que também caiu. As lives deles são lidas procurando a tela de caído como a sua; quem cai na tela é trocado pelo próximo de pé, e com o squad todo caído seus replays tocam, com você ao vivo no canto, até você ou um deles ser revivido.
+- **Corrigido: o POV de um parceiro abria com anúncio da Twitch.** A Twitch toca um pre-roll toda vez que o player carrega, e o feed recarregava a cada troca. Agora a live de cada parceiro fica carregada, escondida e muda, então o anúncio toca onde ninguém vê. Ligado para todos (Configurações, Squad & POV: "Manter o feed de cada parceiro carregado"); usa banda para cada um.
+- **Parceiros transmitindo outro jogo são pulados.** Um parceiro da Twitch ou Kick cuja categoria não é WARDOGS (Just Chatting entre partidas, por exemplo) não é mostrado; ele volta assim que a categoria for WARDOGS de novo.
+- **Corrigido: Atualizar agora em Novidades não fazia nada** quando a atualização já tinha baixado sozinha. Agora ela instala.
+
 ## 0.34.1
 - **Corrigido: o POV de um parceiro ficava preso na live.** Sem ninguém no squad (ou depois de remover quem estava na tela), a página do navegador e a placa com o nome dele podiam ficar de uma sessão anterior, e Eu (dock, Stream Deck, voz) não fazia nada porque o plugin achava que você já estava no seu próprio POV. Agora eles saem quando o OBS inicia, quando um parceiro é removido e sempre que você aperta Eu.
 

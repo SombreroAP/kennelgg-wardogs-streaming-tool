@@ -1,5 +1,11 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.2
+- **Clutch.** Ajustes, Escuadra & POV: nunca mostrar a un compañero que también esté caído. Sus directos se leen buscando la pantalla de caído como el tuyo; el que cae en pantalla se cambia por el siguiente en pie, y con toda la escuadra caída se reproducen tus repeticiones, contigo en directo en la esquina, hasta que tú o uno de ellos sea reanimado.
+- **Corregido: el POV de un compañero empezaba con un anuncio de Twitch.** Twitch pone un anuncio cada vez que carga su reproductor, y el feed se recargaba en cada cambio. Ahora el directo de cada compañero se queda cargado, oculto y en silencio, así que el anuncio pasa donde nadie lo ve. Activado para todos (Ajustes, Escuadra & POV: «Mantener cargado el feed de cada compañero»); usa ancho de banda por cada uno.
+- **Se saltan los compañeros que transmiten otro juego.** Un compañero de Twitch o Kick cuya categoría no es WARDOGS (Just Chatting entre partidas, por ejemplo) no se muestra; vuelve en cuanto su categoría vuelve a ser WARDOGS.
+- **Corregido: Actualizar ahora en Novedades no hacía nada** cuando la actualización ya se había descargado sola. Ahora la instala.
+
 ## 0.34.1
 - **Corregido: el POV de un compañero se quedaba en el directo.** Sin nadie en la escuadra (o tras quitar al que se mostraba), su página del navegador y su placa de nombre podían quedarse de una sesión anterior, y Yo (dock, Stream Deck, voz) no hacía nada porque el plugin creía que ya estabas en tu propio POV. Ahora se quitan al iniciar OBS, al quitar a un compañero y cada vez que pulsas Yo.
 

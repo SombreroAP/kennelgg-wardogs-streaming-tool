@@ -225,6 +225,7 @@ public:
 	void clearSquadLeftovers();
 	void startUpdate();   // download (or open the page)
 	bool installUpdate(); // run the installer and close OBS; false (and why in the log) when it cannot now
+	bool updateReady() const { return updStep_ == UpdStep::Ready; }
 	/// What changed since this version, newest first, in the plugin's language when that is
 	/// translated: markdown sections from changelog/<code>.md (or CHANGELOG.md). "" until fetched.
 	QString whatsNew() const { return whatsNew_; }
@@ -350,6 +351,9 @@ private:
 		int altLang = -1;             // index into altLangs_ when another language's wording scored best
 		std::shared_ptr<AltSet> alts; // the set that index belongs to
 		double progress = -1;
+		Match mate;          // the downed screen searched for on one squad mate's feed (clutch)
+		QString mateName;    // whose feed that was; empty when none was checked
+		bool mateOk = false; // their feed gave a picture
 		std::vector<uint8_t> bgra;
 		int w = 0, h = 0, ls = 0;
 	};
@@ -441,8 +445,10 @@ private:
 	// Twitch / Kick / YouTube squad mates: is their channel live right now? Asked every minute
 	// for members of the Kennel.gg Discord; a slot whose channel is offline is not shown
 	QTimer webLiveTimer_;
-	QHash<QString, Feed> webLive_; // "kind:channel" -> Live / Off (Unknown = not asked or no answer)
-	QSet<QString> webLiveBusy_;    // keys with a request in flight
+	QHash<QString, Feed> webLive_;         // "kind:channel" -> Live / Off (Unknown = not asked or no answer)
+	QSet<QString> webLiveBusy_;            // keys with a request in flight
+	QHash<QString, QString> webOtherGame_; // key -> the other game a live squad mate is streaming
+	static bool isWardogs(const QString &game);
 	static QString webLiveKey(const Friend &f);
 	// The picture check: every Discord capture that is on (warm or on screen) is looked at every
 	// second or two, and a squad mate whose capture holds no game picture is not offered or shown
@@ -618,6 +624,20 @@ private:
 	QDateTime appStartedAt_;
 	bool appCrashReported_ = false;
 	Detector detGame_, detRevive_;
+	// clutch: the same downed screen looked for on the squad mates' feeds, one feed per check
+	Detector detMate_;
+	Capture capMate_;
+	struct MateSeen {
+		int downRun = 0, upRun = 0;
+		bool downed = false;
+		qint64 at = 0; // when their feed was last read
+	};
+	QHash<QString, MateSeen> mates_;
+	int mateTurn_ = 0;
+	bool mateDowned(const Friend &f) const;
+	int clutchPick() const; // a squad mate to show who is not known to be down, or -1
+	void clutchStep();      // after a read: move off a downed squad mate, or out of the replays for one who is up
+	void clutchReel();      // everyone down: back to your own POV, then the replays
 	// game language on auto: the other wordings, searched alongside until one of them matches
 	// a shared set, so a worker in flight keeps the set it started with when settings replace it
 	std::shared_ptr<AltSet> altDets_ = std::make_shared<AltSet>();

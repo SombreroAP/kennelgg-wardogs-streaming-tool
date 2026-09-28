@@ -1,5 +1,11 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.2
+- **Clutch.** Einstellungen, Squad & POV: nie ein Squad-Mitglied zeigen, das auch unten ist. Ihre Streams werden wie deiner auf den Niedergegangen-Bildschirm geprüft; wer im Bild niedergeht, wird gegen das nächste stehende getauscht, und ist der ganze Squad unten, laufen deine Replays mit dir live in der Ecke, bis du oder einer von ihnen wiederbelebt wird.
+- **Behoben: Der POV eines Squad-Mitglieds startete mit Twitch-Werbung.** Twitch spielt bei jedem Laden des Players einen Pre-Roll, und der Feed lud bei jedem Wechsel neu. Jeder Stream eines Squad-Mitglieds bleibt jetzt geladen, versteckt und stumm, die Werbung läuft also dort, wo sie niemand sieht. Für alle eingeschaltet (Einstellungen, Squad & POV: „Den Feed jedes Squad-Mitglieds geladen halten“); das kostet Bandbreite pro Stream.
+- **Squad-Mitglieder, die ein anderes Spiel streamen, werden übersprungen.** Ein Twitch- oder Kick-Squad-Mitglied, dessen Kategorie nicht WARDOGS ist (etwa Just Chatting zwischen den Matches), wird nicht gezeigt; es ist wieder dabei, sobald seine Kategorie wieder WARDOGS ist.
+- **Behoben: „Jetzt aktualisieren“ unter Neuigkeiten tat nichts**, wenn das Update schon von selbst geladen war. Jetzt installiert es.
+
 ## 0.34.1
 - **Behoben: Der POV eines Squad-Mitglieds hing im Stream fest.** Ohne jemanden im Squad (oder nach dem Entfernen des gezeigten) konnten dessen Browserseite und Namensschild aus einer früheren Sitzung stehen bleiben, und Ich (Dock, Stream Deck, Sprache) tat nichts, weil das Plugin dachte, du wärst schon auf deinem eigenen POV. Beides wird jetzt beim Start von OBS, beim Entfernen eines Squad-Mitglieds und bei jedem Druck auf Ich weggeräumt.
 
