@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.3
+- **Behoben: „Das Mikrofon war stumm“ kam nie im Log des Plugins an.** ClipHound bemerkte ein stummes Mikrofon für Sprachbefehle, konnte den Hinweis aber nicht ans Plugin schicken, also fehlte er in „Logs senden“. Jetzt kommt er an. Danke an DaDao für die Logs.
+
 ## 0.34.2
 - **Clutch.** Einstellungen, Squad & POV: nie ein Squad-Mitglied zeigen, das auch unten ist. Ihre Streams werden wie deiner auf den Niedergegangen-Bildschirm geprüft; wer im Bild niedergeht, wird gegen das nächste stehende getauscht, und ist der ganze Squad unten, laufen deine Replays mit dir live in der Ecke, bis du oder einer von ihnen wiederbelebt wird.
 - **Behoben: Der POV eines Squad-Mitglieds startete mit Twitch-Werbung.** Twitch spielt bei jedem Laden des Players einen Pre-Roll, und der Feed lud bei jedem Wechsel neu. Jeder Stream eines Squad-Mitglieds bleibt jetzt geladen, versteckt und stumm, die Werbung läuft also dort, wo sie niemand sieht. Für alle eingeschaltet (Einstellungen, Squad & POV: „Den Feed jedes Squad-Mitglieds geladen halten“); das kostet Bandbreite pro Stream.

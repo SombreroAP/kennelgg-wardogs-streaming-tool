@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.3
+- **Risolto: «il microfono è silenzioso» non arrivava mai nel log del plugin.** ClipHound notava un microfono muto per i comandi vocali ma non riusciva a mandare l'avviso al plugin, quindi Invia log non ne aveva traccia. Ora arriva. Grazie DaDao per i log.
+
 ## 0.34.2
 - **Clutch.** Impostazioni, Squadra & POV: non mostrare mai un compagno anche lui a terra. Le loro dirette vengono lette per la schermata di abbattuto come la tua; chi cade a schermo viene sostituito dal prossimo in piedi, e con tutta la squadra a terra vanno i tuoi replay, con te in diretta nell'angolo, finché tu o uno di loro non venite rianimati.
 - **Risolto: il POV di un compagno si apriva con una pubblicità Twitch.** Twitch manda un pre-roll ogni volta che il player si carica, e il feed si ricaricava a ogni cambio. Ora la diretta di ogni compagno resta caricata, nascosta e muta, così la pubblicità passa dove nessuno la vede. Attivato per tutti (Impostazioni, Squadra & POV: «Tieni caricato il feed di ogni compagno»); usa banda per ciascuno.

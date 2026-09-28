@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.3
+- **Corregido: «el micrófono está en silencio» nunca llegaba al registro del plugin.** ClipHound notaba un micro en silencio para los comandos de voz pero no podía enviar el aviso al plugin, así que Enviar registros no lo mostraba. Ahora llega. Gracias DaDao por los registros.
+
 ## 0.34.2
 - **Clutch.** Ajustes, Escuadra & POV: nunca mostrar a un compañero que también esté caído. Sus directos se leen buscando la pantalla de caído como el tuyo; el que cae en pantalla se cambia por el siguiente en pie, y con toda la escuadra caída se reproducen tus repeticiones, contigo en directo en la esquina, hasta que tú o uno de ellos sea reanimado.
 - **Corregido: el POV de un compañero empezaba con un anuncio de Twitch.** Twitch pone un anuncio cada vez que carga su reproductor, y el feed se recargaba en cada cambio. Ahora el directo de cada compañero se queda cargado, oculto y en silencio, así que el anuncio pasa donde nadie lo ve. Activado para todos (Ajustes, Escuadra & POV: «Mantener cargado el feed de cada compañero»); usa ancho de banda por cada uno.

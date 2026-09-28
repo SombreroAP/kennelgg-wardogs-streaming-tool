@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.3
+- **Düzeltildi: "mikrofon sessiz" uyarısı eklentinin günlüğüne hiç ulaşmıyordu.** ClipHound sesli komutlar için sessiz mikrofonu fark ediyor ama bunu eklentiye gönderemiyordu, bu yüzden Günlükleri gönder'de iz yoktu. Artık ulaşıyor. Günlükler için teşekkürler DaDao.
+
 ## 0.34.2
 - **Clutch.** Ayarlar, Takım & POV: yerde olan bir takım arkadaşını asla gösterme. Onların yayınları da seninki gibi yere düşme ekranı için okunur; ekranda yere düşen, ayakta olan sıradakiyle değiştirilir, tüm takım yerdeyse köşede canlı sen varken tekrarların oynar, ta ki sen ya da biri kaldırılana kadar.
 - **Düzeltildi: takım arkadaşının POV'u Twitch reklamıyla açılıyordu.** Twitch oynatıcı her yüklendiğinde reklam oynatır ve yayın her geçişte yeniden yükleniyordu. Artık her takım arkadaşının yayını yüklü, gizli ve sessiz kalıyor, reklam kimsenin görmediği yerde oynuyor. Herkes için açıldı (Ayarlar, Takım & POV: "Her takım arkadaşının yayınını yüklü tut"); her biri için bant genişliği kullanır.

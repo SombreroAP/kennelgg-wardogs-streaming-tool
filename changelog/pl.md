@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.3
+- **Naprawiono: „mikrofon milczy” nigdy nie trafiało do logu wtyczki.** ClipHound zauważał cichy mikrofon dla komend głosowych, ale nie mógł wysłać tej informacji do wtyczki, więc w Wyślij logi nie było po tym śladu. Teraz dociera. Dzięki DaDao za logi.
+
 ## 0.34.2
 - **Clutch.** Ustawienia, Drużyna & POV: nigdy nie pokazuj kolegi, który też padł. Ich streamy są sprawdzane pod kątem ekranu powalenia tak jak twój; kto padnie na ekranie, zostaje zamieniony na następnego, który stoi, a gdy padnie cała drużyna, lecą twoje powtórki z tobą na żywo w rogu, dopóki ty albo ktoś z nich nie zostanie podniesiony.
 - **Naprawiono: POV kolegi zaczynał się od reklamy Twitcha.** Twitch puszcza reklamę przy każdym załadowaniu odtwarzacza, a feed przeładowywał się przy każdej zmianie. Teraz stream każdego kolegi zostaje załadowany, ukryty i wyciszony, więc reklama leci tam, gdzie nikt jej nie widzi. Włączone dla wszystkich (Ustawienia, Drużyna & POV: „Trzymaj załadowany feed każdego kolegi”); zużywa łącze na każdy z nich.

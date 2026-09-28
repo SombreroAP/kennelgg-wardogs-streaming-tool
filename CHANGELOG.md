@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.3
+- **Fixed: "the microphone has been silent" never reached the plugin's log.** ClipHound noticed a silent mic for voice commands but could not send the note to the plugin, so Send logs had no trace of it. It arrives now. Thanks DaDao for the logs.
+
 ## 0.34.2
 - **Clutch.** Settings, Squad & POV: never show a squad mate who is down too. Their streams are read for the downed screen like yours; one who goes down on screen is swapped for the next one up, and with the whole squad down your replays play, you live in the corner, until you or one of them is revived.
 - **Fixed: a squad mate's POV opening on a Twitch advert.** Twitch plays a pre-roll every time its player loads, and the feed reloaded on every swap. Every squad mate's stream now stays loaded, hidden and silent, so the ad plays out where nobody sees it. Turned on for everyone (Settings, Squad & POV: "Keep every squad mate's feed loaded"); it uses their bandwidth for each one.

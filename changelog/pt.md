@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.3
+- **Corrigido: "o microfone está em silêncio" nunca chegava ao log do plugin.** O ClipHound percebia um microfone mudo para os comandos de voz, mas não conseguia mandar o aviso ao plugin, então Enviar logs não tinha registro disso. Agora chega. Valeu DaDao pelos logs.
+
 ## 0.34.2
 - **Clutch.** Configurações, Squad & POV: nunca mostrar um parceiro que também caiu. As lives deles são lidas procurando a tela de caído como a sua; quem cai na tela é trocado pelo próximo de pé, e com o squad todo caído seus replays tocam, com você ao vivo no canto, até você ou um deles ser revivido.
 - **Corrigido: o POV de um parceiro abria com anúncio da Twitch.** A Twitch toca um pre-roll toda vez que o player carrega, e o feed recarregava a cada troca. Agora a live de cada parceiro fica carregada, escondida e muda, então o anúncio toca onde ninguém vê. Ligado para todos (Configurações, Squad & POV: "Manter o feed de cada parceiro carregado"); usa banda para cada um.

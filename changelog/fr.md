@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.3
+- **Corrigé : « le micro est silencieux » n'arrivait jamais dans le journal du plugin.** ClipHound remarquait un micro muet pour les commandes vocales mais ne pouvait pas envoyer l'info au plugin, donc Envoyer les journaux n'en gardait aucune trace. Elle arrive maintenant. Merci DaDao pour les journaux.
+
 ## 0.34.2
 - **Clutch.** Paramètres, Escouade & POV : ne jamais montrer un coéquipier à terre lui aussi. Leurs streams sont lus pour l'écran à terre comme le tien ; celui qui tombe à l'écran est remplacé par le suivant encore debout, et quand toute l'escouade est à terre, tes replays passent avec toi en direct dans le coin, jusqu'à ce que toi ou l'un d'eux soit relevé.
 - **Corrigé : le POV d'un coéquipier s'ouvrait sur une pub Twitch.** Twitch passe une pub à chaque chargement de son lecteur, et le flux se rechargeait à chaque changement. Le stream de chaque coéquipier reste maintenant chargé, caché et muet, donc la pub passe là où personne ne la voit. Activé pour tout le monde (Paramètres, Escouade & POV : « Garder le flux de chaque coéquipier chargé ») ; cela consomme de la bande passante pour chacun.

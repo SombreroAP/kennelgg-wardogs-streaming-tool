@@ -44,6 +44,13 @@ def _roi_list(r) -> list:
     return []
 
 
+def _plain(v):
+    """json.dumps fallback: a numpy number or bool (np.float64, np.bool_) as the plain Python one."""
+    if isinstance(v, np.generic):
+        return v.item()
+    raise TypeError(f"Object of type {type(v).__name__} is not JSON serializable")
+
+
 class Bridge:
     """One connection shared by the frame source and the clip trigger. Reconnects on its own."""
 
@@ -375,7 +382,7 @@ class Bridge:
     def send(self, o: dict):
         try:
             if self.ws and self.connected:
-                self.ws.send(json.dumps(o))
+                self.ws.send(json.dumps(o, default=_plain))
                 return True
         except Exception as e:
             print(f"[bridge] send failed: {e}")

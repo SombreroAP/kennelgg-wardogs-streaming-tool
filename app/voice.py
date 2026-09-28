@@ -156,7 +156,7 @@ class Voice:
         if now >= self._report_at:
             secs = self._got / RATE
             rms = (self._sq / max(1, self._got)) ** 0.5
-            db = 20 * np.log10(max(rms, 1e-9) / 32768.0)
+            db = float(20 * np.log10(max(rms, 1e-9) / 32768.0))   # a numpy bool out of db < -60 broke json
             window = now - getattr(self, "_window_start", now - 30)   # 30 s the first time, 120 s after
             print(f"[voice] mic: {secs:.0f} s received in the last {window:.0f} s, level {db:.0f} dBFS"
                   + ("  (silence - is the right source picked, and is it unmuted in Windows?)" if db < -60 else ""))
