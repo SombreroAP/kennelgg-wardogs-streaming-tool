@@ -222,6 +222,7 @@ public:
 	bool canSelfUpdate() const;
 	/// OBS is closing: a downloaded newer build installs now, quietly, without opening OBS again.
 	void installOnExit();
+	void clearSquadLeftovers();
 	void startUpdate();   // download (or open the page)
 	bool installUpdate(); // run the installer and close OBS; false (and why in the log) when it cannot now
 	/// What changed since this version, newest first, in the plugin's language when that is

@@ -835,6 +835,8 @@ void Dock::rebuildPeople()
 	connect(meBtn_, &QPushButton::clicked, this, [this]() {
 		if (e_->applied())
 			e_->applyNow(false, "button");
+		else
+			e_->clearSquadLeftovers();
 		refresh();
 	});
 	povFlow_->addWidget(meBtn_);

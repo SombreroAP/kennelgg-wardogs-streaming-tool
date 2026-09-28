@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.1
+- **Corrigido: o POV de um parceiro ficava preso na live.** Sem ninguém no squad (ou depois de remover quem estava na tela), a página do navegador e a placa com o nome dele podiam ficar de uma sessão anterior, e Eu (dock, Stream Deck, voz) não fazia nada porque o plugin achava que você já estava no seu próprio POV. Agora eles saem quando o OBS inicia, quando um parceiro é removido e sempre que você aperta Eu.
+
 ## 0.34.0
 - **Atualizações sem parar a live.** Uma build mais nova agora baixa sozinha em segundo plano (conferida com o checksum da versão). Uma correção pequena (por exemplo 0.34.0 para 0.34.1) coloca o novo ClipHound e os overlays num momento tranquilo, mesmo ao vivo: o ClipHound reinicia por alguns segundos e a live continua. O plugin em si é instalado quando você fecha o OBS, então o próximo início já é a build nova. Desligue em Configurações: "Atualizar sozinho, sem parar a live".
 

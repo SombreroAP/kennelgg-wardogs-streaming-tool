@@ -863,6 +863,7 @@ void Engine::start()
 		log(tx("Session stats: the cash reader could not start (%1) - kills and deaths are still counted.")
 			    .arg(QString::fromStdString(hudModelErr_)));
 	healthTimer_.start(5000);
+	clearSquadLeftovers(); // OBS keeps what was showing when it closed; the stream starts on your own POV
 	if (cfg.keepWarm && !applied_ && cfg.active())
 		sw.armWarm(cfg);
 	QTimer::singleShot(15000, this, [this]() {
@@ -3438,6 +3439,8 @@ void Engine::onControl(const QJsonObject &o)
 	} else if (cmd == "me") {
 		if (applied_)
 			applyNow(false, TX_NOOP("controller"));
+		else
+			clearSquadLeftovers();
 	} else if (cmd == "highlights") {
 		requestHighlights(TX_NOOP("controller"), true);
 	} else if (cmd == "show") {
@@ -3736,6 +3739,8 @@ void Engine::onVoiceCommand(const QString &cmd, const QString &name, const QStri
 	} else if (cmd == "me") {
 		if (applied_)
 			applyNow(false, TX_NOOP("voice"));
+		else
+			clearSquadLeftovers();
 	} else if (cmd == "force" && cfg.voiceCmdForce) {
 		// the squad mate's POV now, downed or not
 		if (!cfg.active()) {
@@ -4989,8 +4994,13 @@ void Engine::applySwitch(bool on, const QString &why)
 		log(tx("Add a squad mate first."));
 		return;
 	}
-	if (noMate && !applied_ && !lookPreview_)
-		return; // already on your own POV: nothing to undo
+	if (noMate && !applied_ && !lookPreview_) {
+		// already on your own POV, but a squad mate's page or name plate can still be up from an earlier
+		// session or a squad mate removed since (29 Sep 2026 report: nobody in the squad, the old POV on
+		// stream and Me did nothing)
+		clearSquadLeftovers();
+		return;
+	}
 	applying_ = true;
 	std::vector<std::string> errors;
 	if (noMate)
@@ -6353,4 +6363,19 @@ void Engine::installOnExit()
 	blog(LOG_INFO, "[kennelgg] update %s installs as OBS closes (%s)", updVersion_.toUtf8().constData(),
 	     (INT_PTR)h > 32 ? "started" : "the installer did not start");
 #endif
+}
+
+/// Your own POV with nothing of the squad's left over: every squad mate's source hidden and the name plate
+/// down. Does nothing while a squad mate is on screen on purpose.
+void Engine::clearSquadLeftovers()
+{
+	if (applied_ || lookPreview_ || povPending_ || applying_ || dualOn_ || replaying())
+		return;
+	int n = sw.hideAllFriends(cfg);
+	sw.updateLook(cfg, false);
+	if (n > 0)
+		log(n == 1 ? tx("Squad mate feeds hidden (1 item).")
+			   : tx("Squad mate feeds hidden (%1 items).").arg(n));
+	if (cfg.keepWarm && cfg.active())
+		sw.armWarm(cfg);
 }

@@ -358,6 +358,7 @@ void SquadPanel::removeSelected()
 	e_->cfg.friends.erase(e_->cfg.friends.begin() + r);
 	if (e_->cfg.activeFriend >= (int)e_->cfg.friends.size())
 		e_->cfg.activeFriend = std::max(0, (int)e_->cfg.friends.size() - 1);
+	e_->clearSquadLeftovers(); // the shared page may still be on their stream
 	e_->cfg.save();
 	e_->armPopoutWatch();
 	e_->log(tx("Squad: removed %1.").arg(QString::fromStdString(f.name)));
