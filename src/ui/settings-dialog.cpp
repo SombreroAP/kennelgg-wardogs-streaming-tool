@@ -1532,6 +1532,16 @@ QWidget *SettingsDialog::buildDetectTab()
 	psRow->addWidget(povMin_);
 	psRow->addStretch(1);
 	f->addRow(tx("Swaps"), psRow);
+	downedReplays_ = new QCheckBox(
+		tx("Downed with no squad mate to show: play my replays, newest first, one after another until I am revived"),
+		g);
+	downedReplays_->setChecked(e_->cfg.downedReplays);
+	downedReplays_->setToolTip(tx(
+		"For when you play alone, or nobody in your squad is streaming. After the same delay as the swap, your "
+		"last instant replay plays; when it ends, the one before it, and so on (back to the newest after the "
+		"oldest). Being revived ends it with the usual way back to live."));
+	f->addRow(tx("Nobody to show"), downedReplays_);
+	connect(downedReplays_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(povStinger_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(povMin_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
 	auto *mdRow = new QHBoxLayout();
@@ -3680,6 +3690,8 @@ void SettingsDialog::collect()
 		c.povStinger = povStinger_->isChecked();
 	if (povMin_)
 		c.povMinS = povMin_->value();
+	if (downedReplays_)
+		c.downedReplays = downedReplays_->isChecked();
 	c.pollMs = pollMs_->value();
 	c.autoDetect = auto_->isChecked();
 	c.watchRevive = revive_->isChecked();

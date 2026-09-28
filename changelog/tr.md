@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.33.0
+- **Yerdeyken, gösterecek kimse yoksa kendi tekrarların.** Yalnız mı oynuyorsun, ya da takımında kimse yayın yapmıyor mu? Ayarlar, Takım & POV'da "Gösterecek kimse yok"u işaretle; yere düştüğünde her zamanki gecikmeden sonra son anında tekrarın oynar, bitince ondan öncekisi ve böyle devam eder (en eskisinden sonra yine en yenisi), her biri INSTANT REPLAY stinger'ıyla; diriltildiğinde her zamanki canlıya dönüşle biter. Yere düşmenin kendi klibi dahil edilmez.
+
 ## 0.32.0
 - **Eklentiyi geliştirmeye yardım et (kapatmadıkça açık).** Eklenti artık oynarken birkaç dakikada bir ve yere düştüğünde kennel.gg'ye HUD'unun küçük görsellerini gönderiyor: bakiye kutusu, öldürme akışı, silah plakası, leş sayacı, NEARBY listesi ve hasar kaydı; kendi çözünürlüğünde kesilmiş, oyun dilin ve eklentinin orada okuduğuyla. Bunlar her çözünürlük ve oyunun 14 dili için bir test seti olur; böylece bakiye, leş ve yere düşme okumaları tahminlerle değil gerçek ekranlarla denetlenir.
 - **Sorunlar kendiliğinden bildiriliyor.** Bir şeylerin bozuk olduğu bir yayından sonra (panelde kırmızı bir nokta) ya da OBS çöktükten sonra, Günlükleri gönder'deki aynı günlükler neyin yanlış gittiğiyle birlikte kendiliğinden Kennel.gg'ye gidiyor; böylece kimsenin bildirmediği bir hata da düzeltiliyor.

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.33.0
+- **Seus replays enquanto você está caído, quando não há ninguém para mostrar.** Jogando sozinho, ou ninguém do seu squad está transmitindo? Marque Configurações, Squad & POV, "Ninguém para mostrar", e quando você cair, depois do atraso de sempre toca o seu último replay instantâneo; quando ele acaba, o anterior, e assim por diante (depois do mais antigo, o mais recente de novo), cada um com o stinger INSTANT REPLAY, até você ser revivido, o que encerra com a volta de sempre para o ao vivo. O clipe da própria queda fica de fora.
+
 ## 0.32.0
 - **Ajude a construir o plugin (ligado, a não ser que você desligue).** O plugin agora envia ao kennel.gg pequenas imagens do seu HUD a cada poucos minutos enquanto você joga, e quando cai: a caixa do saldo, o kill feed, a placa da arma, o contador de abates, a lista NEARBY e o registro de dano, recortados na sua própria resolução, com o idioma do seu jogo e o que o plugin leu ali. Elas viram um conjunto de teste para cada resolução e os 14 idiomas do jogo, para que a leitura de saldo, abates e quedas seja conferida em telas reais em vez de suposições.
 - **Os problemas se avisam sozinhos.** Depois de uma live em que algo quebrou (um ponto vermelho no painel), ou depois de um travamento do OBS, os mesmos logs de Enviar logs vão sozinhos para o Kennel.gg, com o que deu errado, para que um bug que ninguém relata seja corrigido mesmo assim.

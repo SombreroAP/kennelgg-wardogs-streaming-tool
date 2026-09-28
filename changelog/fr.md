@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.33.0
+- **Tes replays pendant que tu es à terre, quand il n'y a personne à montrer.** Tu joues seul, ou personne dans ton escouade ne streame ? Coche Paramètres, Escouade & POV, « Personne à montrer », et quand tu tombes, ton dernier replay instantané passe après le délai habituel ; quand il se termine, celui d'avant, et ainsi de suite (le plus récent à nouveau après le plus ancien), chacun avec le stinger INSTANT REPLAY, jusqu'à ce que tu sois réanimé, ce qui y met fin avec le retour habituel au direct. Le clip de la mise à terre elle-même est laissé de côté.
+
 ## 0.32.0
 - **Aide à construire le plugin (activé sauf si tu le coupes).** Le plugin envoie maintenant à kennel.gg de petites images de ton HUD toutes les quelques minutes pendant que tu joues, et quand tu tombes : l'encadré du solde, le kill feed, la plaque d'arme, le ticker de kills, la liste NEARBY et le journal des dégâts, découpés à ta propre résolution, avec la langue de ton jeu et ce que le plugin y a lu. Elles forment un jeu de test pour chaque résolution et les 14 langues du jeu, pour que la lecture du solde, des kills et des mises à terre soit vérifiée sur de vrais écrans plutôt que sur des suppositions.
 - **Les problèmes se signalent tout seuls.** Après un stream où quelque chose était cassé (un point rouge sur le dock), ou après un plantage d'OBS, les mêmes journaux qu'avec Envoyer les journaux partent tout seuls vers Kennel.gg, avec ce qui n'allait pas, pour qu'un bug que personne ne signale soit quand même corrigé.

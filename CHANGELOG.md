@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.33.0
+- **Your replays while you are down, when there is nobody to show.** Playing alone, or nobody in your squad is streaming? Tick Settings, Squad & POV, "Nobody to show", and when you go down your last instant replay plays after the usual delay; when it ends, the one before it, and so on (back to the newest after the oldest), each with the INSTANT REPLAY stinger, until you are revived, which ends it with the usual way back to live. The clip of the down itself is left out.
+
 ## 0.32.0
 - **Help build the plugin (on unless you turn it off).** The plugin now sends kennel.gg small pictures of your HUD every few minutes while you play, and when you go down: the balance box, kill feed, weapon plate, kill ticker, NEARBY list and damage log, cut at your own resolution, with your game language and what the plugin read there. They become a test set for every resolution and all 14 game languages, so the balance, kill and downed readers are checked against real screens rather than guesses.
 - **Problems report themselves.** After a stream where something was broken (a red dot on the dock), or after OBS crashed, the same logs as Send logs go to Kennel.gg by themselves, with what went wrong, so a bug nobody reports still gets fixed.

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.33.0
+- **I tuoi replay mentre sei a terra, quando non c'è nessuno da mostrare.** Giochi da solo, o nessuno della tua squadra è in diretta? Spunta Impostazioni, Squadra & POV, «Nessuno da mostrare», e quando vieni abbattuto, dopo il solito ritardo parte il tuo ultimo replay istantaneo; quando finisce, quello prima, e così via (dopo il più vecchio si ricomincia dal più recente), ognuno con lo stinger INSTANT REPLAY, finché non vieni rianimato, cosa che lo chiude con il solito ritorno alla diretta. La clip dell'abbattimento stesso viene esclusa.
+
 ## 0.32.0
 - **Aiuta a costruire il plugin (attivo finché non lo spegni).** Il plugin ora manda a kennel.gg piccole immagini del tuo HUD ogni pochi minuti mentre giochi, e quando vieni abbattuto: il riquadro del saldo, il kill feed, la targhetta dell'arma, il contatore delle uccisioni, la lista NEARBY e il registro danni, ritagliati alla tua risoluzione, con la lingua del gioco e quello che il plugin ci ha letto. Diventano un set di prova per ogni risoluzione e tutte le 14 lingue del gioco, così la lettura di saldo, uccisioni e abbattimenti viene verificata su schermi veri invece che su supposizioni.
 - **I problemi si segnalano da soli.** Dopo una diretta in cui qualcosa non andava (un pallino rosso nel pannello), o dopo un crash di OBS, gli stessi log di Invia i log vanno da soli a Kennel.gg, con quello che è andato storto, così anche un bug che nessuno segnala viene sistemato.

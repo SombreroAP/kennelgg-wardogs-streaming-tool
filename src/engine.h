@@ -577,6 +577,15 @@ private:
 	int hudSent_ = 0;
 	qint64 lastCashOkMs_ = 0;
 	void hudSample(const QString &why);
+	// the downed replay reel (0.33.0): downed with no squad mate to show, your replays play newest first, one
+	// after another (wrapping round), until you are revived
+	bool reelOn_ = false;
+	int reelPos_ = 0;
+	std::vector<Clips::Entry> reel_;
+	bool squadToShow() const;
+	void startReel();
+	void reelNext();
+	void playReplayEntry(const Clips::Entry &e, const QString &why);
 	QStringList problems_; // broken health items seen during this stream: sent with the logs at its end
 	int autoLogsSent_ = 0;
 	void checkLastCrash();

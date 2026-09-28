@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.33.0
+- **Twoje powtórki, gdy leżysz, a nie ma kogo pokazać.** Grasz sam albo nikt z drużyny nie streamuje? Zaznacz Ustawienia, Drużyna & POV, „Nie ma kogo pokazać”, a gdy padniesz, po zwykłym opóźnieniu poleci twoja ostatnia szybka powtórka; gdy się skończy, ta wcześniejsza i tak dalej (po najstarszej znów najnowsza), każda ze stingerem INSTANT REPLAY, aż ktoś cię podniesie, co kończy to zwykłym powrotem na żywo. Klip samego powalenia jest pomijany.
+
 ## 0.32.0
 - **Pomóż budować wtyczkę (włączone, dopóki nie wyłączysz).** Wtyczka wysyła teraz do kennel.gg co kilka minut podczas gry, a także gdy leżysz, małe obrazki twojego HUD: ramkę z saldem, kill feed, tabliczkę broni, licznik zabójstw, listę NEARBY i dziennik obrażeń, wycięte w twojej rozdzielczości, z językiem gry i tym, co wtyczka tam odczytała. Tworzą zestaw testowy dla każdej rozdzielczości i wszystkich 14 języków gry, więc odczyt salda, zabójstw i powaleń jest sprawdzany na prawdziwych ekranach, a nie na domysłach.
 - **Problemy zgłaszają się same.** Po streamie, w którym coś nie działało (czerwona kropka w doku), albo po awarii OBS te same logi co przy Wyślij logi same trafiają do Kennel.gg, z opisem, co poszło nie tak, więc nawet błąd, którego nikt nie zgłosi, zostanie naprawiony.

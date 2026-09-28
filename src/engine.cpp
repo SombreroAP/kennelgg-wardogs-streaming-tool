@@ -107,7 +107,10 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&downDelay_, &QTimer::timeout, this, [this]() {
 		if (detected_ && !applied_) {
 			pickClosest(TX_NOOP("about to switch"), true); // last reading before the feed goes on screen
-			applyNow(true, QString("downed for %1 ms").arg(cfg.downDelayMs));
+			if (cfg.downedReplays && !squadToShow())
+				startReel(); // nobody to show: your own replays instead
+			else
+				applyNow(true, QString("downed for %1 ms").arg(cfg.downDelayMs));
 		}
 	});
 	connect(&upDelay_, &QTimer::timeout, this, [this]() {
@@ -4827,12 +4830,13 @@ void Engine::detect(const Match &m)
 		// but not streaming shows nothing, so a live one takes their place, or you stay on your own
 		if (!applied_ && cfg.active() && feedState(*cfg.active()) == Feed::Off) {
 			int alt = anyLiveFriend();
-			if (alt < 0) {
+			if (alt < 0 && !cfg.downedReplays) {
 				log(tx("Downed, but none of the squad is streaming a game picture right now - staying on your own "
 				       "POV."));
 				return;
 			}
-			if (alt != cfg.activeFriend) {
+			// with the replay reel on, the delay runs as usual and your replays play instead
+			if (alt >= 0 && alt != cfg.activeFriend) {
 				log(tx("Downed: %1 is not streaming, showing %2 instead.")
 					    .arg(QString::fromStdString(cfg.active()->name),
 						 QString::fromStdString(cfg.friends[alt].name)));
@@ -4842,14 +4846,20 @@ void Engine::detect(const Match &m)
 			}
 		}
 		if (!applied_) {
-			if (cfg.downDelayMs <= 0)
-				applyNow(true, QString("downed screen detected (%1)").arg(m.score, 0, 'f', 3));
-			else {
+			if (cfg.downDelayMs <= 0) {
+				if (cfg.downedReplays && !squadToShow())
+					startReel();
+				else
+					applyNow(true, QString("downed screen detected (%1)").arg(m.score, 0, 'f', 3));
+			} else {
 				// cancelled if the log goes away first (a blip, or a quick revive); the stinger's
 				// run-up comes out of the wait, so the squad mate is on screen when they were before
 				downDelay_.start(std::max(0, cfg.downDelayMs - (cfg.povStinger ? kPovCoverMs : 0)));
-				log(tx("Downed - showing the squad mate in %1 ms unless you are revived first.")
-					    .arg(cfg.downDelayMs));
+				log(cfg.downedReplays && !squadToShow()
+					    ? tx("Downed - playing your replays in %1 ms unless you are revived first.")
+						      .arg(cfg.downDelayMs)
+					    : tx("Downed - showing the squad mate in %1 ms unless you are revived first.")
+						      .arg(cfg.downDelayMs));
 			}
 		}
 	} else if (detected_ && upRun_ >= needUp && clock_::now() - downSince_ >= std::chrono::milliseconds(minDown)) {
@@ -4858,6 +4868,11 @@ void Engine::detect(const Match &m)
 		detGame_.holdThreshold = 0;
 		bool delayRunning = downDelay_.isActive();
 		downDelay_.stop();
+		if (reelOn_) {
+			reelOn_ = false; // revived: the reel ends with the usual way back to live
+			if (replaying())
+				endReplay(TX_NOOP("revived"));
+		}
 		if (povPending_ && povTarget_ && !applied_)
 			povTarget_ = false; // revived while SWITCHING POV was on its way: it plays, nothing swaps
 		clearNearby();
@@ -5067,6 +5082,13 @@ void Engine::playReplay(const QString &why)
 		log(tx("Instant replay: no highlight saved yet this session."));
 		return;
 	}
+	reelOn_ = false; // asked for by hand: the downed reel (if any) gives way
+	playReplayEntry(*last, why);
+}
+
+void Engine::playReplayEntry(const Clips::Entry &entry, const QString &why)
+{
+	const Clips::Entry *last = &entry;
 	if (replaying())
 		stopReplay(TX_NOOP("replaced"));
 	std::string e = sw.playMedia(cfg, last->path.toStdString(), cfg.replayScale,
@@ -5420,6 +5442,10 @@ void Engine::replayTick()
 	bool pastEnd = replayEndMs_ > 0 && t >= replayEndMs_ - outLeadMs();
 	bool ended = replayClock_.elapsed() > 800 && (st == OBS_MEDIA_STATE_ENDED || st == OBS_MEDIA_STATE_STOPPED);
 	bool safety = replayClock_.elapsed() > replayLengthMs_ + 4000; // the clock never lies, the state might
+	if (reelOn_ && detected_ && (pastEnd || ended || safety)) {
+		reelNext(); // still down: the one before it, straight away
+		return;
+	}
 	if (pastEnd || ended || safety)
 		endReplay(TX_NOOP("finished"));
 }
@@ -6060,4 +6086,50 @@ void Engine::hudSample(const QString &why)
 			},
 			Qt::QueuedConnection);
 	}).detach();
+}
+
+/// A squad mate the downed swap could show now: one chosen, with a capture, and not known to be off.
+bool Engine::squadToShow() const
+{
+	const Friend *a = cfg.active();
+	if (a && feedUsable(*a) && feedState(*a) != Feed::Off)
+		return true;
+	return anyLiveFriend() >= 0;
+}
+
+/// Downed with nobody to show: this session's replays, newest first. The clip of this very down (saved moments
+/// ago) is left out, and so is Setup's test clip.
+void Engine::startReel()
+{
+	if (reelOn_ || !detected_)
+		return;
+	reel_.clear();
+	QDateTime now = QDateTime::currentDateTime();
+	for (auto it = clips.history().rbegin(); it != clips.history().rend(); ++it)
+		if (!it->path.isEmpty() && QFileInfo::exists(it->path) && it->title != "setup test" &&
+		    it->when.secsTo(now) > 10)
+			reel_.push_back(*it);
+	if (reel_.empty()) {
+		log(tx("Downed: no replays saved yet this session to play, so your own POV stays."));
+		return;
+	}
+	reelOn_ = true;
+	reelPos_ = 0;
+	log(reel_.size() == 1
+		    ? tx("Downed with nobody to show: playing your last replay until you are revived.")
+		    : tx("Downed with nobody to show: playing your last %1 replays, newest first, until you are "
+			 "revived.")
+			      .arg(reel_.size()));
+	playReplayEntry(reel_[0], TX_NOOP("downed, nobody to show"));
+}
+
+void Engine::reelNext()
+{
+	if (!reelOn_ || reel_.empty() || !detected_) {
+		reelOn_ = false;
+		endReplay(TX_NOOP("finished"));
+		return;
+	}
+	reelPos_ = (reelPos_ + 1) % (int)reel_.size(); // the one before; after the oldest, the newest again
+	playReplayEntry(reel_[reelPos_], TX_NOOP("downed, nobody to show"));
 }
