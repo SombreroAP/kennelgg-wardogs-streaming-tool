@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — 更新日誌
 
+## 0.34.0
+- **不停止直播即可更新。** 新版本現在會在背景自動下載（並用發行的總和檢查碼核對）。小修正（例如 0.34.0 到 0.34.1）會在空檔套用新的 ClipHound 和疊加層，即使你正在直播：ClipHound 會重新啟動幾秒，直播繼續。外掛程式本身會在你關閉 OBS 時安裝，下次啟動就是新版本。可在設定中關閉：「不停止直播，自動更新」。
+
 ## 0.33.4
 - **修正：掃描 VOD 提示「tesseract is not installed」。** 掃描的各個部分是獨立程序，不知道 ClipHound 內建的 Tesseract 在哪裡；現在知道了，錄影檔和 Twitch 連結都可以。感謝 Adventure Bear。
 

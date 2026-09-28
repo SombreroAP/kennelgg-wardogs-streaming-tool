@@ -1,4 +1,5 @@
 #include "i18n.h"
+#include "datafile.h"
 #include <obs-module.h>
 #include <QFile>
 #include <QHash>
@@ -63,7 +64,7 @@ void load(const std::string &code)
 	g_code = "en";
 	if (code.empty() || code == "en")
 		return;
-	char *p = obs_module_file(("i18n/" + code + ".json").c_str());
+	char *p = kennel_file(("i18n/" + code + ".json").c_str());
 	if (!p) {
 		blog(LOG_WARNING, "[kennel] no translation file for %s", code.c_str());
 		return;

@@ -226,6 +226,8 @@ struct Config {
 
 	// update check: a small JSON on kennel.gg, no account and no telemetry
 	bool updateCheck = true;
+	bool autoUpdate =
+		true; // download by itself; patch releases go live at a quiet moment, the rest at OBS close (0.34.0)
 	std::string updateUrl = "https://kennel.gg/obs-tools/latest.json";
 	std::string updateSkip; // a version the user asked not to be told about again
 

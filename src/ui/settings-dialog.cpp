@@ -1,4 +1,5 @@
 #include "ui/settings-dialog.h"
+#include "datafile.h"
 #include "ui/area-editor.h"
 #include "ui/quick-add.h"
 #include "voice-phrases.h"
@@ -581,7 +582,7 @@ SettingsDialog::SettingsDialog(Engine *engine, QWidget *parent) : QDialog(parent
 		auto *head = new QHBoxLayout();
 		head->setSpacing(8);
 		auto *mark = new QLabel(this);
-		char *p = obs_module_file("brand/hound_mark.png");
+		char *p = kennel_file("brand/hound_mark.png");
 		if (p) {
 			QPixmap px(QString::fromUtf8(p));
 			bfree(p);
@@ -3249,8 +3250,21 @@ QWidget *SettingsDialog::buildAboutTab()
 	updateAuto_ = new QCheckBox(tx("Check for a newer build when OBS starts"), ver);
 	updateAuto_->setChecked(e_->cfg.updateCheck);
 	vf->addRow(updateAuto_);
+	auto *autoUpd = new QCheckBox(tx("Update by itself, without stopping the stream"), ver);
+	autoUpd->setChecked(e_->cfg.autoUpdate);
+	vf->addRow(autoUpd);
+	connect(autoUpd, &QCheckBox::toggled, this, [this](bool on) {
+		if (building_)
+			return;
+		e_->cfg.autoUpdate = on;
+		e_->cfg.save();
+	});
 	vf->addRow(muted(
-		tx("The check asks kennel.gg for a small file saying what the latest build is. Nothing about you is sent, there is no account, and it never installs anything: when there is a newer build the dock says so and links to the download."),
+		tx("The check asks kennel.gg for a small file saying what the latest build is; nothing about you is sent. "
+		   "Updating by itself, a newer build downloads in the background (checked against the release's "
+		   "checksum). A small fix (0.33.1 to 0.33.4) puts its new ClipHound and overlays in at a quiet moment, "
+		   "even while you are live: ClipHound restarts, the stream carries on. The plugin itself installs when "
+		   "you close OBS (Windows may ask for permission), so the next start is the new build."),
 		ver));
 	v->addWidget(ver);
 

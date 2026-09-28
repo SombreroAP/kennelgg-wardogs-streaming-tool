@@ -1,4 +1,5 @@
 #include "ui/dock.h"
+#include "datafile.h"
 #include "ui/stats-dialog.h"
 #include "ui/clips-dialog.h"
 #include "ui/settings-dialog.h"
@@ -245,7 +246,7 @@ void Dock::build()
 		auto *head = new QHBoxLayout();
 		head->setSpacing(8);
 		auto *mark = new QLabel(this);
-		char *p = obs_module_file("brand/hound_mark.png");
+		char *p = kennel_file("brand/hound_mark.png");
 		if (p) {
 			QPixmap px(QString::fromUtf8(p));
 			bfree(p);

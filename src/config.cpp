@@ -201,6 +201,7 @@ void Config::load()
 	DEFD(vehW);
 	DEFD(vehH);
 	DEFB(updateCheck);
+	DEFB(autoUpdate);
 	DEFS(updateUrl);
 	DEFS(updateSkip);
 	DEFB(lookName);
@@ -419,6 +420,7 @@ void Config::load()
 	GETD(vehW);
 	GETD(vehH);
 	GETB(updateCheck);
+	GETB(autoUpdate);
 	GETS(updateUrl);
 	GETS(updateSkip);
 	GETB(lookName);
@@ -823,6 +825,7 @@ void Config::save() const
 	SETD(vehW);
 	SETD(vehH);
 	SETB(updateCheck);
+	SETB(autoUpdate);
 	SETS(updateUrl);
 	SETS(updateSkip);
 	SETB(lookName);

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.0
+- **Updates, ohne den Stream zu stoppen.** Ein neuerer Build lädt jetzt von selbst im Hintergrund (gegen die Prüfsumme des Releases geprüft). Eine kleine Korrektur (zum Beispiel 0.34.0 auf 0.34.1) bringt ihren neuen ClipHound und die Overlays in einem ruhigen Moment rein, auch während du live bist: ClipHound startet für ein paar Sekunden neu, der Stream läuft weiter. Das Plugin selbst wird beim Schließen von OBS installiert, der nächste Start ist also der neue Build. Abschalten in den Einstellungen: „Von selbst aktualisieren, ohne den Stream zu stoppen“.
+
 ## 0.33.4
 - **Behoben: VOD scannen meldete „tesseract is not installed“.** Die Teile des Scans laufen als eigene Prozesse und wussten nicht, wo ClipHounds eigenes Tesseract liegt; jetzt schon, für Aufnahmen wie für Twitch-Links. Danke, Adventure Bear.
 

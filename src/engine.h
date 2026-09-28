@@ -220,6 +220,8 @@ public:
 	int updateProgress() const { return updPct_; } // 0-100 while downloading, -1 when unknown
 	QString updateError() const { return updErr_; }
 	bool canSelfUpdate() const;
+	/// OBS is closing: a downloaded newer build installs now, quietly, without opening OBS again.
+	void installOnExit();
 	void startUpdate();   // download (or open the page)
 	bool installUpdate(); // run the installer and close OBS; false (and why in the log) when it cannot now
 	/// What changed since this version, newest first, in the plugin's language when that is
@@ -640,6 +642,13 @@ private:
 	void vehicleDualCheck();
 	QString updateState_, newVersion_, newUrl_, newNotes_;
 	QString newDownload_, newSha_, whatsNew_, updPath_, updErr_;
+	QString updVersion_; // what updPath_ installs
+	// live update (0.34.0): a patch release's ClipHound and data, unpacked from its portable zip and swapped in at a
+	// quiet moment while OBS runs (streaming or not); the DLL itself installs when OBS closes
+	QString newPortable_, newPortableSha_, liveStaged_, liveStagedVersion_;
+	bool liveBusy_ = false;
+	void startLiveUpdate();
+	void applyLiveUpdate();
 	UpdStep updStep_ = UpdStep::Idle;
 	int updPct_ = 0;
 	bool noticeShownThisRun_ = false;

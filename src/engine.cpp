@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "datafile.h"
 #include "i18n.h"
 #include <QWidget>
 #include <QStandardPaths>
@@ -21,6 +22,7 @@
 #include <fstream>
 #include <thread>
 #include <QBuffer>
+#include <QDirIterator>
 #include <QJsonArray>
 #include <QFileInfo>
 #include <QDesktopServices>
@@ -53,7 +55,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	I18n::load(I18n::resolve(cfg.uiLang));
 	loadTemplates();
 	{
-		char *mp = obs_module_file("hud/model.bin");
+		char *mp = kennel_file("hud/model.bin");
 		hudModel_ = mp ? hud::loadModel(mp, &hudModelErr_) : nullptr;
 		if (!mp)
 			hudModelErr_ = txs("data/hud/model.bin is missing");
@@ -74,6 +76,9 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&healthTimer_, &QTimer::timeout, this, [this]() {
 		if (++replayRetryTick_ % 12 == 0) // the health timer runs every 5 s: once a minute
 			clips.retryReplayBuffer();
+		// a staged live update goes in when nothing is on screen that it would interrupt
+		if (!liveStaged_.isEmpty() && !liveBusy_ && !applied_ && !detected_ && !replaying() && !povPending_)
+			applyLiveUpdate();
 		if (cfg.helpBuild() && streamStart_.isValid() && replayRetryTick_ % 6 == 0) {
 			// what was broken during this stream, for the logs sent at its end (every 30 s is enough)
 			for (const auto &h : health())
@@ -453,7 +458,7 @@ void Engine::loadTemplates()
 	}
 	if (cfg.memScale > 0)
 		detGame_.remember((float)cfg.memScale, (float)cfg.memX, (float)cfg.memY);
-	char *r = obs_module_file("templates/reviving.png");
+	char *r = kennel_file("templates/reviving.png");
 	if (r)
 		detRevive_.loadTemplatePng(r, 98.0f / 1875.0f);
 	bfree(r);
@@ -477,7 +482,7 @@ bool Engine::loadLangTemplate(Detector &d, const std::string &lang)
 	for (const L &l : kTable) {
 		if (lang != l.code)
 			continue;
-		char *p = obs_module_file(l.file);
+		char *p = kennel_file(l.file);
 		bool ok = p && d.loadTemplatePng(p, l.widthFrac);
 		bfree(p);
 		return ok;
@@ -978,45 +983,55 @@ void Engine::checkForUpdate(bool manual)
 	}
 	updateState_ = tx("checking...");
 	emit updateChecked();
-	Http::getAsync(this, url, 8000, QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),
-		       [this, manual](Http::Result r) {
-			       if (!r.ok) {
-				       updateState_ = tx("could not check (%1)").arg(r.error);
-				       if (manual)
-					       log(tx("Update check: %1").arg(updateState_));
-				       emit updateChecked();
-				       return;
-			       }
-			       QJsonObject o = QJsonDocument::fromJson(r.body).object();
-			       newVersion_ = o.value("version").toString();
-			       newUrl_ = o.value("url").toString();
-			       newNotes_ = o.value("notes").toString();
-			       newDownload_ = o.value("download").toString();
-			       newSha_.clear();
-			       QString inst = QUrl(newDownload_).fileName();
-			       if (!inst.isEmpty())
-				       newSha_ = o.value("sha256").toObject().value(inst).toString().toLower();
-			       // the same line from changelog/<code>.md, when that version has been translated
-			       QString local = o.value("notes_i18n")
-						       .toObject()
-						       .value(QString::fromStdString(I18n::current()))
-						       .toString();
-			       if (!local.isEmpty())
-				       newNotes_ = local;
-			       if (newVersion_.isEmpty())
-				       updateState_ = tx("nothing published to check against yet");
-			       else if (isNewer(newVersion_, PLUGIN_VERSION)) {
-				       updateState_ =
-					       tx("%1 is out (you have %2)").arg(newVersion_, QString(PLUGIN_VERSION));
-				       log(tx("A newer build is out: %1").arg(newVersion_) +
-					   (newNotes_.isEmpty() ? "" : " - " + newNotes_) +
-					   (newUrl_.isEmpty() ? "" : "  " + newUrl_));
-				       fetchWhatsNew();
-			       } else
-				       updateState_ = tx("up to date (%1)").arg(QString(PLUGIN_VERSION));
-			       emit updateChecked();
-			       emit stateChanged();
-		       });
+	Http::getAsync(
+		this, url, 8000, QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),
+		[this, manual](Http::Result r) {
+			if (!r.ok) {
+				updateState_ = tx("could not check (%1)").arg(r.error);
+				if (manual)
+					log(tx("Update check: %1").arg(updateState_));
+				emit updateChecked();
+				return;
+			}
+			QJsonObject o = QJsonDocument::fromJson(r.body).object();
+			newVersion_ = o.value("version").toString();
+			newUrl_ = o.value("url").toString();
+			newNotes_ = o.value("notes").toString();
+			newDownload_ = o.value("download").toString();
+			newSha_.clear();
+			QString inst = QUrl(newDownload_).fileName();
+			if (!inst.isEmpty())
+				newSha_ = o.value("sha256").toObject().value(inst).toString().toLower();
+			newPortable_ = o.value("portable").toString();
+			newPortableSha_ =
+				o.value("sha256").toObject().value(QUrl(newPortable_).fileName()).toString().toLower();
+			// the same line from changelog/<code>.md, when that version has been translated
+			QString local = o.value("notes_i18n")
+						.toObject()
+						.value(QString::fromStdString(I18n::current()))
+						.toString();
+			if (!local.isEmpty())
+				newNotes_ = local;
+			if (newVersion_.isEmpty())
+				updateState_ = tx("nothing published to check against yet");
+			else if (isNewer(newVersion_, PLUGIN_VERSION)) {
+				updateState_ = tx("%1 is out (you have %2)").arg(newVersion_, QString(PLUGIN_VERSION));
+				log(tx("A newer build is out: %1").arg(newVersion_) +
+				    (newNotes_.isEmpty() ? "" : " - " + newNotes_) +
+				    (newUrl_.isEmpty() ? "" : "  " + newUrl_));
+				fetchWhatsNew();
+				// updating by itself: the installer downloads in the background for when OBS closes,
+				// and a patch release's ClipHound and overlays go live at the next quiet moment
+				if (cfg.autoUpdate && canSelfUpdate()) {
+					startUpdate();
+					if (samePatchLine(newVersion_, PLUGIN_VERSION))
+						startLiveUpdate();
+				}
+			} else
+				updateState_ = tx("up to date (%1)").arg(QString(PLUGIN_VERSION));
+			emit updateChecked();
+			emit stateChanged();
+		});
 }
 
 static const char *kRepoRaw = "https://raw.githubusercontent.com/SombreroAP/kennelgg-wardogs-streaming-tool/main/";
@@ -1149,6 +1164,7 @@ void Engine::startUpdate()
 				return;
 			}
 			updPath_ = path;
+			updVersion_ = ver;
 			updStep_ = UpdStep::Ready;
 			log(tx("Update: %1 is downloaded and checked, ready to install.").arg(ver));
 			emit stateChanged();
@@ -2465,7 +2481,7 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 			const char *file = kind == "ok"     ? "sounds/ok.wav"
 					   : kind == "fail" ? "sounds/fail.wav"
 							    : "sounds/chime.wav";
-			char *p = obs_module_file(file);
+			char *p = kennel_file(file);
 			if (p) {
 				std::string e = sw.playSound(cfg, p, cfg.voiceChimeVol);
 				if (!e.empty())
@@ -3237,7 +3253,7 @@ bool Engine::hasSessionOverlay() const
 
 QString Engine::addSessionOverlay()
 {
-	char *p = obs_module_file("overlay/session.html");
+	char *p = kennel_file("overlay/session.html");
 	std::string path = p ? p : "";
 	bfree(p);
 	if (path.empty())
@@ -6165,4 +6181,176 @@ void Engine::reelNext()
 	}
 	reelPos_ = (reelPos_ + 1) % (int)reel_.size(); // the one before; after the oldest, the newest again
 	playReplayEntry(reel_[reelPos_], TX_NOOP("downed, nobody to show"));
+}
+
+/// A patch release's ClipHound and data: its portable zip (checked against the release's checksum) unpacked
+/// into %TEMP%, then applied by applyLiveUpdate at a quiet moment.
+void Engine::startLiveUpdate()
+{
+#ifdef _WIN32
+	if (liveBusy_ || newPortable_.isEmpty() || newPortableSha_.size() != 64 || liveStagedVersion_ == newVersion_)
+		return;
+	QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/kennelgg-live";
+	QDir(dir).removeRecursively();
+	QDir().mkpath(dir);
+	QString zip = dir + "/" + QUrl(newPortable_).fileName();
+	QString want = newPortableSha_, ver = newVersion_;
+	liveBusy_ = true;
+	log(tx("Live update: downloading %1's ClipHound and overlays in the background...").arg(ver));
+	Http::downloadAsync(
+		this, newPortable_, zip, QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),
+		[](qint64, qint64) {},
+		[this, zip, dir, want, ver](Http::Result r) {
+			if (!r.ok) {
+				liveBusy_ = false;
+				log(tx("Live update: the download failed (%1).").arg(r.error));
+				return;
+			}
+			workers_++;
+			std::thread([this, zip, dir, want, ver]() {
+				WorkerGuard guard(workers_);
+				QString err;
+				QFile f(zip);
+				QCryptographicHash h(QCryptographicHash::Sha256);
+				if (!f.open(QIODevice::ReadOnly) || !h.addData(&f) ||
+				    QString::fromLatin1(h.result().toHex()) != want)
+					err = tx("the file did not match the release's checksum");
+				f.close();
+				QString out = dir + "/x";
+				if (err.isEmpty()) {
+					// Windows 10 and 11 have tar, which reads zip
+					QDir().mkpath(out);
+					int rc = QProcess::execute("tar", {"-xf", zip, "-C", out});
+					if (rc != 0 || !QFileInfo::exists(out + "/ClipHound/ClipHound.exe"))
+						err = tx("the zip could not be unpacked");
+				}
+				QFile::remove(zip);
+				QMetaObject::invokeMethod(
+					this,
+					[this, err, out, ver]() {
+						liveBusy_ = false;
+						if (!err.isEmpty()) {
+							log(tx("Live update: %1.").arg(err));
+							return;
+						}
+						liveStaged_ = out;
+						liveStagedVersion_ = ver;
+						log(tx("Live update: %1 is ready and goes in at the next quiet moment (nothing on "
+						       "screen for it to interrupt).")
+							    .arg(ver));
+					},
+					Qt::QueuedConnection);
+			}).detach();
+		});
+#endif
+}
+
+#ifdef _WIN32
+/// Copy a folder over another, skipping the files that are the user's (ClipHound's config and logs).
+static QString copyTree(const QString &from, const QString &to)
+{
+	QDirIterator it(from, QDir::Files | QDir::Hidden, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		QString src = it.next();
+		QString rel = QDir(from).relativeFilePath(src);
+		QString name = QFileInfo(rel).fileName().toLower();
+		if (name == "config.yaml" || name.endsWith(".log") || name.endsWith(".log.old"))
+			continue;
+		QString dst = to + "/" + rel;
+		QDir().mkpath(QFileInfo(dst).absolutePath());
+		bool ok = false;
+		for (int i = 0; i < 20 && !ok; ++i) { // a file ClipHound was still closing: a moment more
+			QFile::remove(dst);
+			ok = QFile::copy(src, dst);
+			if (!ok)
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		}
+		if (!ok)
+			return rel;
+	}
+	return QString();
+}
+#endif
+
+/// The staged patch release goes in: ClipHound is stopped, replaced and started again (a few seconds without
+/// kill-feed reading), the overlays and translations are copied to plugin_config/kennelgg/live (kennel_file()
+/// prefers them) and the pages are pointed at them. The DLL waits for OBS to close.
+void Engine::applyLiveUpdate()
+{
+#ifdef _WIN32
+	QString staged = liveStaged_, ver = liveStagedVersion_;
+	liveStaged_.clear();
+	liveBusy_ = true;
+	QString appDir =
+		QFileInfo(cfg.appPath.empty() ? defaultAppPath() : QString::fromStdString(cfg.appPath)).absolutePath();
+	bool appWas = bridge.clients() > 0 || appRunning();
+	log(tx("Live update: putting %1 in - ClipHound restarts, the stream carries on.").arg(ver));
+	if (appWas)
+		stopApp();
+	workers_++;
+	std::thread([this, staged, ver, appDir, appWas]() {
+		WorkerGuard guard(workers_);
+		QString live = liveDataDir();
+		QDir(live).removeRecursively();
+		QString bad = copyTree(staged + "/data/obs-plugins/kennelgg", live + "/data");
+		if (bad.isEmpty()) {
+			QFile v(live + "/VERSION");
+			if (v.open(QIODevice::WriteOnly))
+				v.write(ver.toUtf8());
+		}
+		QString badApp = copyTree(staged + "/ClipHound", appDir);
+		QDir(QFileInfo(staged).absolutePath()).removeRecursively();
+		QMetaObject::invokeMethod(
+			this,
+			[this, ver, bad, badApp, appWas]() {
+				liveBusy_ = false;
+				if (appWas)
+					launchApp();
+				if (!bad.isEmpty() || !badApp.isEmpty()) {
+					log(tx("Live update: could not replace %1; the rest is in. It installs fully when OBS "
+					       "closes.")
+						    .arg(bad.isEmpty() ? badApp : bad));
+				}
+				// the pages and the translations from the new data
+				I18n::load(I18n::resolve(cfg.uiLang));
+				if (obs_source_t *src = obs_get_source_by_name(Config::sessionOverlayName())) {
+					// the session bar's page: the same address after the file, on the new file
+					char *pg = kennel_file("overlay/session.html");
+					obs_data_t *st = obs_source_get_settings(src);
+					QString u = QString::fromUtf8(obs_data_get_string(st, "url"));
+					if (pg && u.contains('?')) {
+						QString file = QString::fromUtf8(pg).replace('\\', '/');
+						u = "file:///" + file + u.mid(u.indexOf('?'));
+						obs_data_set_string(st, "url", u.toUtf8().constData());
+						obs_source_update(src, st);
+					}
+					bfree(pg);
+					obs_data_release(st);
+					obs_source_release(src);
+				}
+				sw.ensureStinger(cfg, cfg.replayStinger || cfg.povStinger);
+				sw.updateLook(cfg, lookPreview_ || applied_);
+				log(tx("Live update: %1's ClipHound and overlays are running. The plugin itself updates "
+				       "when you close OBS.")
+					    .arg(ver));
+				emit stateChanged();
+			},
+			Qt::QueuedConnection);
+	}).detach();
+#endif
+}
+
+void Engine::installOnExit()
+{
+#ifdef _WIN32
+	if (!cfg.autoUpdate || updStep_ != UpdStep::Ready || !QFileInfo::exists(updPath_) ||
+	    !isNewer(updVersion_, PLUGIN_VERSION))
+		return;
+	// no /OBS=: the installer waits for OBS to finish closing, installs quietly and does not open it again
+	QString args = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE";
+	HINSTANCE h = ShellExecuteW(nullptr, L"open", (const wchar_t *)QDir::toNativeSeparators(updPath_).utf16(),
+				    (const wchar_t *)args.utf16(), nullptr, SW_HIDE);
+	blog(LOG_INFO, "[kennelgg] update %s installs as OBS closes (%s)", updVersion_.toUtf8().constData(),
+	     (INT_PTR)h > 32 ? "started" : "the installer did not start");
+#endif
 }

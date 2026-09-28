@@ -1,4 +1,5 @@
 #include "switcher.h"
+#include "datafile.h"
 #include "i18n.h"
 #include <util/platform.h>
 #include <graphics/matrix4.h>
@@ -93,7 +94,7 @@ std::string Switcher::vdoPushUrl(const Friend &f)
 
 std::string Switcher::overlayUrl(const Config &cfg, const std::string &friendName)
 {
-	char *p = obs_module_file("overlay/overlay.html");
+	char *p = kennel_file("overlay/overlay.html");
 	std::string path = p ? p : "";
 	bfree(p);
 	std::replace(path.begin(), path.end(), '\\', '/');
@@ -1483,7 +1484,7 @@ std::string Switcher::playMedia(const Config &cfg, const std::string &path, int 
 	// the frame: the look page in replay mode, rendered at the replay's own size and laid exactly
 	// over it, so its edge and "Instant replay" tag sit on the picture
 	if (frame) {
-		char *pp = obs_module_file("overlay/overlay.html");
+		char *pp = kennel_file("overlay/overlay.html");
 		std::string page = pp ? pp : "";
 		bfree(pp);
 		std::replace(page.begin(), page.end(), '\\', '/');
@@ -1521,7 +1522,7 @@ std::string Switcher::ensureStinger(const Config &cfg, bool on)
 		hideEverywhere(Config::stingerNameV());
 		return "";
 	}
-	char *pp = obs_module_file("overlay/stinger.html");
+	char *pp = kennel_file("overlay/stinger.html");
 	std::string page = pp ? pp : "";
 	bfree(pp);
 	if (page.empty())
@@ -1636,7 +1637,7 @@ std::string Switcher::playMediaVertical(const Config &cfg, int scalePct, bool fr
 		obs_source_media_restart(src);
 	}
 	if (frame) {
-		char *pp = obs_module_file("overlay/overlay.html");
+		char *pp = kennel_file("overlay/overlay.html");
 		std::string page = pp ? pp : "";
 		bfree(pp);
 		std::replace(page.begin(), page.end(), '\\', '/');

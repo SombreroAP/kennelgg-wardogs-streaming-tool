@@ -1,4 +1,5 @@
 #include "ui/stats-dialog.h"
+#include "datafile.h"
 #include "stats-image.h"
 #include "i18n.h"
 #include <obs-module.h>
@@ -87,7 +88,7 @@ QString StatsDialog::name(const Engine *e)
 /// The plugin's data folder, found from a file that is always in it.
 QString StatsDialog::dataDir()
 {
-	char *d = obs_module_file("overlay/hound_mark.png");
+	char *d = kennel_file("overlay/hound_mark.png");
 	QString dir = d ? QFileInfo(QString::fromUtf8(d)).absoluteDir().absolutePath() : QString();
 	bfree(d);
 	if (dir.endsWith("/overlay"))

@@ -167,6 +167,13 @@ begin
       Sleep(1000);
       Waited := Waited + 1;
     end;
+    // a silent update cannot ask (its message box would answer Retry by itself for ever): OBS was opened
+    // again or never closed, so this build waits for the next time instead
+    if WizardSilent() and IsOBSRunning() then
+    begin
+      Result := False;
+      Exit;
+    end;
   end;
   while IsOBSRunning() do
   begin

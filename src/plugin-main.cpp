@@ -21,6 +21,7 @@ GNU General Public License for more details.
 #include <QPointer>
 #include <QFontDatabase>
 #include "engine.h"
+#include "datafile.h"
 #include "ui/dock.h"
 #include <QDockWidget>
 #include "ui/settings-dialog.h"
@@ -223,8 +224,10 @@ static void onFrontendEvent(enum obs_frontend_event event, void *)
 			g_engine->onReplaySaved();
 	} else if (event == OBS_FRONTEND_EVENT_EXIT) {
 		saveHotkeys();
-		if (g_engine)
+		if (g_engine) {
+			g_engine->installOnExit(); // a downloaded newer build installs as OBS closes
 			g_engine->stop();
+		}
 	}
 }
 
@@ -232,7 +235,7 @@ bool obs_module_load(void)
 {
 	// the brand faces the dock and the settings use, shipped with the overlay page
 	for (const char *f : {"overlay/SairaCondensed-Bold.ttf", "overlay/IBMPlexMono-SemiBold.ttf"}) {
-		char *p = obs_module_file(f);
+		char *p = kennel_file(f);
 		if (p) {
 			QFontDatabase::addApplicationFont(QString::fromUtf8(p));
 			bfree(p);

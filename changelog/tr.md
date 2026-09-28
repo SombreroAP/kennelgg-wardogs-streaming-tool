@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.0
+- **Yayını durdurmadan güncelleme.** Yeni bir sürüm artık arka planda kendiliğinden iniyor (sürümün sağlama toplamıyla denetlenir). Küçük bir düzeltme (örneğin 0.34.0'dan 0.34.1'e) yeni ClipHound'unu ve katmanlarını sakin bir anda, canlıdayken bile devreye alır: ClipHound birkaç saniyeliğine yeniden başlar, yayın devam eder. Eklentinin kendisi OBS'yi kapattığında kurulur, böylece bir sonraki açılış yeni sürümle olur. Ayarlar'dan kapatılabilir: "Yayını durdurmadan kendi kendine güncellen".
+
 ## 0.33.4
 - **Düzeltildi: VOD tara "tesseract is not installed" diyordu.** Taramanın parçaları kendi süreçleri olarak çalışıyor ve ClipHound'un kendi Tesseract'ının nerede olduğunu bilmiyordu; artık biliyor, hem kayıtlar hem Twitch bağlantıları için. Teşekkürler Adventure Bear.
 
