@@ -1,0 +1,105 @@
+{
+ "Name": "Kennel.gg Wardogs",
+ "Description": "OBS 中 Kennel.gg Wardogs Streaming Tool 的按鍵與旋鈕：隊友 POV、剪輯、即時重播、本場統計列與即時數據、角色統計列、雙 POV、Stinger 轉場、語音控制等等。",
+ "Category": "Kennel.gg Wardogs",
+ "com.kennelgg.wardogs.pov": {
+  "Name": "隊友 POV",
+  "Tooltip": "在直播上顯示隊友的 POV，或正在 Kennel.gg 語音中開播的人；再按一次切回你自己的 POV"
+ },
+ "com.kennelgg.wardogs.cycle": {
+  "Name": "下一位隊友",
+  "Tooltip": "切換到下一位有畫面的隊友"
+ },
+ "com.kennelgg.wardogs.clip": {
+  "Name": "存剪輯",
+  "Tooltip": "從重播緩衝存下一段剪輯"
+ },
+ "com.kennelgg.wardogs.replay": {
+  "Name": "即時重播",
+  "Tooltip": "播放最近一段精華"
+ },
+ "com.kennelgg.wardogs.clipreplay": {
+  "Name": "剪輯 + 重播",
+  "Tooltip": "存下剪輯並立刻重播"
+ },
+ "com.kennelgg.wardogs.voice": {
+  "Name": "語音控制",
+  "Tooltip": "語音控制 開 / 關（測試版）"
+ },
+ "com.kennelgg.wardogs.dual": {
+  "Name": "雙 POV",
+  "Tooltip": "顯示第二個 POV 的小視窗 開 / 關"
+ },
+ "com.kennelgg.wardogs.me": {
+  "Name": "我的 POV",
+  "Tooltip": "切回你自己的 POV"
+ },
+ "com.kennelgg.wardogs.session": {
+  "Name": "本場統計疊加層",
+  "Tooltip": "在直播上顯示或隱藏本場統計列（開啟時按鍵亮起）"
+ },
+ "com.kennelgg.wardogs.stat": {
+  "Name": "本場數據",
+  "Tooltip": "在按鍵上顯示本場的一項即時數據：收支、K/D/A、每分鐘 $、治療、標記、各角色收入..."
+ },
+ "com.kennelgg.wardogs.role": {
+  "Name": "角色統計列",
+  "Tooltip": "把本場統計列切換成預設角色：突擊手、醫護兵、偵察兵、後勤、工兵、駕駛、目標、全能（或依序循環）"
+ },
+ "com.kennelgg.wardogs.reset": {
+  "Name": "重置本場",
+  "Tooltip": "本場統計從零開始。需長按按鍵：輕按不會有反應"
+ },
+ "com.kennelgg.wardogs.statsimage": {
+  "Name": "統計圖",
+  "Tooltip": "把可分享的本場統計圖存到剪輯旁邊並複製"
+ },
+ "com.kennelgg.wardogs.cliptag": {
+  "Name": "加標籤的剪輯",
+  "Tooltip": "存下剪輯並標記為 highlight、funny 或 fail"
+ },
+ "com.kennelgg.wardogs.closest": {
+  "Name": "最近的隊友",
+  "Tooltip": "顯示遊戲 NEARBY 名單中離你最近的隊友"
+ },
+ "com.kennelgg.wardogs.auto": {
+  "Name": "自動切換",
+  "Tooltip": "你倒地時自動切到隊友：開 / 關"
+ },
+ "com.kennelgg.wardogs.magpack": {
+  "Name": "裝填彈匣",
+  "Tooltip": "開啟背包時顯示隊友的 POV：開 / 關"
+ },
+ "com.kennelgg.wardogs.dualauto": {
+  "Name": "載具中雙 POV",
+  "Tooltip": "上載具時自動開啟雙 POV 視窗：開 / 關"
+ },
+ "com.kennelgg.wardogs.stingers": {
+  "Name": "Stinger 轉場",
+  "Tooltip": "即時重播與 SWITCHING POV 轉場：開 / 關"
+ },
+ "com.kennelgg.wardogs.nametag": {
+  "Name": "名稱標籤",
+  "Tooltip": "隊友畫面上的 POV · 名稱 標籤：開 / 關"
+ },
+ "com.kennelgg.wardogs.popouts": {
+  "Name": "顯示彈出視窗",
+  "Tooltip": "把 Discord 彈出視窗叫到螢幕上，方便操作它們的控制項（顯示時按鍵亮起）"
+ },
+ "com.kennelgg.wardogs.highlights": {
+  "Name": "精華",
+  "Tooltip": "製作本場直播的精華合輯並播放"
+ },
+ "com.kennelgg.wardogs.sendlogs": {
+  "Name": "傳送記錄檔",
+  "Tooltip": "在 OBS 中開啟「傳送記錄檔到 Kennel.gg」：說明出了什麼問題，記錄檔就會送到 Kennel.gg"
+ },
+ "com.kennelgg.wardogs.squaddial": {
+  "Name": "小隊旋鈕",
+  "Tooltip": "轉動選擇隊友，按下顯示該隊友，點觸螢幕切回你自己的 POV"
+ },
+ "com.kennelgg.wardogs.whooshdial": {
+  "Name": "咻聲音量",
+  "Tooltip": "轉動調整 Stinger 轉場的咻聲音量，按下靜音或恢復"
+ }
+}

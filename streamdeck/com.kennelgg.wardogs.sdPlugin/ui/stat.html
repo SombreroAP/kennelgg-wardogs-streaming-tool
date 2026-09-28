@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="sdpi-components.js"></script>
+</head>
+<body>
+<sdpi-item label="Show">
+  <sdpi-select setting="stat" default="net">
+    <option value="net">Session balance (green up, red down)</option>
+    <option value="kda">K / D / A</option>
+    <option value="kills">Kills</option>
+    <option value="deaths">Deaths</option>
+    <option value="kd">K/D ratio</option>
+    <option value="revives">Revives</option>
+    <option value="heals">Heals (medic)</option>
+    <option value="spots">Enemies spotted (recon)</option>
+    <option value="supplies">Supplies delivered (logistics)</option>
+    <option value="builds">Things built (builder)</option>
+    <option value="transports">Passengers transported (driver)</option>
+    <option value="headshots">Headshots</option>
+    <option value="permin">$ per minute in game</option>
+    <option value="earned">Money earned</option>
+    <option value="spent">Money spent</option>
+    <option value="medicCash">Money from medic play</option>
+    <option value="reconCash">Money from recon</option>
+    <option value="logisticsCash">Money from logistics</option>
+    <option value="buildCash">Money from building</option>
+    <option value="transportCash">Money from transporting</option>
+    <option value="objectiveCash">Money from zones and objectives</option>
+    <option value="combatCash">Money from combat</option>
+  </sdpi-select>
+</sdpi-item>
+<sdpi-item label="">
+  <div style="color:#9a9a9a;font-size:11px">The number updates live from this session; Reset session starts it from zero.</div>
+</sdpi-item>
+<sdpi-item label="Bridge port">
+  <sdpi-textfield setting="port" global default="47820" placeholder="47820"></sdpi-textfield>
+</sdpi-item>
+</body>
+</html>

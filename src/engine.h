@@ -245,6 +245,9 @@ signals:
 	void languageUnknown();
 	/// The microphone's level, about ten times a second while voice listens.
 	void voiceLevel(double db);
+	/// A controller (the Stream Deck) asked for something only the dock can do: "stats_image" (save and
+	/// copy the session picture, no window) or "send_logs" (the Send logs popup).
+	void controllerWants(const QString &what);
 
 public:
 	bool applied() const { return applied_; }
@@ -549,7 +552,10 @@ private:
 	QDateTime lastChatReplay_;
 	void replayTick();
 	bool popoutsShown_ = false;
-	QString popoutNote_; // the unnamed pop-out we last mentioned, so the log says it once
+	int whooshGen_ = 0;          // the whoosh dial: the stinger page is reloaded once the turning stops
+	QString sessionRole() const; // the bar's preset id (Session::presets), "custom" when none fits
+	QString closestName() const; // the nearest squad mate in the last NEARBY read, "" = none
+	QString popoutNote_;         // the unnamed pop-out we last mentioned, so the log says it once
 	Access lastAccess_ = Access::Unknown;
 	QString lastRosterStatus_;
 	void checkAccess(); // say it once when the roster locks or unlocks

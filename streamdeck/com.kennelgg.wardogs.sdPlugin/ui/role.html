@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="sdpi-components.js"></script>
+</head>
+<body>
+<sdpi-item label="Role">
+  <sdpi-select setting="role" default="cycle">
+    <option value="cycle">Cycle through the roles on each press</option>
+    <option value="fragger">Fragger</option>
+    <option value="medic">Medic</option>
+    <option value="recon">Recon</option>
+    <option value="logistics">Logistics</option>
+    <option value="builder">Builder</option>
+    <option value="driver">Driver</option>
+    <option value="objective">Objective</option>
+    <option value="all-round">All-round</option>
+  </sdpi-select>
+</sdpi-item>
+<sdpi-item label="">
+  <div style="color:#9a9a9a;font-size:11px">Sets what the session stats bar shows on stream, like Quick pick in the plugin's settings. The key is lit while its role is on.</div>
+</sdpi-item>
+<sdpi-item label="Bridge port">
+  <sdpi-textfield setting="port" global default="47820" placeholder="47820"></sdpi-textfield>
+</sdpi-item>
+</body>
+</html>

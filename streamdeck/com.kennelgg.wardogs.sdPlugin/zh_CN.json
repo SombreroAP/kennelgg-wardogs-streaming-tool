@@ -1,0 +1,105 @@
+{
+ "Name": "Kennel.gg Wardogs",
+ "Description": "OBS 中 Kennel.gg Wardogs Streaming Tool 的按键和旋钮：队友视角、片段、即时回放、本场统计栏及其实时数据、角色统计栏、双视角、过场动画、语音控制等。",
+ "Category": "Kennel.gg Wardogs",
+ "com.kennelgg.wardogs.pov": {
+  "Name": "队友视角",
+  "Tooltip": "在直播中显示某位队友的视角，或正在 Kennel.gg 语音中开播的人；再按一次切回你自己的视角"
+ },
+ "com.kennelgg.wardogs.cycle": {
+  "Name": "下一位队友",
+  "Tooltip": "切换到下一位有画面的队友"
+ },
+ "com.kennelgg.wardogs.clip": {
+  "Name": "存片段",
+  "Tooltip": "从回放缓存保存一个片段"
+ },
+ "com.kennelgg.wardogs.replay": {
+  "Name": "即时回放",
+  "Tooltip": "播放最近一次高光"
+ },
+ "com.kennelgg.wardogs.clipreplay": {
+  "Name": "片段 + 回放",
+  "Tooltip": "保存片段并立即回放"
+ },
+ "com.kennelgg.wardogs.voice": {
+  "Name": "语音控制",
+  "Tooltip": "语音控制 开 / 关（测试版）"
+ },
+ "com.kennelgg.wardogs.dual": {
+  "Name": "双视角",
+  "Tooltip": "显示第二个视角的小窗口 开 / 关"
+ },
+ "com.kennelgg.wardogs.me": {
+  "Name": "我的视角",
+  "Tooltip": "切回你自己的视角"
+ },
+ "com.kennelgg.wardogs.session": {
+  "Name": "本场统计叠加层",
+  "Tooltip": "在直播中显示或隐藏本场统计栏（开启时按键亮起）"
+ },
+ "com.kennelgg.wardogs.stat": {
+  "Name": "本场数据",
+  "Tooltip": "在按键上显示本场的一项实时数据：收支、K/D/A、每分钟 $、治疗、标记、各角色收入..."
+ },
+ "com.kennelgg.wardogs.role": {
+  "Name": "角色统计栏",
+  "Tooltip": "把本场统计栏切换为预设角色：刚枪手、医疗兵、侦察兵、后勤、工程兵、司机、目标、全能（或依次循环）"
+ },
+ "com.kennelgg.wardogs.reset": {
+  "Name": "重置本场",
+  "Tooltip": "本场统计从零开始。需长按按键：轻按无效"
+ },
+ "com.kennelgg.wardogs.statsimage": {
+  "Name": "统计图片",
+  "Tooltip": "把可分享的本场统计图片保存到片段旁边并复制"
+ },
+ "com.kennelgg.wardogs.cliptag": {
+  "Name": "带标签的片段",
+  "Tooltip": "保存片段并标记为 highlight、funny 或 fail"
+ },
+ "com.kennelgg.wardogs.closest": {
+  "Name": "最近的队友",
+  "Tooltip": "显示游戏 NEARBY 列表中离你最近的队友"
+ },
+ "com.kennelgg.wardogs.auto": {
+  "Name": "自动切换",
+  "Tooltip": "你倒地时自动切到队友画面：开 / 关"
+ },
+ "com.kennelgg.wardogs.magpack": {
+  "Name": "装填弹匣",
+  "Tooltip": "打开背包时显示队友视角：开 / 关"
+ },
+ "com.kennelgg.wardogs.dualauto": {
+  "Name": "载具中双视角",
+  "Tooltip": "上载具时自动打开双视角窗口：开 / 关"
+ },
+ "com.kennelgg.wardogs.stingers": {
+  "Name": "过场动画",
+  "Tooltip": "即时回放和切换视角的过场动画：开 / 关"
+ },
+ "com.kennelgg.wardogs.nametag": {
+  "Name": "名字标签",
+  "Tooltip": "队友画面上的“视角 · 名字”标签：开 / 关"
+ },
+ "com.kennelgg.wardogs.popouts": {
+  "Name": "显示弹出窗口",
+  "Tooltip": "把 Discord 弹出窗口调到屏幕上，方便操作其控件（显示时按键亮起）"
+ },
+ "com.kennelgg.wardogs.highlights": {
+  "Name": "高光集锦",
+  "Tooltip": "生成本场直播的高光集锦并播放"
+ },
+ "com.kennelgg.wardogs.sendlogs": {
+  "Name": "发送日志",
+  "Tooltip": "在 OBS 中打开“发送日志到 Kennel.gg”：说明出了什么问题，日志会发送到 Kennel.gg"
+ },
+ "com.kennelgg.wardogs.squaddial": {
+  "Name": "小队旋钮",
+  "Tooltip": "转动选择队友，按下显示该队友，点触屏幕切回你自己的视角"
+ },
+ "com.kennelgg.wardogs.whooshdial": {
+  "Name": "嗖声音量",
+  "Tooltip": "转动调节过场动画的嗖声音量，按下静音或恢复"
+ }
+}

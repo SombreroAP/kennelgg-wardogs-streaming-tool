@@ -1,0 +1,105 @@
+{
+ "Name": "Kennel.gg Wardogs",
+ "Description": "Touches et molettes pour le Kennel.gg Wardogs Streaming Tool dans OBS : POV des coéquipiers, clips, replay instantané, la barre des stats de session et ses chiffres en direct, barres par rôle, double POV, stingers, commande vocale et plus encore.",
+ "Category": "Kennel.gg Wardogs",
+ "com.kennelgg.wardogs.pov": {
+  "Name": "POV du coéquipier",
+  "Tooltip": "Affiche le POV d'un coéquipier sur le stream, ou celui qui est en live dans le vocal Kennel.gg ; appuie à nouveau pour revenir au tien"
+ },
+ "com.kennelgg.wardogs.cycle": {
+  "Name": "Coéquipier suivant",
+  "Tooltip": "Passe au coéquipier suivant qui a une image"
+ },
+ "com.kennelgg.wardogs.clip": {
+  "Name": "Clip",
+  "Tooltip": "Sauvegarde un clip du tampon de relecture"
+ },
+ "com.kennelgg.wardogs.replay": {
+  "Name": "Replay instantané",
+  "Tooltip": "Rejoue le dernier temps fort"
+ },
+ "com.kennelgg.wardogs.clipreplay": {
+  "Name": "Clip + replay",
+  "Tooltip": "Sauvegarde un clip et le rejoue aussitôt"
+ },
+ "com.kennelgg.wardogs.voice": {
+  "Name": "Commande vocale",
+  "Tooltip": "Commande vocale on / off (bêta)"
+ },
+ "com.kennelgg.wardogs.dual": {
+  "Name": "Double POV",
+  "Tooltip": "La petite fenêtre du second POV on / off"
+ },
+ "com.kennelgg.wardogs.me": {
+  "Name": "Mon POV",
+  "Tooltip": "Revenir à ton propre POV"
+ },
+ "com.kennelgg.wardogs.session": {
+  "Name": "Overlay des stats de session",
+  "Tooltip": "Affiche ou masque la barre des stats de session sur le stream (allumée tant qu'elle est active)"
+ },
+ "com.kennelgg.wardogs.stat": {
+  "Name": "Stat de session",
+  "Tooltip": "Un chiffre en direct de cette session sur la touche : solde, K/D/A, $ par minute, soins, repérages, argent par rôle..."
+ },
+ "com.kennelgg.wardogs.role": {
+  "Name": "Barre de rôle",
+  "Tooltip": "Passe la barre de session sur un rôle tout prêt : Fragger, Médic, Recon, Logistique, Bâtisseur, Pilote, Objectif, Polyvalent (ou les fait défiler)"
+ },
+ "com.kennelgg.wardogs.reset": {
+  "Name": "Remettre la session à zéro",
+  "Tooltip": "Repart de zéro pour les stats de session. Maintiens la touche : un simple appui ne fait rien"
+ },
+ "com.kennelgg.wardogs.statsimage": {
+  "Name": "Image des stats",
+  "Tooltip": "Sauvegarde l'image partageable des stats de session à côté de tes clips et la copie"
+ },
+ "com.kennelgg.wardogs.cliptag": {
+  "Name": "Clip avec un tag",
+  "Tooltip": "Sauvegarde un clip avec le tag highlight, funny ou fail"
+ },
+ "com.kennelgg.wardogs.closest": {
+  "Name": "Coéquipier le plus proche",
+  "Tooltip": "Affiche celui que la liste NEARBY du jeu donne comme le plus proche"
+ },
+ "com.kennelgg.wardogs.auto": {
+  "Name": "Bascule auto",
+  "Tooltip": "Passe tout seul sur un coéquipier quand tu es à terre : on / off"
+ },
+ "com.kennelgg.wardogs.magpack": {
+  "Name": "Remplissage des chargeurs",
+  "Tooltip": "Le POV d'un coéquipier pendant que ton inventaire est ouvert : on / off"
+ },
+ "com.kennelgg.wardogs.dualauto": {
+  "Name": "Double POV en véhicule",
+  "Tooltip": "Ouvre tout seul la fenêtre double POV dans un véhicule : on / off"
+ },
+ "com.kennelgg.wardogs.stingers": {
+  "Name": "Stingers",
+  "Tooltip": "Les transitions REPLAY INSTANTANÉ et CHANGEMENT DE POV : on / off"
+ },
+ "com.kennelgg.wardogs.nametag": {
+  "Name": "Étiquette de nom",
+  "Tooltip": "L'étiquette POV · NOM sur l'image d'un coéquipier : on / off"
+ },
+ "com.kennelgg.wardogs.popouts": {
+  "Name": "Afficher les pop-outs",
+  "Tooltip": "Fait apparaître les pop-outs Discord à l'écran pour accéder à leurs commandes (allumée tant qu'ils sont affichés)"
+ },
+ "com.kennelgg.wardogs.highlights": {
+  "Name": "Temps forts",
+  "Tooltip": "Monte la compilation des temps forts de ce stream et la joue"
+ },
+ "com.kennelgg.wardogs.sendlogs": {
+  "Name": "Envoyer les journaux",
+  "Tooltip": "Ouvre « Envoyer les journaux à Kennel.gg » dans OBS : dis ce qui n'a pas marché et tes journaux partent chez Kennel.gg"
+ },
+ "com.kennelgg.wardogs.squaddial": {
+  "Name": "Molette escouade",
+  "Tooltip": "Tourne pour choisir un coéquipier, appuie pour l'afficher, touche l'écran pour ton propre POV"
+ },
+ "com.kennelgg.wardogs.whooshdial": {
+  "Name": "Volume du whoosh",
+  "Tooltip": "Tourne pour régler le volume du whoosh des stingers, appuie pour le couper ou le remettre"
+ }
+}

@@ -1,8 +1,8 @@
 {
   "Name": "Kennel.gg Wardogs",
-  "Version": "0.1.0.0",
+  "Version": "0.2.0.0",
   "Author": "The Kennel [KNL]",
-  "Description": "Keys for the Kennel.gg Wardogs Streaming Tool in OBS: squad mate POVs, clips, instant replay, Dual POV and voice control.",
+  "Description": "Keys and dials for the Kennel.gg Wardogs Streaming Tool in OBS: squad mate POVs, clips, instant replay, the session stats bar and its live numbers, role bars, Dual POV, stingers, voice control and more.",
   "Icon": "imgs/plugin/marketplace",
   "UUID": "com.kennelgg.wardogs",
   "Category": "Kennel.gg Wardogs",
@@ -90,6 +90,10 @@
         {
           "Image": "imgs/actions/replay/key",
           "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/replay/key-on",
+          "TitleAlignment": "bottom"
         }
       ]
     },
@@ -160,6 +164,313 @@
           "TitleAlignment": "bottom"
         }
       ]
+    },
+    {
+      "Name": "Session Stats Overlay",
+      "UUID": "com.kennelgg.wardogs.session",
+      "Icon": "imgs/actions/session/icon",
+      "Tooltip": "Show or hide the session stats bar on stream (lit while it is on)",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/session/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/session/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Session stat",
+      "UUID": "com.kennelgg.wardogs.stat",
+      "Icon": "imgs/actions/stat/icon",
+      "Tooltip": "A live number from this session on the key: balance, K/D/A, $ per minute, heals, spots, money by role...",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/stat/key",
+          "TitleAlignment": "middle"
+        }
+      ],
+      "PropertyInspectorPath": "ui/stat.html"
+    },
+    {
+      "Name": "Role bar",
+      "UUID": "com.kennelgg.wardogs.role",
+      "Icon": "imgs/actions/role/icon",
+      "Tooltip": "Switch the session bar to a ready-made role: Fragger, Medic, Recon, Logistics, Builder, Driver, Objective, All-round (or cycle through them)",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/role/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/role/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "PropertyInspectorPath": "ui/role.html"
+    },
+    {
+      "Name": "Reset session",
+      "UUID": "com.kennelgg.wardogs.reset",
+      "Icon": "imgs/actions/reset/icon",
+      "Tooltip": "Start the session stats from zero. Hold the key: a tap does nothing",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/reset/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Stats image",
+      "UUID": "com.kennelgg.wardogs.statsimage",
+      "Icon": "imgs/actions/statsimage/icon",
+      "Tooltip": "Save the shareable session stats image next to your clips and copy it",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/statsimage/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Clip with a tag",
+      "UUID": "com.kennelgg.wardogs.cliptag",
+      "Icon": "imgs/actions/cliptag/icon",
+      "Tooltip": "Save a clip tagged highlight, funny or fail",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/cliptag/key",
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "PropertyInspectorPath": "ui/cliptag.html"
+    },
+    {
+      "Name": "Closest squad mate",
+      "UUID": "com.kennelgg.wardogs.closest",
+      "Icon": "imgs/actions/closest/icon",
+      "Tooltip": "Show whoever the game's NEARBY list says is closest",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/closest/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Auto switch",
+      "UUID": "com.kennelgg.wardogs.auto",
+      "Icon": "imgs/actions/auto/icon",
+      "Tooltip": "Switch to a squad mate by itself when you are downed: on / off",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/auto/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/auto/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Magazine packing",
+      "UUID": "com.kennelgg.wardogs.magpack",
+      "Icon": "imgs/actions/magpack/icon",
+      "Tooltip": "A squad mate's POV while your inventory is open: on / off",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/magpack/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/magpack/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Dual POV in vehicles",
+      "UUID": "com.kennelgg.wardogs.dualauto",
+      "Icon": "imgs/actions/dualauto/icon",
+      "Tooltip": "Open the dual window by itself in a vehicle: on / off",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/dualauto/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/dualauto/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Stingers",
+      "UUID": "com.kennelgg.wardogs.stingers",
+      "Icon": "imgs/actions/stingers/icon",
+      "Tooltip": "The INSTANT REPLAY and SWITCHING POV transitions: on / off",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/stingers/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/stingers/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Name tag",
+      "UUID": "com.kennelgg.wardogs.nametag",
+      "Icon": "imgs/actions/nametag/icon",
+      "Tooltip": "The POV · NAME tag over a squad mate's feed: on / off",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/nametag/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/nametag/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Show pop-outs",
+      "UUID": "com.kennelgg.wardogs.popouts",
+      "Icon": "imgs/actions/popouts/icon",
+      "Tooltip": "Bring the Discord pop-outs on screen to reach their controls (lit while shown)",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/popouts/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/popouts/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Highlights",
+      "UUID": "com.kennelgg.wardogs.highlights",
+      "Icon": "imgs/actions/highlights/icon",
+      "Tooltip": "Build this stream's highlights compilation and play it",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/highlights/key",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/highlights/key-on",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Send logs",
+      "UUID": "com.kennelgg.wardogs.sendlogs",
+      "Icon": "imgs/actions/sendlogs/icon",
+      "Tooltip": "Open Send logs in OBS: say what went wrong and your logs go to Kennel.gg",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/sendlogs/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Squad dial",
+      "UUID": "com.kennelgg.wardogs.squaddial",
+      "Icon": "imgs/actions/squaddial/icon",
+      "Tooltip": "Turn to pick a squad mate, press to show them, tap the screen for your own POV",
+      "Controllers": [
+        "Encoder"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/squaddial/key"
+        }
+      ],
+      "Encoder": {
+        "layout": "$B1",
+        "TriggerDescription": {
+          "Rotate": "Pick a squad mate",
+          "Push": "Show them / back to you",
+          "Touch": "Your own POV"
+        }
+      }
+    },
+    {
+      "Name": "Whoosh volume",
+      "UUID": "com.kennelgg.wardogs.whooshdial",
+      "Icon": "imgs/actions/whooshdial/icon",
+      "Tooltip": "Turn for the stingers' whoosh volume, press to mute it or bring it back",
+      "Controllers": [
+        "Encoder"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/whooshdial/key"
+        }
+      ],
+      "Encoder": {
+        "layout": "$B1",
+        "TriggerDescription": {
+          "Rotate": "Whoosh volume",
+          "Push": "Whoosh on / off"
+        }
+      }
     }
   ]
 }

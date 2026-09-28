@@ -10,6 +10,9 @@ class StatsDialog : public QDialog {
 	Q_OBJECT
 public:
 	explicit StatsDialog(Engine *engine, QWidget *parent = nullptr);
+	/// No window (a Stream Deck key): render on a random background, save next to the clips and copy
+	/// it. The saved path, "" when it could not be saved.
+	static QString saveQuick(Engine *engine);
 
 private:
 	Engine *e_;
@@ -19,5 +22,7 @@ private:
 	QString saved_;
 	void draw();
 	QString save();
-	QString name() const;
+	static QString name(const Engine *e);
+	static QString dataDir();
+	static QString savePath(Engine *e);
 };

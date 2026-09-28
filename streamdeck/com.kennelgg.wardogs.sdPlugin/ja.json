@@ -1,0 +1,105 @@
+{
+ "Name": "Kennel.gg Wardogs",
+ "Description": "OBS用 Kennel.gg Wardogs Streaming Tool のキーとダイヤル：味方のPOV、クリップ、インスタントリプレイ、セッション統計バーとそのリアルタイムの数値、ロール別バー、デュアルPOV、スティンガー、音声操作など。",
+ "Category": "Kennel.gg Wardogs",
+ "com.kennelgg.wardogs.pov": {
+  "Name": "味方のPOV",
+  "Tooltip": "味方のPOV、またはKennel.ggボイスで配信中の人を配信に映します。もう一度押すと自分のPOVに戻ります"
+ },
+ "com.kennelgg.wardogs.cycle": {
+  "Name": "次の味方",
+  "Tooltip": "映像のある次の味方に切り替えます"
+ },
+ "com.kennelgg.wardogs.clip": {
+  "Name": "クリップ",
+  "Tooltip": "リプレイバッファからクリップを保存します"
+ },
+ "com.kennelgg.wardogs.replay": {
+  "Name": "インスタントリプレイ",
+  "Tooltip": "最後のハイライトを再生します"
+ },
+ "com.kennelgg.wardogs.clipreplay": {
+  "Name": "クリップ + リプレイ",
+  "Tooltip": "クリップを保存してすぐに再生します"
+ },
+ "com.kennelgg.wardogs.voice": {
+  "Name": "音声操作",
+  "Tooltip": "音声操作のオン / オフ（ベータ）"
+ },
+ "com.kennelgg.wardogs.dual": {
+  "Name": "デュアルPOV",
+  "Tooltip": "2つ目のPOVを映す小さなウィンドウのオン / オフ"
+ },
+ "com.kennelgg.wardogs.me": {
+  "Name": "自分のPOV",
+  "Tooltip": "自分のPOVに戻ります"
+ },
+ "com.kennelgg.wardogs.session": {
+  "Name": "セッション統計オーバーレイ",
+  "Tooltip": "配信上のセッション統計バーを表示 / 非表示にします（表示中は点灯）"
+ },
+ "com.kennelgg.wardogs.stat": {
+  "Name": "セッション統計",
+  "Tooltip": "このセッションのリアルタイムの数値をキーに表示：収支、K/D/A、$ / 分、回復、スポット、ロール別の稼ぎなど"
+ },
+ "com.kennelgg.wardogs.role": {
+  "Name": "ロール別バー",
+  "Tooltip": "セッションバーを用意済みのロールに切り替えます：フラッガー、メディック、リコン、補給、ビルダー、ドライバー、目標、オールラウンド（または順番に切り替え）"
+ },
+ "com.kennelgg.wardogs.reset": {
+  "Name": "セッションをリセット",
+  "Tooltip": "セッション統計をゼロからやり直します。キーを長押ししてください（短く押しても何も起きません）"
+ },
+ "com.kennelgg.wardogs.statsimage": {
+  "Name": "統計画像",
+  "Tooltip": "共有用のセッション統計画像をクリップと同じ場所に保存し、コピーします"
+ },
+ "com.kennelgg.wardogs.cliptag": {
+  "Name": "タグ付きクリップ",
+  "Tooltip": "highlight、funny、fail のタグを付けてクリップを保存します"
+ },
+ "com.kennelgg.wardogs.closest": {
+  "Name": "一番近い味方",
+  "Tooltip": "ゲームの NEARBY リストで一番近い味方を映します"
+ },
+ "com.kennelgg.wardogs.auto": {
+  "Name": "自動切り替え",
+  "Tooltip": "ダウンしたら自動で味方に切り替え：オン / オフ"
+ },
+ "com.kennelgg.wardogs.magpack": {
+  "Name": "マガジン詰め",
+  "Tooltip": "インベントリを開いている間は味方のPOV：オン / オフ"
+ },
+ "com.kennelgg.wardogs.dualauto": {
+  "Name": "乗り物でデュアルPOV",
+  "Tooltip": "乗り物に乗るとデュアルウィンドウを自動で開く：オン / オフ"
+ },
+ "com.kennelgg.wardogs.stingers": {
+  "Name": "スティンガー",
+  "Tooltip": "インスタントリプレイとPOV切り替えのトランジション：オン / オフ"
+ },
+ "com.kennelgg.wardogs.nametag": {
+  "Name": "名前タグ",
+  "Tooltip": "味方の映像に重ねる POV · 名前 タグ：オン / オフ"
+ },
+ "com.kennelgg.wardogs.popouts": {
+  "Name": "ポップアウトを表示",
+  "Tooltip": "Discordのポップアウトを画面に出して操作できるようにします（表示中は点灯）"
+ },
+ "com.kennelgg.wardogs.highlights": {
+  "Name": "ハイライト",
+  "Tooltip": "この配信のハイライト集を作成して再生します"
+ },
+ "com.kennelgg.wardogs.sendlogs": {
+  "Name": "ログを送信",
+  "Tooltip": "OBSで「ログをKennel.ggに送信」を開きます。何が起きたかを書くと、ログがKennel.ggに届きます"
+ },
+ "com.kennelgg.wardogs.squaddial": {
+  "Name": "スクワッドダイヤル",
+  "Tooltip": "回して味方を選び、押して映します。画面をタップすると自分のPOVに戻ります"
+ },
+ "com.kennelgg.wardogs.whooshdial": {
+  "Name": "ウーシュ音の音量",
+  "Tooltip": "回してスティンガーのウーシュ音の音量を調整、押すとミュート / 解除"
+ }
+}

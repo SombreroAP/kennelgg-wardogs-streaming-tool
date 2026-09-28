@@ -15,6 +15,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <map>
 #include <fstream>
@@ -2417,6 +2418,18 @@ QJsonObject Engine::stateJson() const
 	o["voiceStatus"] = voiceStatus_;
 	o["replayPlaying"] = replayTimer_.isActive();
 	o["inVoice"] = rosterLive();
+	// for the Stream Deck's keys and dials (0.31.0)
+	o["lang"] = QString::fromStdString(I18n::current());
+	o["role"] = sessionRole();
+	o["closest"] = closestName();
+	o["invSwitch"] = cfg.invSwitch;
+	o["dualAuto"] = cfg.dualAuto;
+	o["stingers"] = cfg.replayStinger || cfg.povStinger;
+	o["nameTag"] = cfg.lookName;
+	o["popoutsShown"] = popoutsShown_;
+	o["highlightsBuilding"] = highlightsBuilding_;
+	o["whooshOn"] = cfg.replayStingerSound && cfg.stingerVolume > 0;
+	o["whooshVolume"] = cfg.stingerVolume;
 	{
 		QJsonObject sj = session_.json();
 		QJsonArray show;
@@ -3294,8 +3307,123 @@ void Engine::onControl(const QJsonObject &o)
 		}
 		setActive(next);
 		applyNow(true, "controller: " + QString::fromStdString(cfg.friends[next].name));
+	} else if (cmd == "cycle_pick" || cmd == "cycle_pick_prev") {
+		// the squad dial: choose who is next without putting them up (already up: the swap follows)
+		int n = (int)cfg.friends.size();
+		if (n == 0)
+			return;
+		int step = cmd == "cycle_pick" ? 1 : n - 1;
+		int next = cfg.activeFriend;
+		for (int k = 1; k <= n; k++) {
+			int i = (cfg.activeFriend + k * step) % n;
+			if (feedState(cfg.friends[i]) != Feed::Off) {
+				next = i;
+				break;
+			}
+		}
+		if (next != cfg.activeFriend)
+			setActive(next);
+	} else if (cmd == "closest") {
+		askNearbyNow();
+		pickClosest(TX_NOOP("controller"), true);
+		if (cfg.active())
+			applyNow(true, TX_NOOP("controller: closest squad mate"));
+	} else if (cmd == "clip_tag") {
+		// a tag of its own on the clip (letters, digits and dashes; it is also in the file name)
+		QString tag;
+		for (QChar c : o.value("tag").toString().toLower())
+			if (c.isLetterOrNumber() || c == '-')
+				tag += c;
+		tag = tag.left(20);
+		if (tag.isEmpty())
+			tag = "highlight";
+		clipNow(tag, {"manual", "controller", tag}, "controller");
+	} else if (cmd == "session_overlay_toggle") {
+		if (cfg.sessionOverlayOn && hasSessionOverlay()) {
+			cfg.sessionOverlayOn = false; // it animates out; the source stays for next time
+			cfg.save();
+		} else {
+			QString err = addSessionOverlay(); // adds it if missing, and turns it on
+			if (!err.isEmpty())
+				log(tx("Session stats overlay: %1").arg(err));
+		}
+	} else if (cmd == "session_reset") {
+		resetSession(tx("reset from the Stream Deck"));
+	} else if (cmd == "role") {
+		QString want = o.value("role").toString();
+		for (const Session::Preset &p : Session::presets())
+			if (want == p.id) {
+				cfg.sessionShow = p.show;
+				cfg.save();
+				log(tx("Session bar: %1.").arg(txv(p.label)));
+			}
+	} else if (cmd == "stats_image") {
+		emit controllerWants("stats_image");
+	} else if (cmd == "send_logs") {
+		emit controllerWants("send_logs");
+	} else if (cmd == "invswitch_toggle") {
+		setInvSwitch(!cfg.invSwitch);
+	} else if (cmd == "dualauto_toggle") {
+		cfg.dualAuto = !cfg.dualAuto;
+		cfg.save();
+		pushAppConfig();
+		log(cfg.dualAuto ? tx("Dual POV: opens and closes by itself in vehicles.")
+				 : tx("Dual POV: by hand only."));
+	} else if (cmd == "stingers_toggle") {
+		bool on = !(cfg.replayStinger || cfg.povStinger);
+		cfg.replayStinger = cfg.povStinger = on;
+		cfg.save();
+		sw.ensureStinger(cfg, on);
+		log(on ? tx("Stingers on.") : tx("Stingers off."));
+	} else if (cmd == "nametag_toggle") {
+		cfg.lookName = !cfg.lookName;
+		cfg.save();
+		sw.updateLook(cfg, lookPreview_ || applied_);
+		log(cfg.lookName ? tx("Name tag on.") : tx("Name tag off."));
+	} else if (cmd == "popouts_toggle") {
+		showPopouts(!popoutsShown_);
+	} else if (cmd == "whoosh_toggle") {
+		cfg.replayStingerSound = !cfg.replayStingerSound;
+		if (cfg.replayStingerSound && cfg.stingerVolume <= 0)
+			cfg.stingerVolume = 50;
+		cfg.save();
+		if (cfg.replayStinger || cfg.povStinger)
+			sw.ensureStinger(cfg, true);
+		log(cfg.replayStingerSound ? tx("Whoosh on.") : tx("Whoosh off."));
+	} else if (cmd == "whoosh_volume") {
+		cfg.stingerVolume = std::clamp(cfg.stingerVolume + o.value("delta").toInt(), 0, 100);
+		cfg.replayStingerSound = cfg.stingerVolume > 0;
+		cfg.save();
+		// the page takes its volume from its address: reload it once, when the dial stops
+		int gen = ++whooshGen_;
+		QTimer::singleShot(600, this, [this, gen]() {
+			if (gen == whooshGen_ && (cfg.replayStinger || cfg.povStinger))
+				sw.ensureStinger(cfg, true);
+		});
 	}
 	emit stateChanged();
+}
+
+QString Engine::sessionRole() const
+{
+	for (const Session::Preset &p : Session::presets())
+		if (cfg.sessionShow == p.show)
+			return p.id;
+	return "custom";
+}
+
+QString Engine::closestName() const
+{
+	if (!nearbyFresh())
+		return QString();
+	QString best;
+	int bestDist = INT_MAX;
+	for (const NearbyEntry &n : nearby_)
+		if (!n.match.isEmpty() && !n.unknown && n.dist < bestDist) {
+			best = n.match;
+			bestDist = n.dist;
+		}
+	return best;
 }
 
 void Engine::sendVoiceConfig()

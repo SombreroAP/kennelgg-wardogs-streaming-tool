@@ -1,0 +1,105 @@
+{
+ "Name": "Kennel.gg Wardogs",
+ "Description": "Tasten und Regler für das Kennel.gg Wardogs Streaming Tool in OBS: POVs der Squad-Mitglieder, Clips, Instant Replay, die Session-Stats-Leiste und ihre Live-Zahlen, Rollen-Leisten, Dual POV, Stinger, Sprachsteuerung und mehr.",
+ "Category": "Kennel.gg Wardogs",
+ "com.kennelgg.wardogs.pov": {
+  "Name": "POV des Squad-Mitglieds",
+  "Tooltip": "Zeigt den POV eines Squad-Mitglieds im Stream oder den, der gerade im Kennel.gg-Sprachkanal live ist; nochmal drücken, um zu deinem eigenen zurückzukehren"
+ },
+ "com.kennelgg.wardogs.cycle": {
+  "Name": "Nächstes Squad-Mitglied",
+  "Tooltip": "Wechselt zum nächsten Squad-Mitglied mit Bild"
+ },
+ "com.kennelgg.wardogs.clip": {
+  "Name": "Clip",
+  "Tooltip": "Speichert einen Clip aus dem Wiederholungspuffer"
+ },
+ "com.kennelgg.wardogs.replay": {
+  "Name": "Instant Replay",
+  "Tooltip": "Spielt das letzte Highlight ab"
+ },
+ "com.kennelgg.wardogs.clipreplay": {
+  "Name": "Clip + Replay",
+  "Tooltip": "Speichert einen Clip und spielt ihn sofort ab"
+ },
+ "com.kennelgg.wardogs.voice": {
+  "Name": "Sprachsteuerung",
+  "Tooltip": "Sprachsteuerung an / aus (Beta)"
+ },
+ "com.kennelgg.wardogs.dual": {
+  "Name": "Dual POV",
+  "Tooltip": "Das kleine Fenster mit dem zweiten POV an / aus"
+ },
+ "com.kennelgg.wardogs.me": {
+  "Name": "Mein POV",
+  "Tooltip": "Zurück zu deinem eigenen POV"
+ },
+ "com.kennelgg.wardogs.session": {
+  "Name": "Session-Stats-Overlay",
+  "Tooltip": "Zeigt oder versteckt die Session-Stats-Leiste im Stream (leuchtet, solange sie an ist)"
+ },
+ "com.kennelgg.wardogs.stat": {
+  "Name": "Session-Wert",
+  "Tooltip": "Eine Live-Zahl aus dieser Session auf der Taste: Bilanz, K/D/A, $ pro Minute, Heilungen, Spots, Geld nach Rolle..."
+ },
+ "com.kennelgg.wardogs.role": {
+  "Name": "Rollen-Leiste",
+  "Tooltip": "Stellt die Session-Leiste auf eine fertige Rolle um: Fragger, Medic, Recon, Logistik, Builder, Fahrer, Ziele, Allrounder (oder schaltet sie der Reihe nach durch)"
+ },
+ "com.kennelgg.wardogs.reset": {
+  "Name": "Session zurücksetzen",
+  "Tooltip": "Setzt die Session-Stats auf null. Taste gedrückt halten: kurzes Tippen bewirkt nichts"
+ },
+ "com.kennelgg.wardogs.statsimage": {
+  "Name": "Stats-Bild",
+  "Tooltip": "Speichert das teilbare Session-Stats-Bild neben deinen Clips und kopiert es"
+ },
+ "com.kennelgg.wardogs.cliptag": {
+  "Name": "Clip mit Tag",
+  "Tooltip": "Speichert einen Clip mit dem Tag highlight, funny oder fail"
+ },
+ "com.kennelgg.wardogs.closest": {
+  "Name": "Nächstgelegenes Squad-Mitglied",
+  "Tooltip": "Zeigt, wer laut der NEARBY-Liste des Spiels am nächsten ist"
+ },
+ "com.kennelgg.wardogs.auto": {
+  "Name": "Auto-Wechsel",
+  "Tooltip": "Wechselt von selbst zu einem Squad-Mitglied, wenn du down bist: an / aus"
+ },
+ "com.kennelgg.wardogs.magpack": {
+  "Name": "Mag-Packing",
+  "Tooltip": "Der POV eines Squad-Mitglieds, solange dein Inventar offen ist: an / aus"
+ },
+ "com.kennelgg.wardogs.dualauto": {
+  "Name": "Dual POV im Fahrzeug",
+  "Tooltip": "Öffnet das Dual-POV-Fenster im Fahrzeug von selbst: an / aus"
+ },
+ "com.kennelgg.wardogs.stingers": {
+  "Name": "Stinger",
+  "Tooltip": "Die Übergänge INSTANT REPLAY und POV-WECHSEL: an / aus"
+ },
+ "com.kennelgg.wardogs.nametag": {
+  "Name": "Namens-Tag",
+  "Tooltip": "Der Tag POV · NAME über dem Bild eines Squad-Mitglieds: an / aus"
+ },
+ "com.kennelgg.wardogs.popouts": {
+  "Name": "Pop-outs zeigen",
+  "Tooltip": "Holt die Discord-Pop-outs auf den Bildschirm, damit du an ihre Steuerung kommst (leuchtet, solange sie zu sehen sind)"
+ },
+ "com.kennelgg.wardogs.highlights": {
+  "Name": "Highlights",
+  "Tooltip": "Erstellt den Highlight-Zusammenschnitt dieses Streams und spielt ihn ab"
+ },
+ "com.kennelgg.wardogs.sendlogs": {
+  "Name": "Logs senden",
+  "Tooltip": "Öffnet „Logs an Kennel.gg senden“ in OBS: schreib, was schiefgelaufen ist, und deine Logs gehen an Kennel.gg"
+ },
+ "com.kennelgg.wardogs.squaddial": {
+  "Name": "Squad-Regler",
+  "Tooltip": "Drehen wählt ein Squad-Mitglied, Drücken zeigt es, Tippen aufs Display bringt deinen eigenen POV"
+ },
+ "com.kennelgg.wardogs.whooshdial": {
+  "Name": "Whoosh-Lautstärke",
+  "Tooltip": "Drehen stellt die Whoosh-Lautstärke der Stinger ein, Drücken schaltet sie stumm oder wieder an"
+ }
+}

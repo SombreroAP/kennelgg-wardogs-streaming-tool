@@ -74,42 +74,64 @@ StatsDialog::StatsDialog(Engine *engine, QWidget *parent) : QDialog(parent), e_(
 	});
 }
 
-QString StatsDialog::name() const
+QString StatsDialog::name(const Engine *e)
 {
-	const Config &c = e_->cfg;
+	const Config &c = e->cfg;
 	for (const std::string &n : {c.appPlayerName, c.playerName, c.myDiscord})
 		if (!n.empty())
 			return QString::fromStdString(n);
 	return QString();
 }
 
+/// The plugin's data folder, found from a file that is always in it.
+QString StatsDialog::dataDir()
+{
+	char *d = obs_module_file("overlay/hound_mark.png");
+	QString dir = d ? QFileInfo(QString::fromUtf8(d)).absoluteDir().absolutePath() : QString();
+	bfree(d);
+	if (dir.endsWith("/overlay"))
+		dir.chop(8);
+	return dir;
+}
+
 void StatsDialog::draw()
 {
-	// the plugin's data folder, found from a file that is always in it
-	char *d = obs_module_file("overlay/hound_mark.png");
-	QString dataDir = d ? QFileInfo(QString::fromUtf8(d)).absoluteDir().absolutePath() : QString();
-	bfree(d);
-	if (dataDir.endsWith("/overlay"))
-		dataDir.chop(8);
-	img_ = StatsImage::render(e_->session(), name(), dataDir, bg_);
+	img_ = StatsImage::render(e_->session(), name(e_), dataDir(), bg_);
 	preview_->setPixmap(
 		QPixmap::fromImage(img_.scaled(preview_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation)));
 }
 
 /// Next to the clips, where the stream's other material is; else the Pictures folder.
-QString StatsDialog::save()
+QString StatsDialog::savePath(Engine *e)
 {
 	QString dir;
-	const auto &h = e_->clips.history();
+	const auto &h = e->clips.history();
 	for (auto it = h.rbegin(); it != h.rend() && dir.isEmpty(); ++it)
 		if (!it->path.isEmpty())
 			dir = QFileInfo(it->path).absolutePath();
 	if (dir.isEmpty())
 		dir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-	QString p = dir + "/Session stats " + e_->session().start.toString("yyyy-MM-dd HH-mm") + ".png";
+	return dir + "/Session stats " + e->session().start.toString("yyyy-MM-dd HH-mm") + ".png";
+}
+
+QString StatsDialog::save()
+{
+	QString p = savePath(e_);
 	if (!img_.save(p, "PNG"))
 		return QString();
 	saved_ = p;
 	e_->log(tx("Session stats image saved: %1").arg(QDir::toNativeSeparators(p)));
+	return p;
+}
+
+QString StatsDialog::saveQuick(Engine *e)
+{
+	int bg = 1 + (int)QRandomGenerator::global()->bounded(StatsImage::kBackgrounds);
+	QImage img = StatsImage::render(e->session(), name(e), dataDir(), bg);
+	QString p = savePath(e);
+	if (img.isNull() || !img.save(p, "PNG"))
+		return QString();
+	QApplication::clipboard()->setImage(img);
+	e->log(tx("Session stats image saved and copied: %1").arg(QDir::toNativeSeparators(p)));
 	return p;
 }

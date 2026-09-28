@@ -1,0 +1,105 @@
+{
+ "Name": "Kennel.gg Wardogs",
+ "Description": "Teclas y diales para el Kennel.gg Wardogs Streaming Tool en OBS: POV de tus compañeros, clips, repetición instantánea, la barra de estadísticas de la sesión y sus cifras en directo, barras por rol, POV doble, stingers, control por voz y más.",
+ "Category": "Kennel.gg Wardogs",
+ "com.kennelgg.wardogs.pov": {
+  "Name": "POV del compañero",
+  "Tooltip": "Muestra el POV de un compañero en el directo, o el de quien esté transmitiendo en la voz de Kennel.gg; vuelve a pulsar para volver al tuyo"
+ },
+ "com.kennelgg.wardogs.cycle": {
+  "Name": "Siguiente compañero",
+  "Tooltip": "Pasa al siguiente compañero que tenga imagen"
+ },
+ "com.kennelgg.wardogs.clip": {
+  "Name": "Clip",
+  "Tooltip": "Guarda un clip del búfer de repetición"
+ },
+ "com.kennelgg.wardogs.replay": {
+  "Name": "Repetición instantánea",
+  "Tooltip": "Repite el último momento destacado"
+ },
+ "com.kennelgg.wardogs.clipreplay": {
+  "Name": "Clip + repetición",
+  "Tooltip": "Guarda un clip y lo repite al momento"
+ },
+ "com.kennelgg.wardogs.voice": {
+  "Name": "Control por voz",
+  "Tooltip": "Control por voz activado / desactivado (beta)"
+ },
+ "com.kennelgg.wardogs.dual": {
+  "Name": "POV doble",
+  "Tooltip": "Activa / desactiva la ventanita del segundo POV"
+ },
+ "com.kennelgg.wardogs.me": {
+  "Name": "Mi POV",
+  "Tooltip": "Volver a tu propio POV"
+ },
+ "com.kennelgg.wardogs.session": {
+  "Name": "Overlay de estadísticas",
+  "Tooltip": "Muestra u oculta en el directo la barra de estadísticas de la sesión (se ilumina mientras está activa)"
+ },
+ "com.kennelgg.wardogs.stat": {
+  "Name": "Estadística de la sesión",
+  "Tooltip": "Una cifra en directo de esta sesión en la tecla: balance, K/D/A, $ por minuto, curaciones, marcajes, dinero por rol..."
+ },
+ "com.kennelgg.wardogs.role": {
+  "Name": "Barra de rol",
+  "Tooltip": "Cambia la barra de la sesión a un rol ya preparado: Fragger, Médico, Recon, Logística, Constructor, Conductor, Objetivo, Todoterreno (o los recorre uno a uno)"
+ },
+ "com.kennelgg.wardogs.reset": {
+  "Name": "Reiniciar sesión",
+  "Tooltip": "Pone las estadísticas de la sesión a cero. Mantén pulsada la tecla: una pulsación corta no hace nada"
+ },
+ "com.kennelgg.wardogs.statsimage": {
+  "Name": "Imagen de estadísticas",
+  "Tooltip": "Guarda la imagen de estadísticas de la sesión para compartir junto a tus clips y la copia"
+ },
+ "com.kennelgg.wardogs.cliptag": {
+  "Name": "Clip con etiqueta",
+  "Tooltip": "Guarda un clip con la etiqueta highlight, funny o fail"
+ },
+ "com.kennelgg.wardogs.closest": {
+  "Name": "Compañero más cercano",
+  "Tooltip": "Muestra a quien la lista NEARBY del juego dé como el más cercano"
+ },
+ "com.kennelgg.wardogs.auto": {
+  "Name": "Cambio automático",
+  "Tooltip": "Cambia solo a un compañero cuando te derriban: activado / desactivado"
+ },
+ "com.kennelgg.wardogs.magpack": {
+  "Name": "Rellenar cargadores",
+  "Tooltip": "El POV de un compañero mientras tienes el inventario abierto: activado / desactivado"
+ },
+ "com.kennelgg.wardogs.dualauto": {
+  "Name": "POV doble en vehículos",
+  "Tooltip": "Abre sola la ventana de POV doble al subir a un vehículo: activado / desactivado"
+ },
+ "com.kennelgg.wardogs.stingers": {
+  "Name": "Stingers",
+  "Tooltip": "Las transiciones REPETICIÓN INSTANTÁNEA y CAMBIO DE POV: activadas / desactivadas"
+ },
+ "com.kennelgg.wardogs.nametag": {
+  "Name": "Etiqueta de nombre",
+  "Tooltip": "La etiqueta POV · NOMBRE sobre la imagen de un compañero: activada / desactivada"
+ },
+ "com.kennelgg.wardogs.popouts": {
+  "Name": "Mostrar ventanas emergentes",
+  "Tooltip": "Trae a la pantalla las ventanas emergentes de Discord para llegar a sus controles (se ilumina mientras se ven)"
+ },
+ "com.kennelgg.wardogs.highlights": {
+  "Name": "Mejores momentos",
+  "Tooltip": "Monta la recopilación de mejores momentos de este directo y la reproduce"
+ },
+ "com.kennelgg.wardogs.sendlogs": {
+  "Name": "Enviar registros",
+  "Tooltip": "Abre «Enviar registros a Kennel.gg» en OBS: cuenta qué ha fallado y tus registros llegan a Kennel.gg"
+ },
+ "com.kennelgg.wardogs.squaddial": {
+  "Name": "Dial de escuadra",
+  "Tooltip": "Gíralo para elegir un compañero, púlsalo para mostrarlo, toca la pantalla para tu propio POV"
+ },
+ "com.kennelgg.wardogs.whooshdial": {
+  "Name": "Volumen del whoosh",
+  "Tooltip": "Gíralo para el volumen del whoosh de los stingers, púlsalo para silenciarlo o recuperarlo"
+ }
+}

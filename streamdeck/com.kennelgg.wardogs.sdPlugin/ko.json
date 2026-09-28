@@ -1,0 +1,105 @@
+{
+ "Name": "Kennel.gg Wardogs",
+ "Description": "OBS용 Kennel.gg Wardogs Streaming Tool의 키와 다이얼: 팀원 POV, 클립, 인스턴트 리플레이, 세션 통계 바와 실시간 수치, 역할별 바, 듀얼 POV, 스팅어, 음성 제어 등.",
+ "Category": "Kennel.gg Wardogs",
+ "com.kennelgg.wardogs.pov": {
+  "Name": "팀원 POV",
+  "Tooltip": "팀원의 POV를 방송에 띄우거나, Kennel.gg 음성 채널에서 방송 중인 사람을 보여 줍니다. 다시 누르면 내 POV로 돌아옵니다"
+ },
+ "com.kennelgg.wardogs.cycle": {
+  "Name": "다음 팀원",
+  "Tooltip": "화면이 있는 다음 팀원으로 넘어갑니다"
+ },
+ "com.kennelgg.wardogs.clip": {
+  "Name": "클립",
+  "Tooltip": "리플레이 버퍼에서 클립을 저장합니다"
+ },
+ "com.kennelgg.wardogs.replay": {
+  "Name": "인스턴트 리플레이",
+  "Tooltip": "마지막 하이라이트를 재생합니다"
+ },
+ "com.kennelgg.wardogs.clipreplay": {
+  "Name": "클립 + 리플레이",
+  "Tooltip": "클립을 저장하고 바로 재생합니다"
+ },
+ "com.kennelgg.wardogs.voice": {
+  "Name": "음성 제어",
+  "Tooltip": "음성 제어 켜기 / 끄기 (베타)"
+ },
+ "com.kennelgg.wardogs.dual": {
+  "Name": "듀얼 POV",
+  "Tooltip": "두 번째 POV를 보여 주는 작은 창 켜기 / 끄기"
+ },
+ "com.kennelgg.wardogs.me": {
+  "Name": "내 POV",
+  "Tooltip": "내 POV로 돌아갑니다"
+ },
+ "com.kennelgg.wardogs.session": {
+  "Name": "세션 통계 오버레이",
+  "Tooltip": "방송에 세션 통계 바를 표시하거나 숨깁니다 (켜져 있는 동안 불이 들어옴)"
+ },
+ "com.kennelgg.wardogs.stat": {
+  "Name": "세션 통계",
+  "Tooltip": "이번 세션의 실시간 수치를 키에 표시: 손익, K/D/A, 분당 $, 회복, 스팟, 역할별 수입..."
+ },
+ "com.kennelgg.wardogs.role": {
+  "Name": "역할별 바",
+  "Tooltip": "세션 바를 미리 만든 역할로 바꿉니다: 프래거, 메딕, 정찰, 보급, 빌더, 드라이버, 목표, 올라운드 (또는 차례로 순환)"
+ },
+ "com.kennelgg.wardogs.reset": {
+  "Name": "세션 초기화",
+  "Tooltip": "세션 통계를 0부터 다시 시작합니다. 키를 길게 누르세요: 짧게 누르면 아무 일도 없습니다"
+ },
+ "com.kennelgg.wardogs.statsimage": {
+  "Name": "통계 이미지",
+  "Tooltip": "공유용 세션 통계 이미지를 클립 옆에 저장하고 복사합니다"
+ },
+ "com.kennelgg.wardogs.cliptag": {
+  "Name": "태그 클립",
+  "Tooltip": "highlight, funny, fail 태그를 붙여 클립을 저장합니다"
+ },
+ "com.kennelgg.wardogs.closest": {
+  "Name": "가장 가까운 팀원",
+  "Tooltip": "게임의 NEARBY 목록에서 가장 가까운 팀원을 보여 줍니다"
+ },
+ "com.kennelgg.wardogs.auto": {
+  "Name": "자동 전환",
+  "Tooltip": "다운되면 자동으로 팀원 화면으로 전환: 켜기 / 끄기"
+ },
+ "com.kennelgg.wardogs.magpack": {
+  "Name": "탄창 채우기",
+  "Tooltip": "인벤토리를 여는 동안 팀원 POV 보여 주기: 켜기 / 끄기"
+ },
+ "com.kennelgg.wardogs.dualauto": {
+  "Name": "차량에서 듀얼 POV",
+  "Tooltip": "차량에 타면 듀얼 창을 자동으로 열기: 켜기 / 끄기"
+ },
+ "com.kennelgg.wardogs.stingers": {
+  "Name": "스팅어",
+  "Tooltip": "인스턴트 리플레이와 POV 전환 트랜지션: 켜기 / 끄기"
+ },
+ "com.kennelgg.wardogs.nametag": {
+  "Name": "이름 태그",
+  "Tooltip": "팀원 피드 위의 POV · 이름 태그: 켜기 / 끄기"
+ },
+ "com.kennelgg.wardogs.popouts": {
+  "Name": "팝아웃 표시",
+  "Tooltip": "Discord 팝아웃을 화면으로 불러와 컨트롤을 조작할 수 있게 합니다 (표시 중에는 불이 들어옴)"
+ },
+ "com.kennelgg.wardogs.highlights": {
+  "Name": "하이라이트",
+  "Tooltip": "이번 방송의 하이라이트 모음을 만들어 재생합니다"
+ },
+ "com.kennelgg.wardogs.sendlogs": {
+  "Name": "로그 보내기",
+  "Tooltip": "OBS에서 'Kennel.gg로 로그 보내기'를 엽니다: 무엇이 잘못됐는지 적으면 로그가 Kennel.gg로 전송됩니다"
+ },
+ "com.kennelgg.wardogs.squaddial": {
+  "Name": "스쿼드 다이얼",
+  "Tooltip": "돌려서 팀원을 고르고, 눌러서 보여 주고, 화면을 탭하면 내 POV로 돌아갑니다"
+ },
+ "com.kennelgg.wardogs.whooshdial": {
+  "Name": "휙 효과음 볼륨",
+  "Tooltip": "돌려서 스팅어의 휙 효과음 볼륨을 조절하고, 누르면 음소거 / 해제"
+ }
+}

@@ -227,6 +227,15 @@ void Dock::build()
 		if (e_->updateNoticeDue())
 			openWhatsNew();
 	});
+	connect(e_, &Engine::controllerWants, this, [this](const QString &what) {
+		if (what == "send_logs")
+			openSendLogs();
+		else if (what == "stats_image") {
+			QString p = StatsDialog::saveQuick(e_);
+			if (p.isEmpty())
+				e_->log(tx("Could not save the image."));
+		}
+	});
 	auto *v = new QVBoxLayout(this);
 	v->setContentsMargins(10, 8, 10, 8);
 	v->setSpacing(5);
