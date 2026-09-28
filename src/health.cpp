@@ -253,18 +253,17 @@ QList<Engine::Banner> Engine::banners() const
 		b.dismissable = false;
 		add(b);
 	}
-	if (cfg.hudShare == 0 && cfg.setupDone && cfg.statsConsent != 0) {
-		// asked once, after the leaderboards question, never as a pop-up
+	if (cfg.hudShare == 0 && cfg.setupDone) {
+		// on unless turned off: said once, plainly, with the switch right there
 		Banner b;
 		b.id = "hudshare";
 		b.level = 0;
 		b.text = tx(
-			"<b>Help make the reader bulletproof:</b> send kennel.gg small pictures of your HUD every few "
-			"minutes while you play (the balance box, kill feed, weapon plate, NEARBY list and the damage "
-			"log when you are down), at your resolution and in your game language. Only those corners, "
-			"never the whole screen, your camera, voice or chat. Turn it off any time in Settings, "
-			"Clips & replays.");
-		b.actions = {Fix("hud:yes", tx("Yes, send them")), Fix("hud:no", tx("No thanks"))};
+			"<b>You are helping build the plugin:</b> it sends kennel.gg small pictures of your HUD "
+			"while you play (the balance box, kill feed, weapon plate, NEARBY list and the damage log when "
+			"you are down), and its logs when a stream had problems or OBS crashed. Never the whole screen, "
+			"your camera, voice or chat. Turn it off here or in Settings, Clips & replays.");
+		b.actions = {Fix("hud:yes", tx("OK")), Fix("hud:no", tx("Turn it off"))};
 		add(b);
 	}
 	if (cfg.statsConsent == 0 && cfg.setupDone) {

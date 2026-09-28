@@ -34,20 +34,20 @@ static QString tailOf(const QString &path, int lines)
 	return all.join('\n');
 }
 
-/// The newest OBS log (this session's), its last `bytes`.
-static QString obsLogTail(qint64 bytes)
+/// The newest OBS log (this session's), its last `bytes`; nth = 1 for the one before (a crashed session).
+static QString obsLogTail(qint64 bytes, int nth = 0)
 {
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).section('/', 0, -2) +
 		 "/obs-studio/logs");
 	QFileInfoList l = dir.entryInfoList({"*.txt"}, QDir::Files, QDir::Time);
-	if (l.isEmpty())
+	if (l.size() <= nth)
 		return QString();
-	QFile f(l.first().absoluteFilePath());
+	QFile f(l[nth].absoluteFilePath());
 	if (!f.open(QIODevice::ReadOnly))
 		return QString();
 	if (f.size() > bytes)
 		f.seek(f.size() - bytes);
-	return l.first().fileName() + "\n" + QString::fromUtf8(f.readAll());
+	return l[nth].fileName() + "\n" + QString::fromUtf8(f.readAll());
 }
 
 /// The plugin's settings as sent with the logs: every key, minus anything secret (the account token, the
@@ -64,6 +64,56 @@ static QString settingsForLogs()
 		if (k.contains(secret))
 			o.insert(k, "(removed)");
 	return QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Indented));
+}
+
+/// Everything a report carries, as the server takes it (4 MB at most: the OBS log gives way first).
+static QByteArray payload(Engine *e, const QString &note, const QString &contact, int obsNth)
+{
+	QString appDir =
+		QFileInfo(e->cfg.appPath.empty() ? Engine::defaultAppPath() : QString::fromStdString(e->cfg.appPath))
+			.absolutePath();
+	QString plugin = QString("=== Kennel.gg Wardogs plugin %1 ===\n").arg(PLUGIN_VERSION);
+	plugin += QString("state: %1 | game source: %2 | squad mate: %3 | replay buffer: %4 | ClipHound: %5\n\n")
+			  .arg(QString::fromStdString(e->stateText()), QString::fromStdString(e->cfg.gameSource),
+			       e->cfg.active() ? QString::fromStdString(e->cfg.active()->name) : "(none)",
+			       obs_frontend_replay_buffer_active() ? "running" : "NOT running",
+			       e->appConnected() ? "connected" : "not connected");
+	plugin += e->recentLog().join('\n');
+	QJsonObject o;
+	o["version"] = QString(PLUGIN_VERSION);
+	o["note"] = note.left(2000);
+	o["contact"] = contact.left(80);
+	o["plugin_log"] = plugin;
+	o["settings"] = settingsForLogs();
+	o["cliphound_log"] = tailOf(appDir + "/cliphound.log", 4000);
+	o["obs_log"] = obsLogTail(2 * 1024 * 1024, obsNth);
+	QByteArray body = QJsonDocument(o).toJson(QJsonDocument::Compact);
+	if (body.size() > 4 * 1024 * 1024 - 4096) {
+		o["obs_log"] = obsLogTail(1024 * 1024, obsNth);
+		body = QJsonDocument(o).toJson(QJsonDocument::Compact);
+	}
+	return body;
+}
+
+static QString logsHeaders(Engine *e)
+{
+	QString hdr = "Content-Type: application/json\r\n";
+	if (!e->cfg.accountToken.empty())
+		hdr += "Authorization: Bearer " + QString::fromStdString(e->cfg.accountToken) + "\r\n";
+	return hdr;
+}
+
+void SendLogs::sendAuto(Engine *e, const QString &note, bool previousObsLog)
+{
+	QString contact = QString::fromStdString(e->cfg.myDiscord.empty() ? e->cfg.appPlayerName : e->cfg.myDiscord);
+	Http::requestAsync(
+		e, "POST", "https://kennel.gg/api/stats/logs", payload(e, note, contact, previousObsLog ? 1 : 0),
+		logsHeaders(e), 30000, QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION), [e](Http::Result r) {
+			QString code = QJsonDocument::fromJson(r.body).object().value("code").toString();
+			if (r.ok && !code.isEmpty())
+				e->log(tx("Sent the logs to Kennel.gg by itself (you help build the plugin): %1.")
+					       .arg(code));
+		});
 }
 
 void SendLogs::open(Engine *e, QWidget *)
@@ -117,33 +167,8 @@ void SendLogs::open(Engine *e, QWidget *)
 	QObject::connect(send, &QPushButton::clicked, d, [e, d, alive, note, contact, result, send, copyRef]() {
 		send->setEnabled(false);
 		result->setText(tx("Sending..."));
-		QString appDir = QFileInfo(e->cfg.appPath.empty() ? Engine::defaultAppPath()
-								  : QString::fromStdString(e->cfg.appPath))
-					 .absolutePath();
-		QString plugin = QString("=== Kennel.gg Wardogs plugin %1 ===\n").arg(PLUGIN_VERSION);
-		plugin +=
-			QString("state: %1 | game source: %2 | squad mate: %3 | replay buffer: %4 | ClipHound: %5\n\n")
-				.arg(QString::fromStdString(e->stateText()), QString::fromStdString(e->cfg.gameSource),
-				     e->cfg.active() ? QString::fromStdString(e->cfg.active()->name) : "(none)",
-				     obs_frontend_replay_buffer_active() ? "running" : "NOT running",
-				     e->appConnected() ? "connected" : "not connected");
-		plugin += e->recentLog().join('\n');
-		QJsonObject o;
-		o["version"] = QString(PLUGIN_VERSION);
-		o["note"] = note->toPlainText().left(2000);
-		o["contact"] = contact->text().trimmed().left(80);
-		o["plugin_log"] = plugin;
-		o["settings"] = settingsForLogs();
-		o["cliphound_log"] = tailOf(appDir + "/cliphound.log", 4000);
-		o["obs_log"] = obsLogTail(2 * 1024 * 1024);
-		QByteArray body = QJsonDocument(o).toJson(QJsonDocument::Compact);
-		if (body.size() > 4 * 1024 * 1024 - 4096) { // the server takes 4 MB: the OBS log gives way
-			o["obs_log"] = obsLogTail(1024 * 1024);
-			body = QJsonDocument(o).toJson(QJsonDocument::Compact);
-		}
-		QString hdr = "Content-Type: application/json\r\n";
-		if (!e->cfg.accountToken.empty())
-			hdr += "Authorization: Bearer " + QString::fromStdString(e->cfg.accountToken) + "\r\n";
+		QByteArray body = payload(e, note->toPlainText(), contact->text().trimmed(), 0);
+		QString hdr = logsHeaders(e);
 		Http::requestAsync(
 			e, "POST", "https://kennel.gg/api/stats/logs", body, hdr, 30000,
 			QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),

@@ -1,7 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
 ## 0.32.0
-- **Pomóż uczynić odczyt niezawodnym (dobrowolne).** Wtyczka może wysyłać do kennel.gg co kilka minut podczas gry, a także gdy leżysz, małe obrazki twojego HUD: ramkę z saldem, kill feed, tabliczkę broni, licznik zabójstw, listę NEARBY i dziennik obrażeń, wycięte w twojej rozdzielczości, z językiem gry i tym, co wtyczka tam odczytała. Tworzą zestaw testowy dla każdej rozdzielczości i wszystkich 14 języków gry, więc odczyt salda, zabójstw i powaleń jest sprawdzany na prawdziwych ekranach, a nie na domysłach. Wysyłane są tylko te rogi, nigdy cały ekran, kamera, głos ani czat, a konto nie jest potrzebne. Dok pyta raz; przełącznik jest w Ustawienia, Klipy & powtórki.
+- **Pomóż budować wtyczkę (włączone, dopóki nie wyłączysz).** Wtyczka wysyła teraz do kennel.gg co kilka minut podczas gry, a także gdy leżysz, małe obrazki twojego HUD: ramkę z saldem, kill feed, tabliczkę broni, licznik zabójstw, listę NEARBY i dziennik obrażeń, wycięte w twojej rozdzielczości, z językiem gry i tym, co wtyczka tam odczytała. Tworzą zestaw testowy dla każdej rozdzielczości i wszystkich 14 języków gry, więc odczyt salda, zabójstw i powaleń jest sprawdzany na prawdziwych ekranach, a nie na domysłach.
+- **Problemy zgłaszają się same.** Po streamie, w którym coś nie działało (czerwona kropka w doku), albo po awarii OBS te same logi co przy Wyślij logi same trafiają do Kennel.gg, z opisem, co poszło nie tak, więc nawet błąd, którego nikt nie zgłosi, zostanie naprawiony.
+- Wysyłane są tylko te rogi i logi: nigdy cały ekran, kamera, głos ani czat, a konto nie jest potrzebne. Konfiguracja ma przełącznik (zaznaczony), dok mówi o tym raz, a w Ustawienia, Klipy & powtórki to wyłączysz.
 
 ## 0.31.2
 Poprawki z pierwszych logów przysłanych przez streamerów:

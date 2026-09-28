@@ -1,7 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
 ## 0.32.0
-- **Aide à rendre la lecture infaillible (au choix).** Le plugin peut envoyer à kennel.gg de petites images de ton HUD toutes les quelques minutes pendant que tu joues, et quand tu tombes : l'encadré du solde, le kill feed, la plaque d'arme, le ticker de kills, la liste NEARBY et le journal des dégâts, découpés à ta propre résolution, avec la langue de ton jeu et ce que le plugin y a lu. Elles forment un jeu de test pour chaque résolution et les 14 langues du jeu, pour que la lecture du solde, des kills et des mises à terre soit vérifiée sur de vrais écrans plutôt que sur des suppositions. Seuls ces coins sont envoyés, jamais l'écran entier, ta caméra, ta voix ou ton chat, et aucun compte n'est nécessaire. Le dock demande une fois ; l'interrupteur est dans Paramètres, Clips & replays.
+- **Aide à construire le plugin (activé sauf si tu le coupes).** Le plugin envoie maintenant à kennel.gg de petites images de ton HUD toutes les quelques minutes pendant que tu joues, et quand tu tombes : l'encadré du solde, le kill feed, la plaque d'arme, le ticker de kills, la liste NEARBY et le journal des dégâts, découpés à ta propre résolution, avec la langue de ton jeu et ce que le plugin y a lu. Elles forment un jeu de test pour chaque résolution et les 14 langues du jeu, pour que la lecture du solde, des kills et des mises à terre soit vérifiée sur de vrais écrans plutôt que sur des suppositions.
+- **Les problèmes se signalent tout seuls.** Après un stream où quelque chose était cassé (un point rouge sur le dock), ou après un plantage d'OBS, les mêmes journaux qu'avec Envoyer les journaux partent tout seuls vers Kennel.gg, avec ce qui n'allait pas, pour qu'un bug que personne ne signale soit quand même corrigé.
+- Seuls ces coins et ces journaux sont envoyés : jamais l'écran entier, ta caméra, ta voix ou ton chat, et aucun compte n'est nécessaire. La configuration a l'interrupteur (coché), le dock le dit une fois, et Paramètres, Clips & replays le désactive.
 
 ## 0.31.2
 Corrections tirées des premiers journaux envoyés par des streamers :

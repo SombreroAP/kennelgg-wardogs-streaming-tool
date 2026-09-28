@@ -424,6 +424,20 @@ QWizardPage *SetupWizard::pageCheck()
 		   "kill and top weapon. Never your clips, video, voice or chat. Off unless you tick it; stop and "
 		   "delete any time in Settings."),
 		p));
+	// on unless unticked (0.32.0): the pictures and logs that make the plugin work at every resolution and language
+	helpBuild_ = new QCheckBox(
+		tx("Help build the plugin: send kennel.gg HUD pictures, and the logs after a stream with problems or a crash"),
+		p);
+	helpBuild_->setChecked(e_->cfg.helpBuild());
+	v->addSpacing(6);
+	v->addWidget(helpBuild_);
+	v->addWidget(
+		note(tx("Small pictures of your HUD every few minutes in a match (the balance box, kill feed, weapon "
+			"plate, NEARBY list, and the damage log when you are down) at your resolution and game "
+			"language, and the same logs as Send logs after a stream where something was broken or after "
+			"OBS crashed. Never the whole screen, your camera, voice or chat, and no account needed. "
+			"Untick it to send nothing; Settings, Clips & replays can change it later."),
+		     p));
 	auto *extras = new QLabel(tx("<b>Optional extras</b>"), p);
 	v->addSpacing(8);
 	v->addWidget(extras);
@@ -596,6 +610,8 @@ void SetupWizard::accept()
 	// finishing Setup is the answer: ticked is yes, left unticked is no (Settings can change it)
 	if (statsShare_ && (statsShare_->isChecked() ? 1 : 2) != e_->cfg.statsConsent)
 		e_->setStatsConsent(statsShare_->isChecked());
+	if (helpBuild_ && (helpBuild_->isChecked() ? 1 : 2) != e_->cfg.hudShare)
+		e_->setHudShare(helpBuild_->isChecked()); // answered here: the dock does not ask again
 	e_->cfg.setupDone = true;
 	e_->cfg.save();
 	e_->log(tx("Setup done. Get downed once to see it work."));

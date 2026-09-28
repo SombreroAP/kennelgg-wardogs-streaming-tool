@@ -577,6 +577,9 @@ private:
 	int hudSent_ = 0;
 	qint64 lastCashOkMs_ = 0;
 	void hudSample(const QString &why);
+	QStringList problems_; // broken health items seen during this stream: sent with the logs at its end
+	int autoLogsSent_ = 0;
+	void checkLastCrash();
 	bool manualShow_ = false;
 	bool inventoryShow_ = false;  // the view on screen is the magazine-packing swap
 	QString povStateName() const; // the view on screen was put up by hand (not by being downed)

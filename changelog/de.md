@@ -1,7 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
 ## 0.32.0
-- **Hilf, die Erkennung wasserdicht zu machen (freiwillig).** Das Plugin kann kennel.gg beim Spielen alle paar Minuten und wenn du niedergehst kleine Bilder deines HUDs schicken: Guthabenfeld, Killfeed, Waffenschild, Kill-Ticker, NEARBY-Liste und Schadensprotokoll, in deiner eigenen Auflösung ausgeschnitten, mit deiner Spielsprache und dem, was das Plugin dort gelesen hat. Daraus wird ein Testsatz für jede Auflösung und alle 14 Spielsprachen, damit die Erkennung von Guthaben, Kills und Niederschlägen an echten Bildschirmen geprüft wird statt an Vermutungen. Nur diese Ecken werden geschickt, nie der ganze Bildschirm, deine Kamera, Stimme oder dein Chat, und du brauchst kein Konto. Das Dock fragt einmal; der Schalter ist unter Einstellungen, Clips & Replays.
+- **Hilf, das Plugin zu bauen (an, bis du es abschaltest).** Das Plugin schickt kennel.gg jetzt beim Spielen alle paar Minuten und wenn du niedergehst kleine Bilder deines HUDs: Guthabenfeld, Killfeed, Waffenschild, Kill-Ticker, NEARBY-Liste und Schadensprotokoll, in deiner eigenen Auflösung ausgeschnitten, mit deiner Spielsprache und dem, was das Plugin dort gelesen hat. Daraus wird ein Testsatz für jede Auflösung und alle 14 Spielsprachen, damit die Erkennung von Guthaben, Kills und Niederschlägen an echten Bildschirmen geprüft wird statt an Vermutungen.
+- **Probleme melden sich selbst.** Nach einem Stream, in dem etwas kaputt war (ein roter Punkt im Dock), oder nach einem OBS-Absturz gehen dieselben Logs wie bei Logs senden von selbst an Kennel.gg, mit dem, was schiefging, damit auch ein Fehler, den niemand meldet, behoben wird.
+- Nur diese Ecken und Logs werden geschickt: nie der ganze Bildschirm, deine Kamera, Stimme oder dein Chat, und kein Konto nötig. Die Einrichtung hat den Schalter (angehakt), das Dock sagt es einmal, und unter Einstellungen, Clips & Replays schaltest du es ab.
 
 ## 0.31.2
 Korrekturen aus den ersten Logs, die Streamer geschickt haben:

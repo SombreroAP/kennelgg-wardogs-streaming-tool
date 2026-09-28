@@ -28,6 +28,7 @@
 #include <QCoreApplication>
 #include <QUrl>
 #include "http.h"
+#include "ui/send-logs.h"
 #include "picture.h"
 #include <QRandomGenerator>
 #include <QDateTime>
@@ -73,6 +74,17 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&healthTimer_, &QTimer::timeout, this, [this]() {
 		if (++replayRetryTick_ % 12 == 0) // the health timer runs every 5 s: once a minute
 			clips.retryReplayBuffer();
+		if (cfg.helpBuild() && streamStart_.isValid() && replayRetryTick_ % 6 == 0) {
+			// what was broken during this stream, for the logs sent at its end (every 30 s is enough)
+			for (const auto &h : health())
+				if (h.level == 2 && problems_.size() < 40) {
+					QString p = h.key + ": " + h.why;
+					if (!problems_.contains(p))
+						problems_ << p;
+				}
+			if (clips.lostHotkeyClips() > 0 && !problems_.contains("clips: hotkey clips lost"))
+				problems_ << "clips: hotkey clips lost";
+		}
 	});
 	sessionStart_ = QDateTime::currentDateTime();
 	connect(&roster, &Roster::changed, this, &Engine::checkAccess);
@@ -125,6 +137,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	hudTimer_.setInterval(150000); // one set every 2.5 minutes while the HUD is on screen
 	connect(&hudTimer_, &QTimer::timeout, this, [this]() { hudSample("periodic"); });
 	hudTimer_.start();
+	QTimer::singleShot(60000, this, &Engine::checkLastCrash);
 	replayLenTimer_.setSingleShot(true);
 	replayLenTimer_.setInterval(1200);
 	connect(&replayLenTimer_, &QTimer::timeout, this, &Engine::applyReplaySecondsNow);
@@ -4791,7 +4804,7 @@ void Engine::detect(const Match &m)
 			       clock_::now() - downEndedAt_ > std::chrono::seconds(20);
 		if (newDown) {
 			session_.downs++;
-			if (cfg.hudShare == 1) // the damage log, as the downed reader sees it
+			if (cfg.helpBuild()) // the damage log, as the downed reader sees it
 				QTimer::singleShot(700, this, [this]() {
 					if (detected_)
 						hudSample("downed");
@@ -5119,6 +5132,15 @@ void Engine::onStreaming(bool live)
 	}
 	writeChapters();
 	writeSessionSummary();
+	// helping build the plugin: a stream where something was broken sends its logs by itself, with what it was
+	if (cfg.helpBuild() && !problems_.isEmpty() && streamStart_.isValid() &&
+	    streamStart_.secsTo(QDateTime::currentDateTime()) >= 180 && autoLogsSent_ < 3) {
+		autoLogsSent_++;
+		SendLogs::sendAuto(this,
+				   "Automatic report at the end of a stream. Problems seen:\n" + problems_.join("\n"),
+				   false);
+	}
+	problems_.clear();
 	streamStart_ = QDateTime();
 	if (cfg.highlightsAuto)
 		requestHighlights(TX_NOOP("stream ended"), false);
@@ -5894,13 +5916,38 @@ void Engine::previewLook(bool on)
 		       : (lookPreview_ ? tx("Look overlay showing in OBS.") : tx("Look overlay hidden.")));
 }
 
+/// OBS says at start when the last session did not close cleanly: with "help build the plugin" on, that session's
+/// logs go to kennel.gg (a crash nobody reports is a crash nobody fixes).
+void Engine::checkLastCrash()
+{
+	if (!cfg.helpBuild() || stopping_)
+		return;
+	QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).section('/', 0, -2) +
+		 "/obs-studio/logs");
+	QFileInfoList l = dir.entryInfoList({"*.txt"}, QDir::Files, QDir::Time);
+	if (l.size() < 2)
+		return;
+	QFile f(l.first().absoluteFilePath());
+	if (!f.open(QIODevice::ReadOnly))
+		return;
+	QByteArray head = f.read(64 * 1024);
+	if (!head.contains("Crash or unclean shutdown detected"))
+		return;
+	log(tx("OBS did not close cleanly last time: sending that session's logs to Kennel.gg (you help build the "
+	       "plugin; Settings, Clips & replays to stop)."));
+	SendLogs::sendAuto(this,
+			   "Automatic report: OBS did not close cleanly in the session before " + l.first().fileName(),
+			   true);
+}
+
 void Engine::setHudShare(bool on)
 {
 	cfg.hudShare = on ? 1 : 2;
 	cfg.save();
-	log(on ? tx("HUD pictures: on. Every few minutes in a match, small crops of your HUD go to kennel.gg to make the "
-		    "reader better at your resolution and language (Settings, Clips & replays to stop).")
-	       : tx("HUD pictures: off."));
+	log(on ? tx("Helping build the plugin: on. Small pictures of your HUD go to kennel.gg every few minutes in a "
+		    "match, and the logs after a stream with problems or an OBS crash (Settings, Clips & replays to "
+		    "stop).")
+	       : tx("Helping build the plugin: off. No HUD pictures or logs are sent unless you press Send logs."));
 	emit stateChanged();
 	if (on)
 		QTimer::singleShot(20000, this, [this]() { hudSample("first"); });
@@ -5912,7 +5959,7 @@ void Engine::setHudShare(bool on)
 /// per OBS run.
 void Engine::hudSample(const QString &why)
 {
-	if (cfg.hudShare != 1 || stopping_ || hudBusy_ || cfg.gameSource.empty() || hudSent_ >= 60)
+	if (!cfg.helpBuild() || stopping_ || hudBusy_ || cfg.gameSource.empty() || hudSent_ >= 60)
 		return;
 	qint64 now = QDateTime::currentMSecsSinceEpoch();
 	if (why != "downed" && now - lastCashOkMs_ > 10000)

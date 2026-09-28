@@ -1,7 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
 ## 0.32.0
-- **Ajude a deixar a leitura à prova de falhas (opcional).** O plugin pode enviar ao kennel.gg pequenas imagens do seu HUD a cada poucos minutos enquanto você joga, e quando cai: a caixa do saldo, o kill feed, a placa da arma, o contador de abates, a lista NEARBY e o registro de dano, recortados na sua própria resolução, com o idioma do seu jogo e o que o plugin leu ali. Elas viram um conjunto de teste para cada resolução e os 14 idiomas do jogo, para que a leitura de saldo, abates e quedas seja conferida em telas reais em vez de suposições. Só esses cantos são enviados, nunca a tela inteira, sua câmera, voz ou chat, e não precisa de conta. O painel pergunta uma vez; o botão fica em Configurações, Clipes & replays.
+- **Ajude a construir o plugin (ligado, a não ser que você desligue).** O plugin agora envia ao kennel.gg pequenas imagens do seu HUD a cada poucos minutos enquanto você joga, e quando cai: a caixa do saldo, o kill feed, a placa da arma, o contador de abates, a lista NEARBY e o registro de dano, recortados na sua própria resolução, com o idioma do seu jogo e o que o plugin leu ali. Elas viram um conjunto de teste para cada resolução e os 14 idiomas do jogo, para que a leitura de saldo, abates e quedas seja conferida em telas reais em vez de suposições.
+- **Os problemas se avisam sozinhos.** Depois de uma live em que algo quebrou (um ponto vermelho no painel), ou depois de um travamento do OBS, os mesmos logs de Enviar logs vão sozinhos para o Kennel.gg, com o que deu errado, para que um bug que ninguém relata seja corrigido mesmo assim.
+- Só esses cantos e logs são enviados: nunca a tela inteira, sua câmera, voz ou chat, e não precisa de conta. A configuração inicial tem o botão (marcado), o painel avisa uma vez, e em Configurações, Clipes & replays você desliga.
 
 ## 0.31.2
 Correções tiradas dos primeiros logs que streamers mandaram:

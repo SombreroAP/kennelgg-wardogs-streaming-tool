@@ -37,7 +37,7 @@ private:
 	QLabel *popResult_ = nullptr;
 	QLabel *clipResult_ = nullptr;
 	QPushButton *clipTest_ = nullptr, *swapTest_ = nullptr;
-	QCheckBox *statsShare_ = nullptr;
+	QCheckBox *statsShare_ = nullptr, *helpBuild_ = nullptr;
 	QLabel *swapResult_ = nullptr;
 	QListWidget *squad_ = nullptr;
 	QLineEdit *me_ = nullptr;

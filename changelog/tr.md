@@ -1,7 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
 ## 0.32.0
-- **Okumayı kusursuz yapmaya yardım et (isteğe bağlı).** Eklenti, oynarken birkaç dakikada bir ve yere düştüğünde kennel.gg'ye HUD'unun küçük görsellerini gönderebilir: bakiye kutusu, öldürme akışı, silah plakası, leş sayacı, NEARBY listesi ve hasar kaydı; kendi çözünürlüğünde kesilmiş, oyun dilin ve eklentinin orada okuduğuyla. Bunlar her çözünürlük ve oyunun 14 dili için bir test seti olur; böylece bakiye, leş ve yere düşme okumaları tahminlerle değil gerçek ekranlarla denetlenir. Yalnızca bu köşeler gönderilir; asla tüm ekran, kameran, sesin ya da sohbetin değil, hesap da gerekmez. Panel bir kez sorar; anahtar Ayarlar, Klipler & tekrarlar'da.
+- **Eklentiyi geliştirmeye yardım et (kapatmadıkça açık).** Eklenti artık oynarken birkaç dakikada bir ve yere düştüğünde kennel.gg'ye HUD'unun küçük görsellerini gönderiyor: bakiye kutusu, öldürme akışı, silah plakası, leş sayacı, NEARBY listesi ve hasar kaydı; kendi çözünürlüğünde kesilmiş, oyun dilin ve eklentinin orada okuduğuyla. Bunlar her çözünürlük ve oyunun 14 dili için bir test seti olur; böylece bakiye, leş ve yere düşme okumaları tahminlerle değil gerçek ekranlarla denetlenir.
+- **Sorunlar kendiliğinden bildiriliyor.** Bir şeylerin bozuk olduğu bir yayından sonra (panelde kırmızı bir nokta) ya da OBS çöktükten sonra, Günlükleri gönder'deki aynı günlükler neyin yanlış gittiğiyle birlikte kendiliğinden Kennel.gg'ye gidiyor; böylece kimsenin bildirmediği bir hata da düzeltiliyor.
+- Yalnızca bu köşeler ve günlükler gönderilir; asla tüm ekran, kameran, sesin ya da sohbetin değil, hesap da gerekmez. Kurulumda anahtar var (işaretli), panel bunu bir kez söylüyor ve Ayarlar, Klipler & tekrarlar'dan kapatılıyor.
 
 ## 0.31.2
 Yayıncıların gönderdiği ilk günlüklerden düzeltmeler:

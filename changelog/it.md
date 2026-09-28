@@ -1,7 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
 ## 0.32.0
-- **Aiuta a rendere la lettura a prova di errore (facoltativo).** Il plugin può mandare a kennel.gg piccole immagini del tuo HUD ogni pochi minuti mentre giochi, e quando vieni abbattuto: il riquadro del saldo, il kill feed, la targhetta dell'arma, il contatore delle uccisioni, la lista NEARBY e il registro danni, ritagliati alla tua risoluzione, con la lingua del gioco e quello che il plugin ci ha letto. Diventano un set di prova per ogni risoluzione e tutte le 14 lingue del gioco, così la lettura di saldo, uccisioni e abbattimenti viene verificata su schermi veri invece che su supposizioni. Vengono mandati solo quegli angoli, mai lo schermo intero, la tua webcam, voce o chat, e non serve un account. Il pannello lo chiede una volta; l'interruttore è in Impostazioni, Clip & replay.
+- **Aiuta a costruire il plugin (attivo finché non lo spegni).** Il plugin ora manda a kennel.gg piccole immagini del tuo HUD ogni pochi minuti mentre giochi, e quando vieni abbattuto: il riquadro del saldo, il kill feed, la targhetta dell'arma, il contatore delle uccisioni, la lista NEARBY e il registro danni, ritagliati alla tua risoluzione, con la lingua del gioco e quello che il plugin ci ha letto. Diventano un set di prova per ogni risoluzione e tutte le 14 lingue del gioco, così la lettura di saldo, uccisioni e abbattimenti viene verificata su schermi veri invece che su supposizioni.
+- **I problemi si segnalano da soli.** Dopo una diretta in cui qualcosa non andava (un pallino rosso nel pannello), o dopo un crash di OBS, gli stessi log di Invia i log vanno da soli a Kennel.gg, con quello che è andato storto, così anche un bug che nessuno segnala viene sistemato.
+- Vengono mandati solo quegli angoli e quei log: mai lo schermo intero, la tua webcam, voce o chat, e non serve un account. La configurazione iniziale ha l'interruttore (spuntato), il pannello lo dice una volta, e in Impostazioni, Clip & replay si spegne.
 
 ## 0.31.2
 Correzioni dai primi log inviati dagli streamer:

@@ -1,7 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
 ## 0.32.0
-- **Ayuda a que la lectura no falle nunca (opcional).** El plugin puede enviar a kennel.gg pequeñas imágenes de tu HUD cada pocos minutos mientras juegas, y cuando caes: el recuadro del saldo, el registro de bajas, la placa del arma, el contador de bajas, la lista NEARBY y el registro de daño, recortados en tu propia resolución, con el idioma de tu juego y lo que el plugin leyó ahí. Forman un conjunto de prueba para cada resolución y los 14 idiomas del juego, para que la lectura del saldo, las bajas y las caídas se compruebe con pantallas reales y no con suposiciones. Solo se envían esas esquinas, nunca la pantalla entera, tu cámara, tu voz ni tu chat, y no hace falta cuenta. El panel lo pregunta una vez; el interruptor está en Ajustes, Clips & repeticiones.
+- **Ayuda a construir el plugin (activado salvo que lo quites).** El plugin ahora envía a kennel.gg pequeñas imágenes de tu HUD cada pocos minutos mientras juegas, y cuando caes: el recuadro del saldo, el registro de bajas, la placa del arma, el contador de bajas, la lista NEARBY y el registro de daño, recortados en tu propia resolución, con el idioma de tu juego y lo que el plugin leyó ahí. Forman un conjunto de prueba para cada resolución y los 14 idiomas del juego, para que la lectura del saldo, las bajas y las caídas se compruebe con pantallas reales y no con suposiciones.
+- **Los problemas se avisan solos.** Tras un directo en el que algo falló (un punto rojo en el panel), o tras un cierre inesperado de OBS, los mismos registros que con Enviar registros van solos a Kennel.gg, con lo que salió mal, para que un fallo que nadie avisa se arregle igual.
+- Solo se envían esas esquinas y registros: nunca la pantalla entera, tu cámara, tu voz ni tu chat, y no hace falta cuenta. La configuración inicial tiene el interruptor (marcado), el panel lo avisa una vez, y en Ajustes, Clips & repeticiones se desactiva.
 
 ## 0.31.2
 Arreglos sacados de los primeros registros que enviaron streamers:
