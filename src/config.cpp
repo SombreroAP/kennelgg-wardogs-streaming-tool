@@ -85,6 +85,7 @@ void Config::load()
 	DEFI(activeFriend);
 	DEFB(bringToFront);
 	DEFB(povFill);
+	DEFB(vodClipAll);
 	DEFB(keepWarm);
 	DEFI(chatClips);
 	DEFB(twitchMarkers);
@@ -298,6 +299,7 @@ void Config::load()
 	GETI(activeFriend);
 	GETB(bringToFront);
 	GETB(povFill);
+	GETB(vodClipAll);
 	GETB(keepWarm);
 	GETI(chatClips);
 	GETB(twitchMarkers);
@@ -696,6 +698,7 @@ void Config::save() const
 	SETI(activeFriend);
 	SETB(bringToFront);
 	SETB(povFill);
+	SETB(vodClipAll);
 	SETB(keepWarm);
 	SETI(chatClips);
 	SETB(twitchMarkers);

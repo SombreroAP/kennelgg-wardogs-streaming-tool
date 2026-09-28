@@ -129,6 +129,12 @@ public:
 	/// Ask ClipHound to build this session's compilation from the clips saved since the stream (or
 	/// OBS) started. `thenPlay`: play it on the stream when it is ready.
 	void requestHighlights(const QString &why, bool thenPlay = false);
+	/// VOD scan (experimental, 0.30.0): ClipHound reads a recording or the streamer's own Twitch VOD for the
+	/// highlights the plugin clips live (vodscan.py); the window follows vodProgress / vodDone / vodClipDone.
+	int startVodScan(const QString &source); // the scan's id, 0 when ClipHound is not connected
+	void cancelVodScan();
+	void clipVod(const QList<int> &indices);
+	QString vodClipDir() const; // where its clips go: the clip folder, else OBS's recording folder
 	QString highlightsDir() const;
 	bool highlightsBuilding() const { return highlightsBuilding_; }
 	/// OBS started or stopped streaming: the session boundary for the compilation.
@@ -226,6 +232,9 @@ signals:
 	void languageChanged();
 	/// A newer version and its notes are in: time to offer it (the dock opens What's new).
 	void updateNoticeReady();
+	void vodProgress(const QJsonObject &o);
+	void vodDone(const QJsonObject &o);
+	void vodClipDone(const QJsonObject &o);
 	void appConfigReceived();
 	void updateChecked();
 	void nearbyTested(const QJsonObject &result);
@@ -342,6 +351,7 @@ private:
 	void onInventory(bool open);
 	bool invApplied_ = false;  // the swap on screen is the inventory's to undo
 	qint64 invQuietUntil_ = 0; // no inventory swap before this (after one swap back)
+	int vodId_ = 0;            // the VOD scan in flight (or last finished)
 	// the session's starting balance: a candidate until it has held (Engine::onCashReading)
 	int64_t startCand_ = -1;
 	qint64 startCandAt_ = 0;

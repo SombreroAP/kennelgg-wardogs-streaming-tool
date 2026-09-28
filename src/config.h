@@ -79,7 +79,9 @@ struct Config {
 	bool lookPosV1 = false;       // one-time move off the bottom-left corner
 	bool audioAutoPicked = false; // desktop audio was ticked automatically once
 	bool bringToFront = true;
-	bool povFill = true; // fit the squad mate's feed to the whole canvas each time it is shown
+	bool povFill = true;
+	bool vodClipAll =
+		false; // VOD scan: clip everything it finds without asking // fit the squad mate's feed to the whole canvas each time it is shown
 	bool keepWarm = true;
 	/// Discord squad mates are shown only while their capture holds a game picture: never the call
 	/// grid, a text channel or a "stream ended" card (Picture::look decides).

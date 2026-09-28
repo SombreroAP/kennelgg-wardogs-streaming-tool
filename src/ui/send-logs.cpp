@@ -71,16 +71,13 @@ void SendLogs::open(Engine *e, QWidget *)
 	auto *d = new QDialog((QWidget *)obs_frontend_get_main_window());
 	d->setAttribute(Qt::WA_DeleteOnClose);
 	d->setWindowTitle(tx("Send logs to Kennel.gg"));
-	d->resize(520, 420);
+	d->resize(460, 340);
 	auto *v = new QVBoxLayout(d);
-	auto *intro =
-		new QLabel(tx("This sends what we need to see what went wrong: the plugin's log and settings "
-			      "(without your account link or any key), this OBS session's log and ClipHound's log. "
-			      "Never your clips, video, voice or chat. Logs are kept for 60 days."),
-			   d);
-	intro->setWordWrap(true);
-	v->addWidget(intro);
-	v->addWidget(new QLabel(tx("What happened? (optional, but it helps a lot)"), d));
+	// what went wrong comes first: it is what we read before the logs, and a report without it is
+	// hard to act on, so Send waits for it
+	auto *ask = new QLabel(tx("<b>What went wrong?</b> A line or two, and roughly when."), d);
+	ask->setWordWrap(true);
+	v->addWidget(ask);
 	auto *note = new QPlainTextEdit(d);
 	note->setPlaceholderText(tx("e.g. the POV got stuck on my squad mate at about 21:18"));
 	v->addWidget(note, 1);
@@ -93,6 +90,14 @@ void SendLogs::open(Engine *e, QWidget *)
 	result->setWordWrap(true);
 	result->setTextInteractionFlags(Qt::TextSelectableByMouse);
 	v->addWidget(result);
+	auto *what =
+		new QLabel(tx("Sent with it: the plugin's log and settings (without your account link or any key), "
+			      "this OBS session's log and ClipHound's log. Never your clips, video, voice or chat. "
+			      "Kept for 60 days."),
+			   d);
+	what->setWordWrap(true);
+	what->setStyleSheet("QLabel { color: #9a9e93; font-size: 8pt; }");
+	v->addWidget(what);
 	auto *row = new QHBoxLayout();
 	auto *copyRef = new QPushButton(tx("Copy the reference"), d);
 	copyRef->hide();
@@ -105,6 +110,9 @@ void SendLogs::open(Engine *e, QWidget *)
 	row->addWidget(send);
 	v->addLayout(row);
 	QObject::connect(cancel, &QPushButton::clicked, d, &QDialog::close);
+	send->setEnabled(false);
+	QObject::connect(note, &QPlainTextEdit::textChanged, d,
+			 [note, send]() { send->setEnabled(note->toPlainText().trimmed().size() >= 5); });
 	QPointer<QDialog> alive(d);
 	QObject::connect(send, &QPushButton::clicked, d, [e, d, alive, note, contact, result, send, copyRef]() {
 		send->setEnabled(false);

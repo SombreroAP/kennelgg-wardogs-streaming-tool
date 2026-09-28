@@ -252,6 +252,11 @@ def main():
             from highlights import Highlights
             hl = Highlights(bridge, cfg)
             bridge.on_highlights = hl.on_build
+            try:
+                from vodscan import VodScan
+                bridge.on_vod = VodScan(bridge, cfg).on_message
+            except Exception as ve:
+                print(f"[vodscan] not available: {ve}")
             bridge.on_obs_health = hl.on_obs_health
             from runs import Runs
             runs = Runs(bridge, cfg, hl.ff, hl.encoder_args)
@@ -430,6 +435,9 @@ def _safe(fn, *a):
 
 
 if __name__ == "__main__":
+    # the VOD scan's worker processes start this exe again: they must run their job, not ClipHound
+    import multiprocessing
+    multiprocessing.freeze_support()
     try:
         main()
     except SystemExit:

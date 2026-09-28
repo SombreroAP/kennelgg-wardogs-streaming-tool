@@ -3161,6 +3161,23 @@ QWidget *SettingsDialog::buildAboutTab()
 	auto *w = new QWidget(this);
 	auto *v = new QVBoxLayout(w);
 	{
+		// first thing on Help: a problem is fixed from the logs and a line about what happened
+		auto *gs = new QGroupBox(tx("Having a problem? Send us your logs"), w);
+		auto *hs = new QHBoxLayout(gs);
+		auto *lbl = new QLabel(
+			tx("Press <b>Send logs</b> and say in a line or two what went wrong and roughly when. "
+			   "Your logs come straight to Kennel.gg with it; we look into it and fix it in the "
+			   "next update. You get a reference to mention in #obs-streaming-tool-chat."),
+			gs);
+		lbl->setWordWrap(true);
+		auto *send = new QPushButton(tx("Send logs..."), gs);
+		send->setDefault(false);
+		connect(send, &QPushButton::clicked, this, [this]() { SendLogs::open(e_, this); });
+		hs->addWidget(lbl, 1);
+		hs->addWidget(send);
+		v->addWidget(gs);
+	}
+	{
 		auto *gv = new QGroupBox(tx("Stuck? Watch the setup video"), w);
 		auto *hv = new QHBoxLayout(gv);
 		auto *lbl = muted(
@@ -3174,19 +3191,6 @@ QWidget *SettingsDialog::buildAboutTab()
 		hv->addWidget(lbl, 1);
 		hv->addWidget(watch);
 		v->addWidget(gv);
-	}
-	{
-		auto *gs = new QGroupBox(tx("Something not right? Send us your logs"), w);
-		auto *hs = new QHBoxLayout(gs);
-		auto *lbl =
-			muted(tx("One click sends the plugin's, OBS's and ClipHound's logs to Kennel.gg, with a note "
-				 "if you like. You get a reference to mention in #obs-streaming-tool-chat."),
-			      gs);
-		auto *send = new QPushButton(tx("Send logs to Kennel.gg..."), gs);
-		connect(send, &QPushButton::clicked, this, [this]() { SendLogs::open(e_, this); });
-		hs->addWidget(lbl, 1);
-		hs->addWidget(send);
-		v->addWidget(gs);
 	}
 	auto *ver = new QGroupBox(tx("This build"), w);
 	auto *vf = new QFormLayout(ver);

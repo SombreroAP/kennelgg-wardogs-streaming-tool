@@ -188,6 +188,20 @@ class KillDetector:
         self._last_trigger = float('-inf')
         self._multikill_fired_for = 0
         self._n = 0
+        # VOD scan (vodscan.py): only rows with your own name in them are read. The game draws your name
+        # in white and everyone else's in their team's colour, so a row with no white text on either
+        # side is someone else's kill and costs no OCR. Measured on 1440p footage: 208 rows with you in
+        # them, 2483 without (white share 0.066 vs 0.0 median).
+        self.only_mine = False
+
+    @staticmethod
+    def looks_mine(rd) -> bool:
+        hsv = getattr(rd, "_hsv", None)
+        if hsv is None:
+            return True
+        m = hsv.shape[1]
+        white = (hsv[:, :, 2] > 170) & (hsv[:, :, 1] < 50)
+        return float(white[:, :int(m * 0.45)].mean()) > 0.015 or float(white[:, int(m * 0.45):].mean()) > 0.015
 
     def set_rate(self, fps: float):
         """Frames per second we are being fed. Decisions are timed, not counted, so a faster feed
@@ -217,6 +231,8 @@ class KillDetector:
                 self._rows.append(best)
             best.last, best.sig, best.prof, best.y = now, rd.sig, rd.prof, rd.y
             if best.done or now - best.first < self.FADE_IN_S:
+                continue
+            if self.only_mine and not self.looks_mine(rd):
                 continue
             pending.append((best, rd))               # only undecided rows cost tesseract time
         ocr_rows([rd for _, rd in pending])

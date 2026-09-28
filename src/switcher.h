@@ -84,6 +84,10 @@ public:
 	std::string bindPopout(const Config &cfg, Friend &f, const Popout &p);
 	/// Back onto the shared Discord capture; their own one is deleted.
 	void unbindPopout(const Config &cfg, Friend &f);
+	/// The shared "any Discord window" capture onto Discord's own main window by its exact title.
+	/// Matched by executable it could take any Discord window, a squad mate's pop-out or the
+	/// streamer's own stream (0.25.0 report: "it shows my stream"). False when nothing changed.
+	bool pinDiscordCall(const std::string &window);
 	/// Crop a Discord window capture down to the picture inside it. "" or a problem.
 	std::string trimToContent(const Config &cfg, const Friend &f);
 	/// Put the streamer's own camera and alerts back over the top of everything we add.

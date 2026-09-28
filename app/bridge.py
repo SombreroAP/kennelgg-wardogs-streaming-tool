@@ -72,6 +72,7 @@ class Bridge:
         self.on_config = None        # callable(cfg) after the plugin changed settings
         self.on_clip_saved = None    # callable(path, msg): every clip the plugin named
         self.on_highlights = None    # callable(msg): build the compilation
+        self.on_vod = None           # callable(msg): the VOD scan's messages (vodscan.py)
         self.on_obs_health = None    # callable(msg): OBS's dropped-frame counters
         self.on_audio = None          # 16 kHz mono int16 microphone PCM (voice.py)
         self.on_voice_config = None
@@ -307,6 +308,14 @@ class Bridge:
         elif t == "highlights_build":
             if self.on_highlights:
                 self.on_highlights(o)
+        elif t == "stream":
+            if self.on_vod:
+                self.on_vod(o)          # going live stops a VOD scan: the PC is the stream's
+        elif t in ("vod_scan", "vod_cancel", "vod_clip"):
+            if self.on_vod:
+                self.on_vod(o)
+            else:
+                self.send({"type": "vod_done", "id": o.get("id"), "error": "ClipHound is still starting"})
         elif t == "obs_health":
             if self.on_obs_health:
                 self.on_obs_health(o)

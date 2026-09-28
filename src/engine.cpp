@@ -1133,6 +1133,54 @@ bool Engine::installUpdate()
 #endif
 }
 
+int Engine::startVodScan(const QString &source)
+{
+	if (bridge.clients() == 0)
+		return 0;
+	QJsonObject o;
+	o["type"] = "vod_scan";
+	o["id"] = ++vodId_;
+	o["source"] = source;
+	o["player"] = QString::fromStdString(cfg.appPlayerName);
+	bridge.sendJson(o);
+	log(tx("VOD scan: started on %1.").arg(source));
+	return vodId_;
+}
+
+void Engine::cancelVodScan()
+{
+	QJsonObject o;
+	o["type"] = "vod_cancel";
+	o["id"] = vodId_;
+	bridge.sendJson(o);
+}
+
+QString Engine::vodClipDir() const
+{
+	QString dir = QString::fromStdString(cfg.clipFolder);
+	if (dir.isEmpty()) {
+		char *p = obs_frontend_get_current_record_output_path();
+		if (p) {
+			dir = QString::fromUtf8(p);
+			bfree(p);
+		}
+	}
+	return dir;
+}
+
+void Engine::clipVod(const QList<int> &indices)
+{
+	QJsonObject o;
+	o["type"] = "vod_clip";
+	o["id"] = vodId_;
+	QJsonArray a;
+	for (int i : indices)
+		a.append(i);
+	o["indices"] = a;
+	o["out"] = vodClipDir();
+	bridge.sendJson(o);
+}
+
 void Engine::twitchLogin()
 {
 	if (bridge.clients() == 0) {
@@ -1813,9 +1861,17 @@ void Engine::watchPopouts()
 	if (stopping_)
 		return;
 	std::vector<Switcher::Popout> wins;
-	for (const auto &p : Switcher::discordPopouts())
+	const Switcher::Popout *mainWin = nullptr;
+	auto all = Switcher::discordPopouts();
+	for (const auto &p : all)
 		if (isStreamPopout(p.title))
 			wins.push_back(p); // the call view or a camera tile popped out is not a stream
+		else if (!mainWin && QString::fromStdString(p.title).contains("Discord", Qt::CaseInsensitive))
+			mainWin = &p;
+	// squad mates without a pop-out watch Discord's own window: keep that capture on it by its exact
+	// title, never "any Discord window", which could land on a pop-out or on your own stream
+	if (mainWin && sw.pinDiscordCall(mainWin->window))
+		blog(LOG_INFO, "[kennelgg] Discord call capture follows the main window: %s", mainWin->title.c_str());
 	auto lower = [](const std::string &s) {
 		return QString::fromStdString(s).toLower();
 	};
@@ -2136,6 +2192,16 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 		bridge.sendJson(r);
 		if (!err.isEmpty())
 			log(tx("Clip request: %1").arg(err));
+	} else if (type == "vod_progress") {
+		emit vodProgress(o);
+	} else if (type == "vod_done") {
+		if (o.value("error").toString().isEmpty())
+			log(tx("VOD scan: %1 highlights found.").arg(o.value("moments").toArray().size()));
+		else
+			log(tx("VOD scan: %1").arg(o.value("error").toString()));
+		emit vodDone(o);
+	} else if (type == "vod_clip_done") {
+		emit vodClipDone(o);
 	} else if (type == "highlights_status") {
 		appStatus_ = o.value("text").toString();
 		emit stateChanged();

@@ -7,6 +7,7 @@
 #include "ui/flow-layout.h"
 #include "i18n.h"
 #include "ui/send-logs.h"
+#include "ui/vod-scan.h"
 #include "http.h"
 #include <QRegularExpression>
 #include <QJsonObject>
@@ -265,6 +266,11 @@ void Dock::build()
 		m->addAction(tx("Setup..."), this, [this]() { openWizard(); });
 		m->addAction(tx("Setup video (YouTube)"), this,
 			     []() { QDesktopServices::openUrl(QUrl(Config::setupVideoUrl())); });
+		m->addAction(tx("Scan a VOD (experimental)..."), this, [this]() {
+			auto *d = new VodScanDialog(e_, (QWidget *)obs_frontend_get_main_window());
+			d->setAttribute(Qt::WA_DeleteOnClose);
+			showOnScreen(d);
+		});
 		m->addAction(tx("Logs..."), this, [this]() { openLogs(); });
 		m->addAction(tx("Send logs to Kennel.gg..."), this, [this]() { openSendLogs(); });
 		m->addAction(tx("Clips: titles and tags..."), this, [this]() { openClips(); });

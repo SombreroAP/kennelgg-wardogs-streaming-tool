@@ -430,6 +430,26 @@ QList<Engine::Banner> Engine::banners() const
 		}
 		add(b);
 	}
+	{
+		// two or more squad mates on Discord's own window show the same picture: whichever stream it is
+		// on (0.25.0 report: "it changes the name but keeps showing the same feed")
+		QStringList shared;
+		for (const auto &f : cfg.friends)
+			if (f.kind == FriendKind::Discord && !f.onPopout() && f.sharesDiscordCall())
+				shared << QString::fromStdString(f.name).toHtmlEscaped();
+		if (shared.size() >= 2) {
+			Banner b;
+			b.id = "sharedcall:" + shared.join(",");
+			b.level = 1;
+			b.text =
+				tx("<b>%1</b> have no pop-out of their own, so they all show whatever Discord's main window "
+				   "is showing, whichever of them is picked. In Discord, right-click each one's stream, Pop Out, "
+				   "and each slot takes its own window.")
+					.arg(shared.join(", "));
+			b.actions = {Fix("squad", tx("Squad panel"))};
+			add(b);
+		}
+	}
 	if (wantsSupportNote()) {
 		Banner b;
 		b.id = "support";

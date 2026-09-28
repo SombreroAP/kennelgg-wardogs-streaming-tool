@@ -695,6 +695,25 @@ std::string Switcher::bindPopout(const Config &cfg, Friend &f, const Popout &p)
 	return "";
 }
 
+bool Switcher::pinDiscordCall(const std::string &window)
+{
+	obs_source_t *src = obs_get_source_by_name(Friend::discordCallSourceName());
+	if (!src)
+		return false;
+	obs_data_t *st = obs_source_get_settings(src);
+	bool same = window == obs_data_get_string(st, "window") && obs_data_get_int(st, "priority") == 1;
+	obs_data_release(st);
+	if (!same) {
+		obs_data_t *up = obs_data_create();
+		obs_data_set_string(up, "window", window.c_str());
+		obs_data_set_int(up, "priority", 1); // this window and no other
+		obs_source_update(src, up);
+		obs_data_release(up);
+	}
+	obs_source_release(src);
+	return !same;
+}
+
 void Switcher::unbindPopout(const Config &cfg, Friend &f)
 {
 	if (!f.onPopout())
