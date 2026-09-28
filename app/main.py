@@ -364,6 +364,11 @@ def main():
             cv2.imwrite("debug/roi.png", roi)
         for trig in det.feed_frame(roi):
             fire(trig)
+        if bridge is not None and getattr(det, "name_guess", ""):
+            # your in-game name, read off the feed's rows with a distance (namelearn.py)
+            bridge.send({"type": "name_guess", "name": det.name_guess, "rows": det.learner.rows})
+            print(f"[config] the kill feed says your in-game name is {det.name_guess!r}")
+            det.name_guess = ""
         if bridge is not None and hasattr(det, "last_new_events"):
             for ev in det.last_new_events:
                 try:

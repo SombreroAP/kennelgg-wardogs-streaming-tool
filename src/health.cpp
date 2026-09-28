@@ -450,6 +450,18 @@ QList<Engine::Banner> Engine::banners() const
 			add(b);
 		}
 	}
+	if (!nameGuess_.isEmpty() && QString::fromStdString(cfg.appPlayerName) != nameGuess_) {
+		Banner b;
+		b.id = "nameguess:" + nameGuess_;
+		b.level = 2;
+		b.text =
+			tx("Your kills and deaths are not being counted: the kill feed shows your name as <b>%1</b>, but "
+			   "<b>%2</b> is set as your in-game name.")
+				.arg(nameGuess_.toHtmlEscaped(),
+				     QString::fromStdString(cfg.appPlayerName).toHtmlEscaped());
+		b.actions = {Fix("name:use", tx("Use %1").arg(nameGuess_.toHtmlEscaped()))};
+		add(b);
+	}
 	if (wantsSupportNote()) {
 		Banner b;
 		b.id = "support";
@@ -503,6 +515,12 @@ void Engine::noteClosestNeedsApp()
 
 bool Engine::runAction(const QString &id)
 {
+	if (id == "name:use" && !nameGuess_.isEmpty()) {
+		QString g = nameGuess_;
+		setInGameName(g);
+		log(tx("In-game name set to %1: your kills and deaths count from now.").arg(g));
+		return true;
+	}
 	if (id == "stats:yes" || id == "stats:no") {
 		setStatsConsent(id == "stats:yes");
 		return true;

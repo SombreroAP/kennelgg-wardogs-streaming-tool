@@ -2,6 +2,12 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.31.1
+- **Your kills and deaths count even if your in-game name was never set.** ClipHound tells your rows in the kill feed by your name: with none set (or your Discord name instead) it counted none of your kills or deaths and made no kill clips. The kill feed shows a distance only on your own rows, so ClipHound now reads your name off those: an empty name fills itself in, and a different one gets a note on the dock with a one-click fix.
+- **Fixed: a squad mate's view showing your own stream, or the same view under every name.** A slot whose name did not match its pop-out's Discord username (BGB for _bgb_, or a slot renamed after it was added) lost its pop-out after a while and fell back to Discord's main window. A slot now keeps the exact window it is on for as long as that window is open, a window you picked for a slot yourself counts as theirs, and names are matched ignoring punctuation.
+- **Clip when downed works without a squad mate.** The downed clip was made as part of the POV swap, so with no squad mate added, or a revive before the swap, there was none. It is now made the moment you go down (and no longer on inventory or Stream Deck swaps).
+- **Holding the clip length arrows no longer turns the replay buffer off.** Settings applies a held number box or a dragged slider once it settles, not at every step: the clip length restarted OBS's replay buffer several times a second, and sometimes it did not come back.
+
 ## 0.31.0
 - **The Stream Deck plugin now controls everything new.** 17 more keys: the session stats bar on and off; a key that shows one stat live on the key itself (session balance, K/D/A, $ per minute, revives, heals, spots, supplies, things built, passengers, or the money from each role); the bar's role (Fragger, Medic, Recon, Logistics, Builder, Driver, Objective, All-round, or one key that cycles through them); Reset session (hold it for a second, so a stray tap cannot wipe the session); Stats image (saved next to your clips and copied, ready to paste, with no window); a clip with a tag of your own (highlight, funny, fail); closest squad mate; Highlights; Send logs; and on/off keys for Auto switch, magazine packing, Dual POV in vehicles, the stingers, the name tag and the pop-outs.
 - **Two dials for the Stream Deck +.** The squad dial: turn to pick a squad mate, press to show them, tap the screen to come back to your POV. The whoosh dial: turn for the stingers' volume, press to mute it.

@@ -169,6 +169,9 @@ class KillDetector:
         self.cfg = cfg
         self.set_rate(float(cfg.get("fps", 5) or 5))
         self.me = cfg["player_name"]
+        from namelearn import NameLearner
+        self.learner = NameLearner()
+        self.name_guess = ""   # the plugin collects it (main loop) and clears it
         self.my_team = cfg.get("my_team", "auto")      # 'red' | 'blue' | 'green' | 'auto' (set by main from the HUD)
         self.rules = cfg.get("rules") or []
         self.dump_rows = dump_rows
@@ -287,10 +290,15 @@ class KillDetector:
         team = self.my_team if self.my_team in ("red", "blue", "green") else "unknown"
         killer_rel = "me" if killer_me else relation(kcol, team)
         victim_rel = "me" if victim_me else relation(vcol, team)
-        if not (killer_me or victim_me or "squad" in (killer_rel, victim_rel)):
-            return None                                # someone else's kill
         dist, conf = vote_distance(sum((r.dists for r in row.reads), []))
         dist = dist or 0
+        if not (killer_me or victim_me) and dist:
+            # a distance is only on your own rows: with no name set (or the wrong one) this learns yours
+            g = self.learner.add(Counter(names).most_common(1)[0][0], Counter(victims).most_common(1)[0][0], dist)
+            if g:
+                self.name_guess = g
+        if not (killer_me or victim_me or "squad" in (killer_rel, victim_rel)):
+            return None                                # someone else's kill
         # weapon icon: majority of reads; skull / explosion are small and flicker on busy
         # backgrounds, so 30 % of reads (at least 2) is enough
         cnt = Counter(sum((r.icons for r in row.reads), []))

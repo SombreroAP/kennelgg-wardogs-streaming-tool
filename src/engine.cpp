@@ -1727,6 +1727,23 @@ static QString popoutOwner(const std::string &title)
 	return t.toLower();
 }
 
+/// Letters and digits only, lower case: "_bgb_" and "BGB" are the same name.
+static QString bare(const QString &s)
+{
+	QString o;
+	for (QChar c : s.toLower())
+		if (c.isLetterOrNumber())
+			o += c;
+	return o;
+}
+
+/// The title in OBS's "title:class:exe" window spelling (":" in a title is written "#3A").
+static std::string windowTitle(const std::string &window)
+{
+	QString t = QString::fromStdString(window).section(':', 0, 0);
+	return t.replace("#3A", ":").replace("#22", "\"").toStdString();
+}
+
 bool Engine::isMe(const QString &discordUser) const
 {
 	QString u = discordUser.toLower();
@@ -1915,15 +1932,28 @@ void Engine::watchPopouts()
 		QString name = lower(f.name), handle = lower(f.handle);
 		// a slot named after the whole window title ("stream de bouga34") means the owner inside it
 		QString nameOwner = popoutOwner(f.name);
+		// the window picked for the slot by hand: its owner is theirs, whatever the slot is called
+		QString picked = f.sharesDiscordCall() || f.channel.empty() ? QString()
+									    : popoutOwner(windowTitle(f.channel));
 		int hit = -1;
-		// exact owner first, so "bryan" can never take "bryanx's Stream"
+		// the window the slot is already on, while it is open: a rename, or a name that matches nothing, does not
+		// take it away (26 Sep 2026 report: "_bgb_" renamed "BGB" lost its pop-out and fell back to Discord's
+		// main window, which showed the streamer's own stream, or the same squad mate under every name)
+		for (size_t i = 0; i < wins.size() && hit < 0 && f.onPopout(); ++i)
+			if (!taken[i] && wins[i].window == f.popout)
+				hit = (int)i;
+		// exact owner first, so "bryan" can never take "bryanx's Stream"; letters and digits only, so "BGB"
+		// is "_bgb_"
 		for (size_t i = 0; i < wins.size() && hit < 0; ++i) {
 			if (taken[i])
 				continue;
 			QString owner = popoutOwner(wins[i].title);
 			if (owner == "discord popout") // not drawn yet, so not named yet
 				continue;
-			if ((!handle.isEmpty() && owner == handle) || owner == name || owner == nameOwner)
+			if ((!handle.isEmpty() && owner == handle) || owner == name || owner == nameOwner ||
+			    (!picked.isEmpty() && owner == picked) ||
+			    (bare(owner).size() >= 2 &&
+			     (bare(owner) == bare(name) || (!handle.isEmpty() && bare(owner) == bare(handle)))))
 				hit = (int)i;
 		}
 		// then a looser look for slots named by hand: the slot name inside the owner's username
@@ -2300,6 +2330,23 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 			    (int)v.value("fps").toDouble() != cfg.appFps)
 				pushAppConfig();
 		}
+	} else if (type == "name_guess") {
+		// ClipHound read your in-game name off the kill feed (the rows with a distance are yours)
+		QString g = o.value("name").toString().trimmed();
+		if (g.isEmpty())
+			return;
+		if (cfg.appPlayerName.empty()) {
+			setInGameName(g);
+			log(tx("ClipHound read your in-game name from the kill feed: %1. Your kills, deaths and kill clips "
+			       "count from now; change it in Settings, General (Your name in WARDOGS) if it is not right.")
+				    .arg(g));
+		} else {
+			nameGuess_ = g; // a different name is set and never matches: the dock offers this one
+			log(tx("ClipHound reads your in-game name as %1 in the kill feed, but %2 is set, so your kills and "
+			       "deaths are not being counted.")
+				    .arg(g, QString::fromStdString(cfg.appPlayerName)));
+		}
+		emit stateChanged();
 	} else if (type == "twitch_status") {
 		// ClipHound answers every settings push with its status: say it only when it changes
 		bool same = twitch_.value("state") == o.value("state") && twitch_.value("login") == o.value("login") &&
@@ -3425,6 +3472,15 @@ void Engine::onControl(const QJsonObject &o)
 				sw.ensureStinger(cfg, true);
 		});
 	}
+	emit stateChanged();
+}
+
+void Engine::setInGameName(const QString &name)
+{
+	cfg.appPlayerName = name.trimmed().toStdString();
+	cfg.save();
+	nameGuess_.clear();
+	pushAppConfig();
 	emit stateChanged();
 }
 
@@ -4634,6 +4690,11 @@ void Engine::detect(const Match &m)
 		fullSince_ = clock_::now();
 		detGame_.holdThreshold = std::max(0.50, cfg.threshold - std::max(0.0, cfg.holdDrop));
 		upDelay_.stop();
+		// the clip is of you going down: it does not wait for (or need) a squad mate to swap to. It used to be
+		// made inside the swap, so with no squad mate added, or a revive inside the delay, there was none
+		// (27 Sep 2026 report)
+		if (cfg.clipOnDowned && !applied_)
+			clips.request("downed", {"downed"}, "pov");
 		askNearbyNow(); // fresh NEARBY reading while the delay runs
 		pickClosest(TX_NOOP("downed"), true);
 		// whoever is about to be shown must have a picture: a squad mate the roster has in voice
@@ -4821,8 +4882,6 @@ void Engine::applySwitch(bool on, const QString &why)
 	}
 	while (events_.size() > 30)
 		events_.removeFirst();
-	if (on && cfg.clipOnDowned)
-		clips.request("downed", {"downed"}, "pov");
 	QString msg = on ? tx("Showing %1's POV - %2.").arg(QString::fromStdString(cfg.active()->name), txv(why))
 			 : tx("Back to your POV - %1.").arg(txv(why));
 	if (!errors.empty()) {

@@ -183,7 +183,9 @@ public:
 	QString appState() const; // "connected" | "starting" | "crashed" | "stopped"
 	void pushAppConfig();
 	/// The plugin's own language ("auto" = OBS's): saved, loaded, and every page and window in it.
-	void setUiLanguage(const std::string &code); // send the ClipHound settings to the app
+	void setUiLanguage(const std::string &code);
+	/// Your in-game name as the kill feed shows it (ClipHound tells your kills and deaths by it).
+	void setInGameName(const QString &name); // send the ClipHound settings to the app
 
 	/// One line of the game's NEARBY list, as ClipHound read it.
 	struct NearbyEntry {
@@ -558,6 +560,7 @@ private:
 	bool replayRestarting_ =
 		false; // one replay-buffer restart at a time          // the whoosh dial: the stinger page is reloaded once the turning stops
 	QString sessionRole() const; // the bar's preset id (Session::presets), "custom" when none fits
+	QString nameGuess_;          // ClipHound's reading of your in-game name, when it differs from the one set
 	QString closestName() const; // the nearest squad mate in the last NEARBY read, "" = none
 	QString popoutNote_;         // the unnamed pop-out we last mentioned, so the log says it once
 	Access lastAccess_ = Access::Unknown;
