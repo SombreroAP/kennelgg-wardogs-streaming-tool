@@ -1542,6 +1542,18 @@ QWidget *SettingsDialog::buildDetectTab()
 		"oldest). Being revived ends it with the usual way back to live."));
 	f->addRow(tx("Nobody to show"), downedReplays_);
 	connect(downedReplays_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	downedAlways_ = new QCheckBox(tx("Play my replays instead of a squad mate's POV, even when they stream"), g);
+	downedAlways_->setChecked(e_->cfg.downedReplaysAlways);
+	reelFromDown_ = new QCheckBox(tx("Start with the moment I went down"), g);
+	reelFromDown_->setChecked(e_->cfg.reelFromDown);
+	reelFromDown_->setToolTip(tx("A clip is saved as you go down and plays first, then your earlier replays."));
+	auto *reelRow = new QHBoxLayout();
+	reelRow->addWidget(downedAlways_);
+	reelRow->addWidget(reelFromDown_);
+	reelRow->addStretch(1);
+	f->addRow(QString(), reelRow);
+	connect(downedAlways_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
+	connect(reelFromDown_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(povStinger_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	connect(povMin_, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) { saveAndApply(); });
 	auto *mdRow = new QHBoxLayout();
@@ -3692,6 +3704,10 @@ void SettingsDialog::collect()
 		c.povMinS = povMin_->value();
 	if (downedReplays_)
 		c.downedReplays = downedReplays_->isChecked();
+	if (downedAlways_)
+		c.downedReplaysAlways = downedAlways_->isChecked();
+	if (reelFromDown_)
+		c.reelFromDown = reelFromDown_->isChecked();
 	c.pollMs = pollMs_->value();
 	c.autoDetect = auto_->isChecked();
 	c.watchRevive = revive_->isChecked();

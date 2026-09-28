@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.33.2
+- **Düzeltildi: VOD tara %0'da takılıyordu.** Taramanın her parçası hemen kapanıyordu (ikinci bir ClipHound sanıyordu), bu yüzden hiçbir şey okunmuyordu. Ayrıca WARDOGS açılana kadar "ClipHound hâlâ başlıyor" diyordu; artık oyun kapalıyken de bir kayıt taranabiliyor.
+- **Takım arkadaşının POV'u yerine tekrarlar.** Ayarlar, Takım & POV: "Takım arkadaşı yayın yapsa bile onun POV'u yerine tekrarlarımı oynat" ve "Yere düştüğüm andan başla" (varsayılan olarak açık); bu, yere düştüğünde bir klip kaydeder ve önce onu, sonra önceki tekrarlarını oynatır.
+
 ## 0.33.1
 - **Düzeltildi: ClipHound başlamıyordu** (0.31.2 ile 0.33.0 arası). Başlangıçta "'function' object has no attribute '__mro__'" hatasıyla duruyordu; bu yüzden leş klipleri, leş sayımı, sesli kontrol ve NEARBY okuması yoktu. Günlükleri gönder ile bildiren yayıncılara teşekkürler.
 

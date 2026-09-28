@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.33.2
+- **Fixed: Scan a VOD stuck at 0 %.** Every part of the scan quit at once (it thought a second ClipHound was running), so nothing was ever read. It also said "ClipHound is still starting" until WARDOGS was running; a recording can now be scanned with the game closed.
+- **Replays instead of a squad mate's POV.** Settings, Squad & POV: "Play my replays instead of a squad mate's POV, even when they stream", and "Start with the moment I went down" (on by default), which saves a clip as you go down and plays it first, then your earlier replays.
+
 ## 0.33.1
 - **Fixed: ClipHound would not start** (0.31.2 to 0.33.0). It stopped at start with "'function' object has no attribute '__mro__'", so there were no kill clips, kill counts, voice control or NEARBY reads. Thanks to the streamers who reported it with Send logs.
 

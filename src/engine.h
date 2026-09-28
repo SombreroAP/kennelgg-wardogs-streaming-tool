@@ -583,6 +583,9 @@ private:
 	int reelPos_ = 0;
 	std::vector<Clips::Entry> reel_;
 	bool squadToShow() const;
+	bool reelWanted() const; // this down plays the replay reel (nobody to show, or replays chosen instead)
+	QDateTime downAt_;       // when this down was detected: its own clip is newer
+	int reelWaits_ = 0;
 	void startReel();
 	void reelNext();
 	void playReplayEntry(const Clips::Entry &e, const QString &why);

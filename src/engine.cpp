@@ -107,7 +107,7 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&downDelay_, &QTimer::timeout, this, [this]() {
 		if (detected_ && !applied_) {
 			pickClosest(TX_NOOP("about to switch"), true); // last reading before the feed goes on screen
-			if (cfg.downedReplays && !squadToShow())
+			if (reelWanted())
 				startReel(); // nobody to show: your own replays instead
 			else
 				applyNow(true, QString("downed for %1 ms").arg(cfg.downDelayMs));
@@ -4803,6 +4803,7 @@ void Engine::detect(const Match &m)
 		detected_ = true;
 		// one down, however often the detection drops and comes back during it (a revive ring, the killcam
 		// moving behind the log): uploaded sessions had 411 downs against 4 deaths, one every 2.7 s in another
+		downAt_ = QDateTime::currentDateTime();
 		bool newDown = downEndedAt_.time_since_epoch().count() == 0 ||
 			       clock_::now() - downEndedAt_ > std::chrono::seconds(20);
 		if (newDown) {
@@ -4822,15 +4823,17 @@ void Engine::detect(const Match &m)
 		// the clip is of you going down: it does not wait for (or need) a squad mate to swap to. It used to be
 		// made inside the swap, so with no squad mate added, or a revive inside the delay, there was none
 		// (27 Sep 2026 report)
-		if (cfg.clipOnDowned && newDown) // a flicker inside one down is not a second clip (it would also
-			clips.request("downed", {"downed"}, "pov"); // eat the clip gap a kill clip needs)
-		askNearbyNow();                                     // fresh NEARBY reading while the delay runs
+		// a flicker inside one down is not a second clip (it would also eat the clip gap a kill clip needs). The
+		// reel that starts with the down needs that clip too
+		if (newDown && (cfg.clipOnDowned || (cfg.reelFromDown && !applied_ && reelWanted())))
+			clips.request("downed", {"downed"}, "pov");
+		askNearbyNow(); // fresh NEARBY reading while the delay runs
 		pickClosest(TX_NOOP("downed"), true);
 		// whoever is about to be shown must have a picture: a squad mate the roster has in voice
 		// but not streaming shows nothing, so a live one takes their place, or you stay on your own
 		if (!applied_ && cfg.active() && feedState(*cfg.active()) == Feed::Off) {
 			int alt = anyLiveFriend();
-			if (alt < 0 && !cfg.downedReplays) {
+			if (alt < 0 && !cfg.downedReplays && !cfg.downedReplaysAlways) {
 				log(tx("Downed, but none of the squad is streaming a game picture right now - staying on your own "
 				       "POV."));
 				return;
@@ -4847,7 +4850,7 @@ void Engine::detect(const Match &m)
 		}
 		if (!applied_) {
 			if (cfg.downDelayMs <= 0) {
-				if (cfg.downedReplays && !squadToShow())
+				if (reelWanted())
 					startReel();
 				else
 					applyNow(true, QString("downed screen detected (%1)").arg(m.score, 0, 'f', 3));
@@ -4855,7 +4858,7 @@ void Engine::detect(const Match &m)
 				// cancelled if the log goes away first (a blip, or a quick revive); the stinger's
 				// run-up comes out of the wait, so the squad mate is on screen when they were before
 				downDelay_.start(std::max(0, cfg.downDelayMs - (cfg.povStinger ? kPovCoverMs : 0)));
-				log(cfg.downedReplays && !squadToShow()
+				log(reelWanted()
 					    ? tx("Downed - playing your replays in %1 ms unless you are revived first.")
 						      .arg(cfg.downDelayMs)
 					    : tx("Downed - showing the squad mate in %1 ms unless you are revived first.")
@@ -6089,6 +6092,11 @@ void Engine::hudSample(const QString &why)
 }
 
 /// A squad mate the downed swap could show now: one chosen, with a capture, and not known to be off.
+bool Engine::reelWanted() const
+{
+	return cfg.downedReplaysAlways || (cfg.downedReplays && !squadToShow());
+}
+
 bool Engine::squadToShow() const
 {
 	const Friend *a = cfg.active();
@@ -6105,11 +6113,36 @@ void Engine::startReel()
 		return;
 	reel_.clear();
 	QDateTime now = QDateTime::currentDateTime();
-	for (auto it = clips.history().rbegin(); it != clips.history().rend(); ++it)
-		if (!it->path.isEmpty() && QFileInfo::exists(it->path) && it->title != "setup test" &&
-		    it->when.secsTo(now) > 10)
-			reel_.push_back(*it);
+	const Clips::Entry *own = nullptr; // the clip of this very down
+	for (auto it = clips.history().rbegin(); it != clips.history().rend(); ++it) {
+		if (it->path.isEmpty() || !QFileInfo::exists(it->path) || it->title == "setup test")
+			continue;
+		if (downAt_.isValid() && it->when >= downAt_.addSecs(-1)) {
+			if (!own && it->title == "downed")
+				own = &*it;
+			continue;
+		}
+		reel_.push_back(*it);
+	}
+	if (cfg.reelFromDown) {
+		if (own)
+			reel_.insert(reel_.begin(), *own); // first: the moment you went down
+		else if (reelWaits_ < 16 && downAt_.isValid() && downAt_.secsTo(now) < 8) {
+			// the replay buffer is still writing it: a moment more (it lands a second or two after the down)
+			reelWaits_++;
+			QTimer::singleShot(250, this, [this]() {
+				if (detected_ && !applied_ && !reelOn_)
+					startReel();
+			});
+			return;
+		}
+	}
+	reelWaits_ = 0;
 	if (reel_.empty()) {
+		if (squadToShow()) { // replays chosen over the squad, but none yet: the squad mate after all
+			applyNow(true, TX_NOOP("downed, no replays yet"));
+			return;
+		}
 		log(tx("Downed: no replays saved yet this session to play, so your own POV stays."));
 		return;
 	}

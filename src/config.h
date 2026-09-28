@@ -268,8 +268,10 @@ struct Config {
 	int replaySeconds = 45;     // how far back a clip reaches; written into OBS's replay-buffer setting
 	bool invSwitch = true;      // magazine packing: a squad mate's POV while the inventory screen is open
 	bool downedReplays = false; // downed with no squad mate to show: your replays, newest first, until revived
-	bool clipOnDowned = false;  // also clip when you get downed (the moment before is in the buffer)
-	bool clipUseReplay = true;  // save OBS's own replay buffer on a clip
+	bool downedReplaysAlways = false; // ...even when a squad mate streams: replays instead of their POV (0.33.2)
+	bool reelFromDown = true;         // the reel starts with the moment you went down (a clip saved at the down)
+	bool clipOnDowned = false;        // also clip when you get downed (the moment before is in the buffer)
+	bool clipUseReplay = true;        // save OBS's own replay buffer on a clip
 	std::vector<std::string> clipHotkeys; // OBS hotkey names fired on every clip (e.g. Aitum Backtrack "save")
 	std::string backtrackFolder; // where Aitum Backtrack writes; new files there after a trigger get our name
 

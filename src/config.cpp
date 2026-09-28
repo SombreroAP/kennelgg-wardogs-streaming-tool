@@ -264,6 +264,8 @@ void Config::load()
 	DEFI(replaySeconds);
 	DEFB(clipOnDowned);
 	DEFB(downedReplays);
+	DEFB(downedReplaysAlways);
+	DEFB(reelFromDown);
 	DEFB(clipUseReplay);
 	DEFS(backtrackFolder);
 	DEFS(playerName);
@@ -480,6 +482,8 @@ void Config::load()
 	GETI(replaySeconds);
 	GETB(clipOnDowned);
 	GETB(downedReplays);
+	GETB(downedReplaysAlways);
+	GETB(reelFromDown);
 	GETB(clipUseReplay);
 	GETS(backtrackFolder);
 	GETS(playerName);
@@ -882,6 +886,8 @@ void Config::save() const
 	SETI(replaySeconds);
 	SETB(clipOnDowned);
 	SETB(downedReplays);
+	SETB(downedReplaysAlways);
+	SETB(reelFromDown);
 	SETB(clipUseReplay);
 	SETS(backtrackFolder);
 	SETS(playerName);

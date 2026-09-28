@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.33.2
+- **Corrigido: Escanear um VOD travado em 0 %.** Cada parte do escaneamento fechava na hora (achava que havia um segundo ClipHound), então nada era lido. Também dizia "o ClipHound ainda está iniciando" até o WARDOGS estar aberto; agora dá para escanear uma gravação com o jogo fechado.
+- **Replays em vez do POV de um parceiro.** Configurações, Squad & POV: "Tocar meus replays em vez do POV de um parceiro, mesmo quando ele transmite", e "Começar pelo momento em que caí" (ligado por padrão), que salva um clipe quando você cai e toca ele primeiro, depois seus replays anteriores.
+
 ## 0.33.1
 - **Corrigido: o ClipHound não iniciava** (0.31.2 a 0.33.0). Ele parava ao iniciar com "'function' object has no attribute '__mro__'", então não havia clipes de abate, contagem de abates, controle por voz nem leitura do NEARBY. Obrigado aos streamers que avisaram com Enviar logs.
 

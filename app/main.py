@@ -37,6 +37,11 @@ class _Tee:
 
 
 if getattr(sys, "frozen", False):
+    # a VOD scan slice (a spawned child of this exe) runs its work here and exits. It has to happen before the
+    # one-ClipHound mutex below, or every slice saw "another ClipHound is running", quit, and the scan sat at 0 %
+    # (LOG-BF8D)
+    import multiprocessing
+    multiprocessing.freeze_support()
     os.chdir(os.path.dirname(sys.executable))
     # one ClipHound at a time (the plugin may try to start it again)
     try:
@@ -105,6 +110,13 @@ def main():
     if bridge is not None:
         bridge.cfg = cfg
         bridge.save_cfg = save_config
+        # a VOD scan reads a file, not the game: ready before the capture waits for the game's first frame
+        # (it answered "ClipHound is still starting" until WARDOGS was running, LOG-BF8D)
+        try:
+            from vodscan import VodScan
+            bridge.on_vod = VodScan(bridge, cfg).on_message
+        except Exception as ve:
+            print(f"[vodscan] not available: {ve}")
     if cfg["capture"].get("backend", "obs") == "bridge":
         from bridge import BridgeRoiCapture
         cap = BridgeRoiCapture(cfg["capture"], bridge)
@@ -253,11 +265,6 @@ def main():
             from highlights import Highlights
             hl = Highlights(bridge, cfg)
             bridge.on_highlights = hl.on_build
-            try:
-                from vodscan import VodScan
-                bridge.on_vod = VodScan(bridge, cfg).on_message
-            except Exception as ve:
-                print(f"[vodscan] not available: {ve}")
             bridge.on_obs_health = hl.on_obs_health
             from runs import Runs
             runs = Runs(bridge, cfg, hl.ff, hl.encoder_args)
