@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.33.3
+- **Risolto: un nome lungo tagliato nell'immagine delle statistiche.** Il nome, ogni numero e ogni etichetta ora si rimpiccioliscono per starci, così niente esce dal bordo o finisce nella colonna accanto.
+- **L'immagine delle statistiche mostra il ruolo che hai giocato.** La scheda di un medico parte da rianimazioni, cure e soldi da medico, quella di un pilota dai passeggeri, quella di un ricognitore dagli avvistamenti e così via, con il ruolo accanto alla data. Lo sfondo è l'immagine del press kit adatta al ruolo (il compagno trascinato al riparo per i medici, il lancio di rifornimenti per la logistica, il cecchino in ghillie per la ricognizione); Altro sfondo passa prima dalle immagini del ruolo.
+
 ## 0.33.2
 - **Risolto: Scansiona un VOD fermo allo 0 %.** Ogni parte della scansione si chiudeva subito (credeva di essere un secondo ClipHound), quindi non veniva mai letto nulla. Diceva anche «ClipHound si sta ancora avviando» finché WARDOGS non era aperto; ora una registrazione si può scansionare a gioco chiuso.
 - **Replay invece del POV di un compagno.** Impostazioni, Squadra & POV: «Riproduci i miei replay invece del POV di un compagno, anche quando è in diretta», e «Inizia dal momento in cui sono stato abbattuto» (attivo di default), che salva una clip quando vieni abbattuto e la riproduce per prima, poi i tuoi replay precedenti.

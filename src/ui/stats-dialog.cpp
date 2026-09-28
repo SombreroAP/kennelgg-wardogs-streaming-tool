@@ -44,14 +44,14 @@ StatsDialog::StatsDialog(Engine *engine, QWidget *parent) : QDialog(parent), e_(
 	row->addWidget(folder);
 	v->addLayout(row);
 
-	bg_ = 1 + (int)QRandomGenerator::global()->bounded(StatsImage::kBackgrounds);
+	// the role the session was played as, and the press-kit shot that fits it best first
+	role_ = StatsImage::roleOf(e_->session(), e_->sessionRole());
+	bgs_ = StatsImage::backgroundsFor(role_);
+	bg_ = bgs_.first();
 	draw();
 	connect(again, &QPushButton::clicked, this, [this]() {
-		// a different one each press, never the same twice running
-		int next = bg_;
-		while (next == bg_ && StatsImage::kBackgrounds > 1)
-			next = 1 + (int)QRandomGenerator::global()->bounded(StatsImage::kBackgrounds);
-		bg_ = next;
+		// the next one: the role's own shots first, then the rest of the press kit
+		bg_ = bgs_[(bgs_.indexOf(bg_) + 1) % bgs_.size()];
 		saved_.clear();
 		draw();
 	});
@@ -97,7 +97,7 @@ QString StatsDialog::dataDir()
 
 void StatsDialog::draw()
 {
-	img_ = StatsImage::render(e_->session(), name(e_), dataDir(), bg_);
+	img_ = StatsImage::render(e_->session(), name(e_), dataDir(), bg_, role_);
 	preview_->setPixmap(
 		QPixmap::fromImage(img_.scaled(preview_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation)));
 }
@@ -132,8 +132,9 @@ QString StatsDialog::save()
 
 QString StatsDialog::saveQuick(Engine *e)
 {
-	int bg = 1 + (int)QRandomGenerator::global()->bounded(StatsImage::kBackgrounds);
-	QImage img = StatsImage::render(e->session(), name(e), dataDir(), bg);
+	QString role = StatsImage::roleOf(e->session(), e->sessionRole());
+	QImage img =
+		StatsImage::render(e->session(), name(e), dataDir(), StatsImage::backgroundsFor(role).first(), role);
 	QString p = savePath(e);
 	if (img.isNull() || !img.save(p, "PNG"))
 		return QString();

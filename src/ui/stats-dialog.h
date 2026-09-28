@@ -18,6 +18,8 @@ private:
 	Engine *e_;
 	QImage img_;
 	int bg_ = 0;
+	QString role_;   // the role the card is drawn for (StatsImage::roleOf)
+	QList<int> bgs_; // its backgrounds, best first
 	QLabel *preview_ = nullptr, *note_ = nullptr;
 	QString saved_;
 	void draw();

@@ -59,13 +59,62 @@ void setFonts(const QString &display, const QString &label, bool oneWeight)
 	g_oneWeight = oneWeight;
 }
 
-QImage render(const Session &s, const QString &name, const QString &dataDir, int bg)
+QString roleOf(const Session &s, const QString &preset)
 {
+	struct R {
+		const char *id;
+		int role;
+	};
+	static const R roles[] = {{"fragger", Session::Combat},     {"medic", Session::Medical},
+				  {"recon", Session::Recon},        {"logistics", Session::Logistics},
+				  {"builder", Session::Building},   {"driver", Session::Transport},
+				  {"objective", Session::Objective}};
+	const char *best = nullptr;
+	int64_t top = 0, total = 0;
+	for (const R &r : roles) {
+		total += s.roleEarned[r.role];
+		if (s.roleEarned[r.role] > top) {
+			top = s.roleEarned[r.role];
+			best = r.id;
+		}
+	}
+	if (best && total > 0) {
+		// a support role only when it earned a real share: a stray revive does not make a fragger a medic
+		if (QString(best) != "fragger" && top * 4 < total)
+			return "fragger";
+		return best;
+	}
+	if (!preset.isEmpty() && preset != "custom" && preset != "all-round")
+		return preset;
+	return "fragger";
+}
+
+QList<int> backgroundsFor(const QString &role)
+{
+	// the WARDOGS press kit (data/stats/bgN.jpg): 1 sunset helicopter, 2 ghillie sniper, 3 Little Bird close,
+	// 4 dragging a downed mate, 5 river and base, 6 foundry, 7 wrecked town and containers, 8 cockpit, 9 town
+	// and helicopter, 10 street with a rifle, 11 house interior, 12 supply drop, 13 container warehouse
+	// firefight, 14 bridge assault, 15 burner phone over the bridge
+	static const QHash<QString, QList<int>> fit = {
+		{"fragger", {13, 10, 14, 11, 6}}, {"medic", {4, 5}},      {"recon", {2, 15, 1}},
+		{"logistics", {12, 7, 5}},        {"builder", {6, 7, 5}}, {"driver", {14, 3, 9, 1, 8}},
+		{"objective", {5, 9, 7, 14}},
+	};
+	QList<int> out = fit.value(role);
+	for (int i = 1; i <= kBackgrounds; ++i)
+		if (!out.contains(i))
+			out.append(i);
+	return out;
+}
+
+QImage render(const Session &s, const QString &name, const QString &dataDir, int bg, const QString &roleIn)
+{
+	const QString role = roleIn.isEmpty() ? roleOf(s, QString()) : roleIn;
 	const int W = 1920, H = 1080;
 	QImage img(W, H, QImage::Format_ARGB32_Premultiplied);
 	img.fill(kGraphite);
 	if (bg < 1 || bg > kBackgrounds)
-		bg = 1 + (int)(s.start.date().toJulianDay() % kBackgrounds);
+		bg = backgroundsFor(role).first();
 	// Chakra Petch (owner's pick, 26 Sep 2026): bold for names and numbers, semibold for the labels
 	QString disp = family(g_display.isEmpty() ? dataDir + "/overlay/ChakraPetch-Bold.ttf" : g_display, "Arial");
 	QString mono = family(g_label.isEmpty() ? dataDir + "/overlay/ChakraPetch-SemiBold.ttf" : g_label, "Arial");
@@ -101,11 +150,19 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 	p.drawText(QPoint(L + 104, 168), tx("WARDOGS  ·  SESSION STATS"));
 
 	// who, and when
-	QString who = name.trimmed().isEmpty() ? QString("Wardog") : name.trimmed();
-	int namePx = who.size() > 16 ? 96 : 128;
+	QString who = (name.trimmed().isEmpty() ? QString("Wardog") : name.trimmed()).toUpper();
+	// as big as fits: the name was drawn at a set size into a set width, and a long one was cut off
+	// ("ADVENTURING BE", 28 Sep 2026)
+	const int nameW = 1320;
+	int namePx = 128;
+	while (namePx > 56 && QFontMetrics(font(disp, namePx)).horizontalAdvance(who) > nameW)
+		namePx -= 4;
+	QFont nameFont = font(disp, namePx);
+	if (QFontMetrics(nameFont).horizontalAdvance(who) > nameW)
+		who = QFontMetrics(nameFont).elidedText(who, Qt::ElideRight, nameW);
 	p.setPen(kBone);
-	p.setFont(font(disp, namePx));
-	p.drawText(QRect(L - 6, 200, 1100, 150), Qt::AlignLeft | Qt::AlignVCenter, who.toUpper());
+	p.setFont(nameFont);
+	p.drawText(QRect(L - 6, 200, nameW + 20, 150), Qt::AlignLeft | Qt::AlignVCenter, who);
 	// the month in the plugin's language
 	QString when = QLocale(QString::fromStdString(I18n::current())).toString(s.start, "d MMM yyyy").toUpper();
 	if (s.activeMs >= 60000) {
@@ -113,9 +170,22 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 		when += "  ·  " +
 			(m >= 60 ? tx("%1 H %2 MIN IN GAME").arg(m / 60).arg(m % 60) : tx("%1 MIN IN GAME").arg(m));
 	}
+	QString roleName;
+	for (const Session::Preset &pr : Session::presets())
+		if (role == pr.id)
+			roleName = txv(pr.label).toUpper();
+	QFont whenFont = font(mono, 24, QFont::DemiBold, 3);
+	p.setFont(whenFont);
+	int wx = L;
+	if (!roleName.isEmpty()) {
+		p.setPen(kAmber);
+		p.drawText(QPoint(wx, 382), roleName);
+		wx += QFontMetrics(whenFont).horizontalAdvance(roleName + "  ·  ");
+		p.setPen(kDim);
+		p.drawText(QPoint(wx - QFontMetrics(whenFont).horizontalAdvance("·  "), 382), "·");
+	}
 	p.setPen(kDim);
-	p.setFont(font(mono, 24, QFont::DemiBold, 3));
-	p.drawText(QPoint(L, 382), when);
+	p.drawText(QPoint(wx, 382), when);
 
 	// the numbers: three rows of three
 	struct Cell {
@@ -126,51 +196,106 @@ QImage render(const Session &s, const QString &name, const QString &dataDir, int
 		return QString::number(v);
 	};
 	QString kd = s.deaths ? QString::number((double)s.killCount() / s.deaths, 'f', 2) : num(s.killCount());
-	QList<Cell> cells = {
-		{QString("%1 / %2 / %3").arg(s.killCount()).arg(s.deaths).arg(s.assists), tx("K / D / A"), kBone},
-		{kd, tx("K/D"), kBone},
-		{num(s.revives), tx("Revives"), kBone},
-		{Session::money(s.earned), tx("Earned"), kOlive},
-		{Session::money(s.spent), tx("Spent"), kRed},
-		{s.perMinute() >= 0 ? Session::money(s.perMinute()) : QString("-"), tx("$ per minute"), kOlive},
+	auto cash = [](int64_t v) {
+		return Session::money(v);
 	};
-	// the bottom row: what you did for the squad when you did (a medic's night is heals, not headshots),
-	// the ones that earned most first, then headshots, longest kill and vehicles to fill it
-	struct Support {
-		int n;
-		int64_t cash;
-		QString label;
-	};
-	QList<Support> support = {
-		{s.heals, s.roleEarned[Session::Medical], tx("Heals")},
-		{s.spots, s.roleEarned[Session::Recon], tx("Enemies spotted")},
-		{s.supplies, s.roleEarned[Session::Logistics], tx("Supplies delivered")},
-		{s.builds, s.roleEarned[Session::Building], tx("Things built")},
-		{s.transports, s.roleEarned[Session::Transport], tx("Passengers transported")},
-	};
-	std::stable_sort(support.begin(), support.end(),
-			 [](const Support &a, const Support &b) { return a.cash > b.cash; });
-	for (const Support &x : support)
-		if (x.n > 0 && cells.size() < 9)
-			cells.append({num(x.n), x.label, kOlive});
-	QList<Cell> fill = {
-		{num(s.headshotCount()), tx("Headshots"), kBone},
-		{s.longestKillM ? tx("%1 m").arg(s.longestKillM) : QString("-"), tx("Longest kill"), kBone},
-		{num(s.vehicles), tx("Vehicles destroyed"), kBone},
-	};
-	for (const Cell &c : fill)
-		if (cells.size() < 9)
-			cells.append(c);
+	const QString kda = QString("%1 / %2 / %3").arg(s.killCount()).arg(s.deaths).arg(s.assists);
+	const QString perMin = s.perMinute() >= 0 ? Session::money(s.perMinute()) : QString("-");
+	const QString longest = s.longestKillM ? tx("%1 m").arg(s.longestKillM) : QString("-");
+	// what the night was about first: a medic's card leads with revives and heals, a driver's with
+	// passengers, a fragger's with kills
+	QList<Cell> cells;
+	if (role == "medic")
+		cells = {{num(s.revives), tx("Revives"), kBone},
+			 {num(s.heals), tx("Heals"), kOlive},
+			 {cash(s.roleEarned[Session::Medical]), tx("Money from medic play"), kOlive},
+			 {kda, tx("K / D / A"), kBone},
+			 {cash(s.earned), tx("Earned"), kOlive},
+			 {perMin, tx("$ per minute"), kOlive},
+			 {cash(s.spent), tx("Spent"), kRed},
+			 {num(s.headshotCount()), tx("Headshots"), kBone},
+			 {num(s.vehicles), tx("Vehicles destroyed"), kBone}};
+	else if (role == "recon")
+		cells = {{num(s.spots), tx("Enemies spotted"), kBone},
+			 {cash(s.roleEarned[Session::Recon]), tx("Money from recon"), kOlive},
+			 {kda, tx("K / D / A"), kBone},
+			 {longest, tx("Longest kill"), kBone},
+			 {num(s.headshotCount()), tx("Headshots"), kBone},
+			 {perMin, tx("$ per minute"), kOlive},
+			 {cash(s.earned), tx("Earned"), kOlive},
+			 {cash(s.spent), tx("Spent"), kRed},
+			 {num(s.revives), tx("Revives"), kBone}};
+	else if (role == "logistics")
+		cells = {{num(s.supplies), tx("Supplies delivered"), kBone},
+			 {cash(s.roleEarned[Session::Logistics]), tx("Money from logistics"), kOlive},
+			 {num(s.revives), tx("Revives"), kBone},
+			 {kda, tx("K / D / A"), kBone},
+			 {cash(s.earned), tx("Earned"), kOlive},
+			 {perMin, tx("$ per minute"), kOlive},
+			 {cash(s.spent), tx("Spent"), kRed},
+			 {num(s.headshotCount()), tx("Headshots"), kBone},
+			 {num(s.vehicles), tx("Vehicles destroyed"), kBone}};
+	else if (role == "builder")
+		cells = {{num(s.builds), tx("Things built"), kBone},
+			 {cash(s.roleEarned[Session::Building]), tx("Money from building"), kOlive},
+			 {num(s.revives), tx("Revives"), kBone},
+			 {kda, tx("K / D / A"), kBone},
+			 {cash(s.earned), tx("Earned"), kOlive},
+			 {perMin, tx("$ per minute"), kOlive},
+			 {cash(s.spent), tx("Spent"), kRed},
+			 {num(s.headshotCount()), tx("Headshots"), kBone},
+			 {num(s.vehicles), tx("Vehicles destroyed"), kBone}};
+	else if (role == "driver")
+		cells = {{num(s.transports), tx("Passengers transported"), kBone},
+			 {cash(s.roleEarned[Session::Transport]), tx("Money from transporting"), kOlive},
+			 {num(s.vehicles), tx("Vehicles destroyed"), kBone},
+			 {kda, tx("K / D / A"), kBone},
+			 {cash(s.earned), tx("Earned"), kOlive},
+			 {perMin, tx("$ per minute"), kOlive},
+			 {cash(s.spent), tx("Spent"), kRed},
+			 {num(s.revives), tx("Revives"), kBone},
+			 {num(s.headshotCount()), tx("Headshots"), kBone}};
+	else if (role == "objective")
+		cells = {{cash(s.roleEarned[Session::Objective]), tx("Money from zones and objectives"), kOlive},
+			 {kda, tx("K / D / A"), kBone},
+			 {num(s.revives), tx("Revives"), kBone},
+			 {cash(s.earned), tx("Earned"), kOlive},
+			 {perMin, tx("$ per minute"), kOlive},
+			 {cash(s.spent), tx("Spent"), kRed},
+			 {num(s.headshotCount()), tx("Headshots"), kBone},
+			 {longest, tx("Longest kill"), kBone},
+			 {num(s.vehicles), tx("Vehicles destroyed"), kBone}};
+	else
+		cells = {{kda, tx("K / D / A"), kBone},
+			 {kd, tx("K/D"), kBone},
+			 {num(s.headshotCount()), tx("Headshots"), kBone},
+			 {cash(s.earned), tx("Earned"), kOlive},
+			 {cash(s.spent), tx("Spent"), kRed},
+			 {perMin, tx("$ per minute"), kOlive},
+			 {longest, tx("Longest kill"), kBone},
+			 {num(s.revives), tx("Revives"), kBone},
+			 {num(s.vehicles), tx("Vehicles destroyed"), kBone}};
 	const int top = 430, colW = 390, rowH = 158;
 	for (int i = 0; i < cells.size(); ++i) {
 		int x = L + (i % 3) * colW, y = top + (i / 3) * rowH;
 		p.setPen(QColor(232, 229, 221, 40));
 		p.drawLine(x, y, x + colW - 40, y);
-		p.setFont(font(disp, cells[i].value.size() > 9 ? 70 : 88));
-		shadowed(p, QRect(x, y + 6, colW - 20, 100), Qt::AlignLeft | Qt::AlignVCenter, cells[i].value,
+		// each value and label as big as its column allows: "$184,500" at the set size ran into the next
+		// column, and so did "MONEY FROM ZONES AND OBJECTIVES"
+		const int room = colW - 40;
+		int vpx = 88;
+		while (vpx > 44 && QFontMetrics(font(disp, vpx)).horizontalAdvance(cells[i].value) > room)
+			vpx -= 4;
+		p.setFont(font(disp, vpx));
+		shadowed(p, QRect(x, y + 6, room + 10, 100), Qt::AlignLeft | Qt::AlignVCenter, cells[i].value,
 			 cells[i].colour);
-		p.setFont(font(mono, 20, QFont::DemiBold, 4));
-		shadowed(p, QRect(x + 2, y + 110, colW, 32), Qt::AlignLeft | Qt::AlignVCenter, cells[i].label.toUpper(),
+		QString label = cells[i].label.toUpper();
+		QFont lf = font(mono, 20, QFont::DemiBold, 4);
+		for (int lpx = 20; lpx > 14 && QFontMetrics(lf).horizontalAdvance(label) > room; lpx -= 2)
+			lf = font(mono, lpx - 2, QFont::DemiBold, lpx > 16 ? 3 : 2);
+		label = QFontMetrics(lf).elidedText(label, Qt::ElideRight, room);
+		p.setFont(lf);
+		shadowed(p, QRect(x + 2, y + 110, room + 10, 32), Qt::AlignLeft | Qt::AlignVCenter, label,
 			 QColor(176, 172, 163));
 	}
 

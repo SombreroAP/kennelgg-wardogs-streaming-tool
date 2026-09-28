@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.33.3
+- **Corrigido: um nome longo cortado na imagem das estatísticas.** O nome, cada número e cada rótulo agora diminuem para caber, então nada sai da borda nem invade a coluna ao lado.
+- **A imagem das estatísticas mostra a função que você jogou.** O card de um médico começa com revives, curas e dinheiro de médico, o de um motorista com passageiros, o de um reconhecimento com avistamentos, e assim por diante, com a função ao lado da data. O fundo é a imagem do kit de imprensa que combina com a função (o arrasto de um ferido para médicos, o lançamento de suprimentos para logística, o sniper de ghillie para reconhecimento); Outro fundo passa primeiro pelas imagens da função.
+
 ## 0.33.2
 - **Corrigido: Escanear um VOD travado em 0 %.** Cada parte do escaneamento fechava na hora (achava que havia um segundo ClipHound), então nada era lido. Também dizia "o ClipHound ainda está iniciando" até o WARDOGS estar aberto; agora dá para escanear uma gravação com o jogo fechado.
 - **Replays em vez do POV de um parceiro.** Configurações, Squad & POV: "Tocar meus replays em vez do POV de um parceiro, mesmo quando ele transmite", e "Começar pelo momento em que caí" (ligado por padrão), que salva um clipe quando você cai e toca ele primeiro, depois seus replays anteriores.

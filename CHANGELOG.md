@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.33.3
+- **Fixed: a long name cut off on the stats image.** The name, every number and every label now shrink to fit, so nothing runs off the edge or into the next column.
+- **The stats image shows the role you played.** A medic's card leads with revives, heals and medic money, a driver's with passengers, a recon's with spots, and so on, with the role beside the date. The background is the press-kit shot that fits the role (the revive drag for medics, the supply drop for logistics, the ghillie sniper for recon); Another background goes through the role's shots first.
+
 ## 0.33.2
 - **Fixed: Scan a VOD stuck at 0 %.** Every part of the scan quit at once (it thought a second ClipHound was running), so nothing was ever read. It also said "ClipHound is still starting" until WARDOGS was running; a recording can now be scanned with the game closed.
 - **Replays instead of a squad mate's POV.** Settings, Squad & POV: "Play my replays instead of a squad mate's POV, even when they stream", and "Start with the moment I went down" (on by default), which saves a clip as you go down and plays it first, then your earlier replays.

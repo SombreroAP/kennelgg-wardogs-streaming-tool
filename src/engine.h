@@ -186,6 +186,7 @@ public:
 	void setUiLanguage(const std::string &code);
 	/// Your in-game name as the kill feed shows it (ClipHound tells your kills and deaths by it).
 	void setInGameName(const QString &name);
+	QString sessionRole() const; // the bar's Quick pick (Session::presets id), "custom" when none fits
 	/// Send HUD pictures to kennel.gg for the reader's test set (asked once on the dock; Settings, General).
 	void setHudShare(bool on); // send the ClipHound settings to the app
 
@@ -595,7 +596,6 @@ private:
 	bool manualShow_ = false;
 	bool inventoryShow_ = false;  // the view on screen is the magazine-packing swap
 	QString povStateName() const; // the view on screen was put up by hand (not by being downed)
-	QString sessionRole() const;  // the bar's preset id (Session::presets), "custom" when none fits
 	QString nameGuess_;           // ClipHound's reading of your in-game name, when it differs from the one set
 	QString closestName() const;  // the nearest squad mate in the last NEARBY read, "" = none
 	QString popoutNote_;          // the unnamed pop-out we last mentioned, so the log says it once

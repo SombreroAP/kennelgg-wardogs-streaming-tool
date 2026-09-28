@@ -15,6 +15,11 @@ void setFonts(const QString &display, const QString &label, bool oneWeight);
 
 /// dataDir: the plugin's data folder (holds stats/ and overlay/ with the fonts and the hound mark).
 /// bg: which background, 1-based; out of range picks one from the date.
-QImage render(const Session &s, const QString &name, const QString &dataDir, int bg);
+QImage render(const Session &s, const QString &name, const QString &dataDir, int bg, const QString &role = QString());
+/// The role the session was played as: what earned most (medic, recon, logistics, builder, driver, objective),
+/// else fragger; `preset` (the bar's Quick pick, "custom" = none) when the session earned nothing yet.
+QString roleOf(const Session &s, const QString &preset);
+/// The press-kit backgrounds that fit a role best, best first (bg numbers); the rest follow for "Another".
+QList<int> backgroundsFor(const QString &role);
 
 } // namespace StatsImage
