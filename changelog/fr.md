@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.32.0
+- **Aide à rendre la lecture infaillible (au choix).** Le plugin peut envoyer à kennel.gg de petites images de ton HUD toutes les quelques minutes pendant que tu joues, et quand tu tombes : l'encadré du solde, le kill feed, la plaque d'arme, le ticker de kills, la liste NEARBY et le journal des dégâts, découpés à ta propre résolution, avec la langue de ton jeu et ce que le plugin y a lu. Elles forment un jeu de test pour chaque résolution et les 14 langues du jeu, pour que la lecture du solde, des kills et des mises à terre soit vérifiée sur de vrais écrans plutôt que sur des suppositions. Seuls ces coins sont envoyés, jamais l'écran entier, ta caméra, ta voix ou ton chat, et aucun compte n'est nécessaire. Le dock demande une fois ; l'interrupteur est dans Paramètres, Clips & replays.
+
 ## 0.31.2
 Corrections tirées des premiers journaux envoyés par des streamers :
 - **Les clips jamais enregistrés sont maintenant signalés.** Sans la sortie d'Aitum Backtrack démarrée, les raccourcis de clip ne menaient nulle part et les clips se perdaient sans un mot (25 sur un stream de deux heures). Le dock indique maintenant combien ont été perdus et quoi démarrer. Un tampon de relecture qui n'a pas pu démarrer est réessayé chaque minute au lieu de rester coupé jusqu'au redémarrage d'OBS.

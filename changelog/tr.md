@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.32.0
+- **Okumayı kusursuz yapmaya yardım et (isteğe bağlı).** Eklenti, oynarken birkaç dakikada bir ve yere düştüğünde kennel.gg'ye HUD'unun küçük görsellerini gönderebilir: bakiye kutusu, öldürme akışı, silah plakası, leş sayacı, NEARBY listesi ve hasar kaydı; kendi çözünürlüğünde kesilmiş, oyun dilin ve eklentinin orada okuduğuyla. Bunlar her çözünürlük ve oyunun 14 dili için bir test seti olur; böylece bakiye, leş ve yere düşme okumaları tahminlerle değil gerçek ekranlarla denetlenir. Yalnızca bu köşeler gönderilir; asla tüm ekran, kameran, sesin ya da sohbetin değil, hesap da gerekmez. Panel bir kez sorar; anahtar Ayarlar, Klipler & tekrarlar'da.
+
 ## 0.31.2
 Yayıncıların gönderdiği ilk günlüklerden düzeltmeler:
 - **Hiç kaydedilmeyen klipler artık bildiriliyor.** Aitum Backtrack'in çıkışı başlatılmamışken klip kısayolları boşa gidiyor ve klipler sessizce kayboluyordu (iki saatlik bir yayında 25 klip). Panel artık kaç klibin kaybolduğunu ve neyin başlatılması gerektiğini gösteriyor. Başlatılamayan bir tekrar oynatma arabelleği, OBS yeniden başlatılana kadar kapalı kalmak yerine her dakika yeniden deneniyor.

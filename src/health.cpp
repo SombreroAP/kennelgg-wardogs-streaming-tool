@@ -253,6 +253,20 @@ QList<Engine::Banner> Engine::banners() const
 		b.dismissable = false;
 		add(b);
 	}
+	if (cfg.hudShare == 0 && cfg.setupDone && cfg.statsConsent != 0) {
+		// asked once, after the leaderboards question, never as a pop-up
+		Banner b;
+		b.id = "hudshare";
+		b.level = 0;
+		b.text = tx(
+			"<b>Help make the reader bulletproof:</b> send kennel.gg small pictures of your HUD every few "
+			"minutes while you play (the balance box, kill feed, weapon plate, NEARBY list and the damage "
+			"log when you are down), at your resolution and in your game language. Only those corners, "
+			"never the whole screen, your camera, voice or chat. Turn it off any time in Settings, "
+			"Clips & replays.");
+		b.actions = {Fix("hud:yes", tx("Yes, send them")), Fix("hud:no", tx("No thanks"))};
+		add(b);
+	}
 	if (cfg.statsConsent == 0 && cfg.setupDone) {
 		// asked once, plainly, never as a pop-up: nothing is sent until the answer is yes
 		Banner b;
@@ -527,6 +541,10 @@ void Engine::noteClosestNeedsApp()
 
 bool Engine::runAction(const QString &id)
 {
+	if (id == "hud:yes" || id == "hud:no") {
+		setHudShare(id == "hud:yes");
+		return true;
+	}
 	if (id == "name:use" && !nameGuess_.isEmpty()) {
 		QString g = nameGuess_;
 		setInGameName(g);

@@ -1938,6 +1938,17 @@ QWidget *SettingsDialog::buildClipsTab()
 	shareRow->addWidget(statsShare_, 1);
 	shareRow->addWidget(delStats);
 	fi->addRow(tx("Leaderboards"), shareRow);
+	hudShare_ = new QCheckBox(tx("Send small pictures of my HUD to kennel.gg to make the reader better"), gi);
+	hudShare_->setChecked(e_->cfg.hudShare == 1);
+	hudShare_->setToolTip(tx(
+		"Every few minutes in a match, and when you go down: the balance box, kill feed, weapon plate, NEARBY "
+		"list and damage log, cut at your resolution, with your game language and what the plugin read there. "
+		"Never the whole screen, your camera, voice or chat. No account needed."));
+	fi->addRow(tx("Reader"), hudShare_);
+	connect(hudShare_, &QCheckBox::toggled, this, [this](bool on) {
+		if (!building_)
+			e_->setHudShare(on);
+	});
 	accountLbl_ = new QLabel(gi);
 	accountLbl_->setWordWrap(true);
 	accountBtn_ = new QPushButton(gi);

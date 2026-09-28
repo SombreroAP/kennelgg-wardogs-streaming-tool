@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.32.0
+- **Help make the reader bulletproof (opt-in).** The plugin can send kennel.gg small pictures of your HUD every few minutes while you play, and when you go down: the balance box, kill feed, weapon plate, kill ticker, NEARBY list and damage log, cut at your own resolution, with your game language and what the plugin read there. They become a test set for every resolution and all 14 game languages, so the balance, kill and downed readers get checked against real screens rather than guesses. Only those corners are sent, never the whole screen, your camera, voice or chat, and no account is needed. The dock asks once; the switch is in Settings, Clips & replays.
+
 ## 0.31.2
 Fixes from the first logs streamers sent in:
 - **Clips that never saved now say so.** With Aitum Backtrack's output not started, the clip hotkeys went nowhere and the clips were lost without a word (25 in one two-hour stream). The dock now shows how many were lost and what to start. A replay buffer that could not be started is tried again every minute instead of staying off until OBS restarts.

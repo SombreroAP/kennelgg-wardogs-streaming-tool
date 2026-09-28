@@ -162,6 +162,7 @@ struct Config {
 	// the kennel.gg leaderboards: 0 not asked yet, 1 yes (each stream's stats are sent), 2 no.
 	// Nothing leaves this PC until it is 1 and the PC is linked to a kennel.gg account.
 	int statsConsent = 0;
+	int hudShare = 0; // HUD pictures for the reader's test set: 0 not asked, 1 yes, 2 no (0.32.0)
 	// this PC linked to a kennel.gg account (the wager/tournament system's device link): the token is
 	// the link's key; the leaderboards take stats only from a linked PC
 	std::string accountToken, accountId, accountName;

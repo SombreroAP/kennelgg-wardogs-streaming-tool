@@ -92,6 +92,7 @@ void Config::load()
 	DEFB(ytChapters);
 	DEFB(sessionTrack);
 	DEFI(statsConsent);
+	DEFI(hudShare);
 	DEFS(accountToken);
 	DEFS(accountId);
 	DEFS(accountName);
@@ -306,6 +307,7 @@ void Config::load()
 	GETB(ytChapters);
 	GETB(sessionTrack);
 	GETI(statsConsent);
+	GETI(hudShare);
 	GETS(accountToken);
 	GETS(accountId);
 	GETS(accountName);
@@ -706,6 +708,7 @@ void Config::save() const
 	SETB(ytChapters);
 	SETB(sessionTrack);
 	SETI(statsConsent);
+	SETI(hudShare);
 	SETS(accountToken);
 	SETS(accountId);
 	SETS(accountName);

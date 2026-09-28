@@ -122,6 +122,9 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	});
 	stateTimer_.setSingleShot(true);
 	stateTimer_.setInterval(150);
+	hudTimer_.setInterval(150000); // one set every 2.5 minutes while the HUD is on screen
+	connect(&hudTimer_, &QTimer::timeout, this, [this]() { hudSample("periodic"); });
+	hudTimer_.start();
 	replayLenTimer_.setSingleShot(true);
 	replayLenTimer_.setInterval(1200);
 	connect(&replayLenTimer_, &QTimer::timeout, this, &Engine::applyReplaySecondsNow);
@@ -2699,6 +2702,7 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 				dropTo_ = e.v;
 				dropAt_ = t;
 			}
+			lastCashOkMs_ = QDateTime::currentMSecsSinceEpoch();
 			if (session_.balanceNow != e.v || e.v == session_.balanceStart) {
 				session_.balanceNow = e.v;
 				changed = true;
@@ -4785,8 +4789,14 @@ void Engine::detect(const Match &m)
 		// moving behind the log): uploaded sessions had 411 downs against 4 deaths, one every 2.7 s in another
 		bool newDown = downEndedAt_.time_since_epoch().count() == 0 ||
 			       clock_::now() - downEndedAt_ > std::chrono::seconds(20);
-		if (newDown)
+		if (newDown) {
 			session_.downs++;
+			if (cfg.hudShare == 1) // the damage log, as the downed reader sees it
+				QTimer::singleShot(700, this, [this]() {
+					if (detected_)
+						hudSample("downed");
+				});
+		}
 		peakScore_ = m.score;
 		downX_ = m.x;
 		downY_ = m.y;
@@ -5882,4 +5892,125 @@ void Engine::previewLook(bool on)
 	}
 	log(!e.empty() ? tx("Look: %1").arg(QString::fromStdString(e))
 		       : (lookPreview_ ? tx("Look overlay showing in OBS.") : tx("Look overlay hidden.")));
+}
+
+void Engine::setHudShare(bool on)
+{
+	cfg.hudShare = on ? 1 : 2;
+	cfg.save();
+	log(on ? tx("HUD pictures: on. Every few minutes in a match, small crops of your HUD go to kennel.gg to make the "
+		    "reader better at your resolution and language (Settings, Clips & replays to stop).")
+	       : tx("HUD pictures: off."));
+	emit stateChanged();
+	if (on)
+		QTimer::singleShot(20000, this, [this]() { hudSample("first"); });
+}
+
+/// One set of HUD pictures: the corners the readers look at, cut at the game's own resolution (PNG, nothing
+/// scaled), with what the plugin read there, POSTed to kennel.gg/api/stats/hud. Only with cfg.hudShare == 1,
+/// only while the balance was read in the last 10 s (the HUD is on screen, you are in a match), 60 sets at most
+/// per OBS run.
+void Engine::hudSample(const QString &why)
+{
+	if (cfg.hudShare != 1 || stopping_ || hudBusy_ || cfg.gameSource.empty() || hudSent_ >= 60)
+		return;
+	qint64 now = QDateTime::currentMSecsSinceEpoch();
+	if (why != "downed" && now - lastCashOkMs_ > 10000)
+		return;
+	obs_source_t *src = obs_get_source_by_name(cfg.gameSource.c_str());
+	if (!src)
+		return;
+	int W = (int)obs_source_get_width(src), H = (int)obs_source_get_height(src);
+	obs_source_release(src);
+	if (W < 320 || H < 200)
+		return;
+	std::vector<std::pair<QString, QRectF>> parts;
+	parts.push_back({"cash", cashArea(W, H)});
+	for (const auto &s : bridge.streams()) {
+		if (s.id == 0)
+			parts.push_back({"feed", s.roi});
+		else if (s.id == 4)
+			parts.push_back({"plate", s.roi});
+		else if (s.id == 5)
+			parts.push_back({"ticker", s.roi});
+	}
+	if (cfg.nearEnabled)
+		parts.push_back({"nearby", QRectF(cfg.nearX, cfg.nearY, cfg.nearW, cfg.nearH)});
+	if (why == "downed")
+		parts.push_back({"damage", QRectF(cfg.dmgX, cfg.dmgY, cfg.dmgW, cfg.dmgH)});
+	// what the readers made of it, so each picture comes with its answer to check
+	QJsonObject read;
+	if (session_.haveBalance)
+		read["balance"] = (double)session_.balanceNow;
+	read["downed"] = detected_;
+	if (detected_)
+		read["downed_score"] = peakScore_;
+	read["holding"] = holding_;
+	read["nearby"] = nearbyText();
+	QJsonArray ev;
+	for (int i = std::max(0, (int)events_.size() - 4); i < events_.size(); ++i)
+		ev.append(events_[i]);
+	read["events"] = ev;
+	QJsonObject head;
+	head["version"] = PLUGIN_VERSION;
+	head["game_lang"] = QString::fromStdString(cfg.gameLangFound.empty() ? cfg.gameLang : cfg.gameLangFound);
+	head["ui_lang"] = QString::fromStdString(I18n::current());
+	head["width"] = W;
+	head["height"] = H;
+	head["why"] = why;
+	head["read"] = read;
+	hudBusy_ = true;
+	hudSent_++;
+	std::string name = cfg.gameSource;
+	workers_++;
+	std::thread([this, parts, name, head]() {
+		WorkerGuard guard(workers_);
+		QJsonArray crops;
+		obs_source_t *s = obs_get_source_by_name(name.c_str());
+		if (s) {
+			for (const auto &p : parts) {
+				std::vector<uint8_t> bgra;
+				int w = 0, h = 0, ls = 0;
+				const QRectF &r = p.second;
+				if (!capHud_.grabRegion(s, r.x(), r.y(), r.width(), r.height(), 0, bgra, w, h, ls))
+					continue;
+				QImage img = QImage(bgra.data(), w, h, ls, QImage::Format_ARGB32)
+						     .convertToFormat(QImage::Format_RGB888);
+				QByteArray png;
+				QBuffer buf(&png);
+				buf.open(QIODevice::WriteOnly);
+				img.save(&buf, "PNG");
+				QJsonObject c;
+				c["kind"] = p.first;
+				c["roi"] = QJsonArray{r.x(), r.y(), r.width(), r.height()};
+				c["png"] = QString::fromLatin1(png.toBase64());
+				crops.append(c);
+			}
+			obs_source_release(s);
+		}
+		QJsonObject body = head;
+		body["crops"] = crops;
+		QByteArray json = QJsonDocument(body).toJson(QJsonDocument::Compact);
+		QMetaObject::invokeMethod(
+			this,
+			[this, json, n = crops.size()]() {
+				if (stopping_ || n == 0) {
+					hudBusy_ = false;
+					return;
+				}
+				Http::requestAsync(
+					this, "POST", "https://kennel.gg/api/stats/hud", json,
+					"Content-Type: application/json\r\n", 30000,
+					QString("KennelggWardogsOBSTool/%1").arg(PLUGIN_VERSION),
+					[this](Http::Result r) {
+						hudBusy_ = false;
+						if (!r.ok && hudSent_ <= 1)
+							log(tx("HUD pictures: kennel.gg did not take them (%1).")
+								    .arg(r.error.isEmpty()
+										 ? QString("HTTP %1").arg(r.status)
+										 : r.error));
+					});
+			},
+			Qt::QueuedConnection);
+	}).detach();
 }

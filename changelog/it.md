@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.32.0
+- **Aiuta a rendere la lettura a prova di errore (facoltativo).** Il plugin può mandare a kennel.gg piccole immagini del tuo HUD ogni pochi minuti mentre giochi, e quando vieni abbattuto: il riquadro del saldo, il kill feed, la targhetta dell'arma, il contatore delle uccisioni, la lista NEARBY e il registro danni, ritagliati alla tua risoluzione, con la lingua del gioco e quello che il plugin ci ha letto. Diventano un set di prova per ogni risoluzione e tutte le 14 lingue del gioco, così la lettura di saldo, uccisioni e abbattimenti viene verificata su schermi veri invece che su supposizioni. Vengono mandati solo quegli angoli, mai lo schermo intero, la tua webcam, voce o chat, e non serve un account. Il pannello lo chiede una volta; l'interruttore è in Impostazioni, Clip & replay.
+
 ## 0.31.2
 Correzioni dai primi log inviati dagli streamer:
 - **Le clip mai salvate ora vengono segnalate.** Senza l'uscita di Aitum Backtrack avviata, le scorciatoie delle clip non arrivavano da nessuna parte e le clip si perdevano senza avviso (25 in una diretta di due ore). Il pannello ora mostra quante ne sono andate perse e cosa avviare. Un buffer replay che non si è potuto avviare viene ritentato ogni minuto invece di restare spento fino al riavvio di OBS.

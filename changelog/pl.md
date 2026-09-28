@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.32.0
+- **Pomóż uczynić odczyt niezawodnym (dobrowolne).** Wtyczka może wysyłać do kennel.gg co kilka minut podczas gry, a także gdy leżysz, małe obrazki twojego HUD: ramkę z saldem, kill feed, tabliczkę broni, licznik zabójstw, listę NEARBY i dziennik obrażeń, wycięte w twojej rozdzielczości, z językiem gry i tym, co wtyczka tam odczytała. Tworzą zestaw testowy dla każdej rozdzielczości i wszystkich 14 języków gry, więc odczyt salda, zabójstw i powaleń jest sprawdzany na prawdziwych ekranach, a nie na domysłach. Wysyłane są tylko te rogi, nigdy cały ekran, kamera, głos ani czat, a konto nie jest potrzebne. Dok pyta raz; przełącznik jest w Ustawienia, Klipy & powtórki.
+
 ## 0.31.2
 Poprawki z pierwszych logów przysłanych przez streamerów:
 - **Klipy, które nigdy się nie zapisały, są teraz zgłaszane.** Bez uruchomionego wyjścia Aitum Backtrack skróty klipów trafiały w próżnię, a klipy przepadały bez słowa (25 w jednym dwugodzinnym streamie). Dok pokazuje teraz, ile przepadło i co uruchomić. Bufor powtórek, którego nie dało się uruchomić, jest próbowany co minutę, zamiast zostać wyłączony do restartu OBS.

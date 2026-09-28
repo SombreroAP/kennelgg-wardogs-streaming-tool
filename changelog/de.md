@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.32.0
+- **Hilf, die Erkennung wasserdicht zu machen (freiwillig).** Das Plugin kann kennel.gg beim Spielen alle paar Minuten und wenn du niedergehst kleine Bilder deines HUDs schicken: Guthabenfeld, Killfeed, Waffenschild, Kill-Ticker, NEARBY-Liste und Schadensprotokoll, in deiner eigenen Auflösung ausgeschnitten, mit deiner Spielsprache und dem, was das Plugin dort gelesen hat. Daraus wird ein Testsatz für jede Auflösung und alle 14 Spielsprachen, damit die Erkennung von Guthaben, Kills und Niederschlägen an echten Bildschirmen geprüft wird statt an Vermutungen. Nur diese Ecken werden geschickt, nie der ganze Bildschirm, deine Kamera, Stimme oder dein Chat, und du brauchst kein Konto. Das Dock fragt einmal; der Schalter ist unter Einstellungen, Clips & Replays.
+
 ## 0.31.2
 Korrekturen aus den ersten Logs, die Streamer geschickt haben:
 - **Clips, die nie gespeichert wurden, werden jetzt gemeldet.** Lief die Ausgabe von Aitum Backtrack nicht, gingen die Clip-Hotkeys ins Leere und die Clips wortlos verloren (25 in einem zweistündigen Stream). Das Dock zeigt jetzt, wie viele verloren gingen und was zu starten ist. Ein Wiederholungspuffer, der sich nicht starten ließ, wird jede Minute erneut versucht, statt bis zum Neustart von OBS aus zu bleiben.

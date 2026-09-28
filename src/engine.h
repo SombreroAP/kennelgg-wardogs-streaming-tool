@@ -185,7 +185,9 @@ public:
 	/// The plugin's own language ("auto" = OBS's): saved, loaded, and every page and window in it.
 	void setUiLanguage(const std::string &code);
 	/// Your in-game name as the kill feed shows it (ClipHound tells your kills and deaths by it).
-	void setInGameName(const QString &name); // send the ClipHound settings to the app
+	void setInGameName(const QString &name);
+	/// Send HUD pictures to kennel.gg for the reader's test set (asked once on the dock; Settings, General).
+	void setHudShare(bool on); // send the ClipHound settings to the app
 
 	/// One line of the game's NEARBY list, as ClipHound read it.
 	struct NearbyEntry {
@@ -567,6 +569,14 @@ private:
 	bool replayRestarting_ = false; // one replay-buffer restart at a time
 	int replayRetryTick_ = 0;
 	std::chrono::steady_clock::time_point nearbyAskedAt_{}; // the last "read NEARBY now"
+	// HUD pictures (0.32.0): small crops at the game's own resolution, sent to kennel.gg for the reader's test
+	// set, only when the streamer said yes (cfg.hudShare == 1)
+	QTimer hudTimer_;
+	Capture capHud_;
+	bool hudBusy_ = false;
+	int hudSent_ = 0;
+	qint64 lastCashOkMs_ = 0;
+	void hudSample(const QString &why);
 	bool manualShow_ = false;
 	bool inventoryShow_ = false;  // the view on screen is the magazine-packing swap
 	QString povStateName() const; // the view on screen was put up by hand (not by being downed)
