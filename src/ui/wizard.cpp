@@ -83,6 +83,16 @@ QWizardPage *SetupWizard::pageYou()
 	p->setSubTitle(tx("Downed in WARDOGS? Your stream shows a squad mate's POV until you are back up. Your mic is "
 			  "never touched."));
 	auto *f = new QFormLayout(p);
+	{
+		auto *beta = new QLabel(
+			tx("<b>BETA</b> &nbsp;The Kennel.gg Wardogs Streaming Tool is in beta: it is still being "
+			   "built and changes often, so expect the odd bug. Something not right? Settings, "
+			   "Help, Send logs, or ask in the Kennel.gg Discord."),
+			p);
+		beta->setWordWrap(true);
+		beta->setStyleSheet("QLabel { border: 1px solid #c99a3b; border-radius: 4px; padding: 6px 8px; }");
+		f->addRow(beta);
+	}
 	gameName_ = new QLineEdit(QString::fromStdString(e_->cfg.appPlayerName), p);
 	gameName_->setPlaceholderText(tx("exactly as the kill feed shows it"));
 	f->addRow(tx("Your name in WARDOGS"), gameName_);

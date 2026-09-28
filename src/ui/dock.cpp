@@ -88,6 +88,8 @@ static const char *kDockStyle = R"(
 #kennelDock QWidget#headRow { border-bottom: 1px solid #343835; margin-bottom: 2px; }
 #kennelDock QLabel#wordmark { color: #ece7db; font-family: "Saira Condensed"; font-size: 17pt; font-weight: 700;
 	letter-spacing: 1px; }
+#kennelDock QLabel#beta { color: #121518; background: #c99a3b; font-family: "Saira Condensed"; font-size: 8pt;
+	font-weight: 700; letter-spacing: 1px; padding: 0px 5px; border-radius: 3px; }
 #kennelDock QLabel#small { color: #9a9e93; font-size: 8pt; }
 #kennelDock QLabel#statePill { padding: 5px 10px; border-radius: 3px; border: 1px solid #3a3e3b; background: #242725;
 	font-weight: 600; }
@@ -244,6 +246,13 @@ void Dock::build()
 		auto *wm = new QLabel("KENNEL.GG WARDOGS", this);
 		wm->setObjectName("wordmark");
 		head->addWidget(wm);
+		// still being built: say so where everyone looks first
+		auto *beta = new QLabel(tx("BETA"), this);
+		beta->setObjectName("beta");
+		beta->setToolTip(
+			tx("The plugin is in beta: it is still being built and changes often, so expect the odd bug. "
+			   "Something not right? Settings, Help, Send logs."));
+		head->addWidget(beta, 0, Qt::AlignVCenter);
 		head->addStretch(1);
 		menuBtn_ = new QToolButton(this);
 		menuBtn_->setObjectName("menuBtn");
