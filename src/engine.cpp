@@ -3648,7 +3648,12 @@ void Engine::onControl(const QJsonObject &o)
 
 void Engine::setInGameName(const QString &name)
 {
-	cfg.appPlayerName = name.trimmed().toStdString();
+	// in-game handles never have internal spaces; the kill-feed OCR sometimes splits a short one
+	// letter by letter ("B G B"), and a name that keeps it never fuzzy-matches the feed again on
+	// ClipHound's side, so no kills are counted (only trimming the ends let that through, LOG-11E6)
+	QString clean = name;
+	clean.remove(QRegularExpression("\\s+"));
+	cfg.appPlayerName = clean.toStdString();
 	cfg.save();
 	nameGuess_.clear();
 	pushAppConfig();

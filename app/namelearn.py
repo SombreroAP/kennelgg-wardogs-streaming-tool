@@ -21,6 +21,10 @@ def _key(text: str) -> tuple[str, str]:
     t = re.sub(r"^.*?[\[\(\{][^\]\)\}]{0,8}[\]\)\}]\s*", "", t) if re.search(r"[\[\(\{]", t[:3]) else t
     t = re.sub(r"\s*\d+\s*m\s*$", "", t)            # a distance read into the column
     t = re.sub(r"^[^A-Za-z0-9]+|[^A-Za-z0-9]+$", "", t)
+    # in-game handles never have internal spaces; OCR sometimes splits a short one letter by
+    # letter ("B G B") - keep that out of the display form too, or a learned name never
+    # fuzzy-matches the feed again and no kills are counted (LOG-11E6)
+    t = re.sub(r"\s+", "", t)
     return re.sub(r"[^a-z0-9]", "", t.lower()), t
 
 

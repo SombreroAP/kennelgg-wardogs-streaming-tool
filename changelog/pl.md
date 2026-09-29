@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.15
+- **Naprawiono: żadnych klipów z zabójstw ani reguł (headshot, RPG, zestrzelenie z dystansu...) przez cały stream, nawet z zaznaczonym „Nagrywaj każde zabójstwo”.** Imię wyuczone z paska zabójstw - albo wpisane z przypadkowym odstępem między literami, np. „B G B” - po zapisaniu nigdy już nie dopasowywało się do ciebie, więc nic na pasku nie było rozpoznawane jako twoje zabójstwo czy śmierć; klipy „powalenia” działały dalej, bo te odczytują ekran, nie imię. Istniejące instalacje naprawiają się same przy następnym starcie OBS. Dzięki _bgb_ za log.
+
 ## 0.34.14
 - **Naprawiono: ClipHound nigdy się nie uruchamiał - żadnych klipów z paska zabójstw, Closest ani głosu, przez cały stream.** Gdy bezpośrednie uruchomienie zawodziło, zapasowa metoda otwierała ClipHound jak link internetowy, a Windows zawsze to blokuje dla programu (odmowa dostępu), mimo że plik tam był. Teraz otwiera go tak, jak zrobiłby to Eksplorator po dwukliku. Dzięki alfadavius1 za log.
 

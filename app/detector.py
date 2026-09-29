@@ -180,6 +180,7 @@ class KillDetector:
     def __init__(self, cfg, dump_rows: str | None = None, harvest_dir: str | None = None):
         self.cfg = cfg
         self.set_rate(float(cfg.get("fps", 5) or 5))
+        self._me = ""
         self.me = cfg["player_name"]
         from namelearn import NameLearner
         self.learner = NameLearner()
@@ -209,6 +210,18 @@ class KillDetector:
         # side is someone else's kill and costs no OCR. Measured on 1440p footage: 208 rows with you in
         # them, 2483 without (white share 0.066 vs 0.0 median).
         self.only_mine = False
+
+    @property
+    def me(self) -> str:
+        return self._me
+
+    @me.setter
+    def me(self, value):
+        # a name learned or typed with stray internal spaces ("B G B") never fuzzy-matches the
+        # feed's clean OCR text (ratio well under name_matches' threshold): in-game handles never
+        # have spaces, so strip all of it rather than only the ends (LOG-11E6: 0 kill clips all
+        # stream, "downed" clips unaffected since those come from image matching, not the name)
+        self._me = re.sub(r"\s+", "", value or "")
 
     @staticmethod
     def looks_mine(rd) -> bool:

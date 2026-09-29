@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.15
+- **Corrigido: nenhum clipe de abate ou de regra (headshot, RPG, sniped...) durante toda a live, mesmo com "Gravar cada abate" marcado.** Um nome que o feed de abates aprendeu - ou digitado com um espaço perdido entre cada letra, como "B G B" - nunca mais combinava com você depois de salvo, então nada no feed era reconhecido como seu próprio abate ou morte; os clipes de "caído" continuavam funcionando, pois esses leem a tela, não o nome. Instalações existentes se corrigem sozinhas na próxima vez que o OBS abrir. Obrigado a _bgb_ pelo log.
+
 ## 0.34.14
 - **Corrigido: o ClipHound nunca iniciava - sem clipes do feed de abates, Closest ou voz, a live inteira.** Quando o início direto falhava, o método alternativo abria o ClipHound como um link da web, e o Windows sempre bloqueia isso para um programa (acesso negado), mesmo com o arquivo bem ali. Agora ele abre do mesmo jeito que o Explorador faria com um clique duplo. Obrigado a alfadavius1 pelo log.
 

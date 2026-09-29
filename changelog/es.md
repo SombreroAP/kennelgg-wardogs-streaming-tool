@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.15
+- **Corregido: ningún clip de baja ni de regla (headshot, RPG, francotirador...) durante toda la transmisión, incluso con «Grabar cada baja» activado.** Un nombre que el feed de bajas aprendió -o uno escrito con un espacio parásito entre cada letra, como «B G B»- dejaba de coincidir contigo en cuanto se guardaba, así que nada en el feed se reconocía como tu propia baja o muerte; los clips de «caído» seguían funcionando, porque esos leen la pantalla, no el nombre. Las instalaciones existentes se corrigen solas la próxima vez que arranque OBS. Gracias a _bgb_ por el registro.
+
 ## 0.34.14
 - **Corregido: ClipHound nunca arrancaba - sin clips del feed de bajas, Closest ni voz, durante todo el directo.** Cuando el inicio directo fallaba, la alternativa abría ClipHound como un enlace web, y Windows siempre bloquea eso para un programa (acceso denegado) aunque el archivo estuviera justo ahí. Ahora se abre igual que lo haría el Explorador al hacer doble clic. Gracias a alfadavius1 por el registro.
 

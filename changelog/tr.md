@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.15
+- **Düzeltildi: "Her öldürmeyi kaydet" işaretli olsa bile tüm yayın boyunca hiç öldürme veya kural klibi (kafa vuruşu, RPG, uzaktan vurulma...) alınmadı.** Öldürme akışının öğrendiği - veya "B G B" gibi her harf arasına yanlışlıkla boşluk konarak yazılan - bir isim, kaydedildikten sonra artık seninle hiç eşleşmiyordu, bu yüzden akıştaki hiçbir şey kendi öldürmen veya ölümün olarak tanınmadı; "yerde" klipleri ekranı okuduğu için isimden bağımsız çalışmaya devam etti. Var olan kurulumlar OBS bir dahaki açılışta kendini düzeltir. Log için _bgb_'ye teşekkürler.
+
 ## 0.34.14
 - **Düzeltildi: ClipHound hiç başlamıyordu - tüm yayın boyunca öldürme akışı klibi, Closest ya da ses yoktu.** Doğrudan başlatma başarısız olduğunda, yedek yöntem ClipHound'u bir web bağlantısı gibi açıyordu ve Windows dosya tam orada olsa bile bunu bir program için her zaman engelliyor (erişim reddedildi). Artık Gezgin'de çift tıklandığında olduğu gibi açılıyor. Log için alfadavius1'e teşekkürler.
 

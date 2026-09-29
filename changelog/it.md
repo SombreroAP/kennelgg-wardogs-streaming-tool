@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.15
+- **Risolto: nessuna clip di uccisione o regola (headshot, RPG, sniped...) per tutta la diretta, anche con «Filma ogni uccisione» attivata.** Un nome imparato dal feed delle uccisioni - o digitato con uno spazio indesiderato tra ogni lettera, come «B G B» - non corrispondeva più a te una volta salvato, quindi nulla nel feed veniva riconosciuto come tua uccisione o morte; le clip «a terra» continuavano a funzionare, perché leggono lo schermo, non il nome. Le installazioni esistenti si correggono da sole al prossimo avvio di OBS. Grazie a _bgb_ per il log.
+
 ## 0.34.14
 - **Risolto: ClipHound non partiva mai - niente clip del kill feed, Closest o voce, per tutta la diretta.** Quando l'avvio diretto falliva, il metodo di riserva apriva ClipHound come un link web, e Windows blocca sempre questo per un programma (accesso negato) anche se il file era proprio lì. Ora lo apre come farebbe Esplora risorse con un doppio clic. Grazie ad alfadavius1 per il log.
 

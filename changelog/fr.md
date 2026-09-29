@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.15
+- **Corrigé : aucun clip de kill ou de règle (headshot, RPG, sniped...) pendant tout le stream, même avec « Filmer chaque kill » cochée.** Un nom appris par le fil des kills - ou tapé avec un espace parasite entre chaque lettre, comme « B G B » - ne te correspondait plus jamais une fois enregistré, si bien que rien dans le fil n'était reconnu comme ton propre kill ou ta propre mort ; les clips « à terre » continuaient de fonctionner, car ils lisent l'écran, pas le nom. Les installations existantes se corrigent seules au prochain démarrage d'OBS. Merci à _bgb_ pour le journal.
+
 ## 0.34.14
 - **Corrigé : ClipHound ne démarrait jamais - aucun clip du fil des kills, Closest ni voix, pendant tout le stream.** Quand le lancement direct échouait, la solution de secours ouvrait ClipHound comme un lien web, ce que Windows bloque toujours pour un programme (accès refusé), même si le fichier était bien là. Il s'ouvre maintenant comme le ferait l'Explorateur en double-cliquant dessus. Merci à alfadavius1 pour le journal.
 

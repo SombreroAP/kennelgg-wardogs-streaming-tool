@@ -1,5 +1,6 @@
 #include "config.h"
 #include <algorithm>
+#include <cctype>
 #include <obs-module.h>
 #include <util/platform.h>
 #include <plugin-support.h>
@@ -464,6 +465,12 @@ void Config::load()
 	GETB(closeAppWithObs);
 	GETS(clipFolder);
 	GETS(appPlayerName);
+	// a name learned or typed with stray internal spaces ("B G B") never fuzzy-matches the kill
+	// feed's clean OCR text on ClipHound's side, so no kills are ever counted; self-heal any
+	// config saved before this was caught (setInGameName trimmed only the ends) (LOG-11E6)
+	appPlayerName.erase(std::remove_if(appPlayerName.begin(), appPlayerName.end(),
+					   [](unsigned char c) { return std::isspace(c); }),
+			    appPlayerName.end());
 	GETS(appLibrary);
 	GETS(appBroadcaster);
 	GETB(appTwitchEnabled);

@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.15
+- **Fixed: no kills or rule clips (headshot, RPG, sniped...) all stream, even with "Clip every kill I get" checked.** A name the kill feed learned - or one typed with a stray space between each letter, like "B G B" - never matched you again once it was saved, so nothing in the feed was recognised as your own kill or death; "downed" clips still worked, since those read the screen, not the name. Existing installs fix themselves the next time OBS starts. Thanks _bgb_ for the log.
+
 ## 0.34.14
 - **Fixed: ClipHound never starting - no kill-feed clips, Closest or voice, for the whole stream.** When the direct launch failed, the fallback opened ClipHound like a web link, and Windows always blocks that for a program (access denied) even though the file was right there. It now opens it the same way Explorer does when you double-click it. Thanks alfadavius1 for the log.
 
