@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.9
+- **Fixed: "Another copy of ClipHound is running" right after an update installed itself.** The plugin compared the companion app's version only against its own, but updating by itself (0.34.0) can leave ClipHound a patch ahead until OBS is closed — so every background update showed this warning, telling you to close ClipHound, even though everything was fine. It is not shown anymore when the companion is exactly the version an update just installed.
+
 ## 0.34.8
 - **Fixed: the session bar never slid out with "Slides in when a number changes, out 20 s later".** Every update the plugin sent counted as a change, even when no number had moved, so the 20-second countdown kept starting over and the bar stayed on screen. It now slides in when a number really changes and out 20 s later. Thanks seethingword for the report.
 

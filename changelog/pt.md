@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.9
+- **Corrigido: "Outra cópia do ClipHound está rodando" logo após uma atualização automática.** O plugin comparava a versão do app complementar só com a própria, mas uma atualização por conta própria (0.34.0) pode deixar o ClipHound uma versão à frente até o OBS ser fechado, então toda atualização em segundo plano mostrava esse aviso, pedindo para fechar o ClipHound, mesmo estando tudo certo. Ele não aparece mais quando o complementar é exatamente a versão que uma atualização acabou de instalar.
+
 ## 0.34.8
 - **Corrigido: a barra da sessão nunca saía com "Entra quando um número muda, sai 20 s depois".** Cada atualização do plugin contava como mudança, mesmo sem nenhum número mudar, então a contagem de 20 segundos recomeçava sem parar e a barra ficava na tela. Agora ela entra quando um número muda de verdade e sai 20 s depois. Valeu seethingword pelo aviso.
 

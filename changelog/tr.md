@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.9
+- **Düzeltildi: kendiliğinden bir güncellemeden hemen sonra "Başka bir ClipHound kopyası çalışıyor" uyarısı.** Eklenti, yardımcı uygulamanın sürümünü yalnızca kendi sürümüyle karşılaştırıyordu, ama kendiliğinden güncelleme (0.34.0) OBS kapatılana kadar ClipHound'u bir yama önde bırakabiliyor — bu yüzden her arka plan güncellemesi, her şey yolunda olsa bile ClipHound'u kapatmanızı isteyen bu uyarıyı gösteriyordu. Artık yardımcı uygulama, bir güncellemenin az önce kurduğu sürümle tam olarak eşleştiğinde gösterilmiyor.
+
 ## 0.34.8
 - **Düzeltildi: "Bir sayı değişince kayarak girer, 20 sn sonra çıkar" seçiliyken oturum çubuğu hiç geri çekilmiyordu.** Eklentinin gönderdiği her güncelleme, hiçbir sayı değişmese bile değişiklik sayılıyordu; bu yüzden 20 saniyelik sayaç sürekli baştan başlıyor ve çubuk ekranda kalıyordu. Artık bir sayı gerçekten değişince kayarak gelir ve 20 sn sonra çekilir. Bildirim için teşekkürler seethingword.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.9
+- **Corregido: «Hay otra copia de ClipHound en ejecución» justo después de una actualización automática.** El plugin comparaba la versión de la app compañera solo con la suya propia, pero una actualización por sí sola (0.34.0) puede dejar a ClipHound una versión por delante hasta que se cierra OBS, así que cada actualización en segundo plano mostraba este aviso, pidiendo cerrar ClipHound, aunque todo estaba bien. Ya no aparece cuando la app compañera es exactamente la versión que una actualización acaba de instalar.
+
 ## 0.34.8
 - **Corregido: la barra de sesión nunca salía con «Entra cuando cambia un número y sale 20 s después».** Cada actualización del plugin contaba como un cambio, aunque no se hubiera movido ningún número, así que la cuenta atrás de 20 segundos volvía a empezar y la barra se quedaba en pantalla. Ahora entra cuando de verdad cambia un número y sale 20 s después. Gracias seethingword por el aviso.
 

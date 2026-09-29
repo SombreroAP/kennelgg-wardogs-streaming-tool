@@ -2363,7 +2363,7 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 			if (av.isEmpty())
 				log(tx("Companion app: ClipHound with no version file (a copy older than 0.18.11, or run from "
 				       "source)."));
-			else if (av != PLUGIN_VERSION)
+			else if (av != PLUGIN_VERSION && av != newVersion_)
 				log(tx("Companion app: ClipHound %1 but this plugin is %2. Another copy of ClipHound is running "
 				       "from somewhere else: close it (Task Manager, ClipHound.exe) and press Start ClipHound "
 				       "on the dock.")

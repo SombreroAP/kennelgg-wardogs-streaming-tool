@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.9
+- **Behoben: „Eine andere Kopie von ClipHound läuft" direkt nach einem automatischen Update.** Das Plugin verglich die Version der Begleit-App nur mit seiner eigenen, aber ein Update von selbst (0.34.0) kann ClipHound bis zum Schließen von OBS einen Patch voraus lassen – so zeigte jedes Hintergrund-Update diese Warnung und riet, ClipHound zu schließen, obwohl alles in Ordnung war. Sie erscheint jetzt nicht mehr, wenn die Begleit-App genau die Version ist, die ein Update gerade installiert hat.
+
 ## 0.34.8
 - **Behoben: Die Sitzungsleiste fuhr bei „Gleitet rein, wenn sich eine Zahl ändert, 20 s später wieder raus“ nie wieder raus.** Jede Aktualisierung des Plugins zählte als Änderung, auch wenn sich keine Zahl bewegt hatte, also begann der 20-Sekunden-Countdown immer von vorn und die Leiste blieb im Bild. Jetzt fährt sie rein, wenn sich wirklich eine Zahl ändert, und 20 s später wieder raus. Danke seethingword für die Meldung.
 

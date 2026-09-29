@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.9
+- **Naprawiono: „Działa inna kopia ClipHound" zaraz po samoczynnej aktualizacji.** Wtyczka porównywała wersję aplikacji towarzyszącej tylko z własną, ale aktualizacja samoczynna (0.34.0) może zostawić ClipHound o jedną wersję do przodu, dopóki OBS nie zostanie zamknięty — więc każda aktualizacja w tle pokazywała to ostrzeżenie, każąc zamknąć ClipHound, mimo że wszystko było w porządku. Nie pojawia się już, gdy aplikacja towarzysząca ma dokładnie tę wersję, którą właśnie zainstalowała aktualizacja.
+
 ## 0.34.8
 - **Naprawiono: pasek sesji nigdy nie chował się przy „Wsuwa się, gdy zmieni się liczba, i wysuwa 20 s później”.** Każda aktualizacja wtyczki liczyła się jako zmiana, nawet gdy żadna liczba się nie ruszyła, więc 20-sekundowe odliczanie ciągle zaczynało się od nowa i pasek zostawał na ekranie. Teraz wjeżdża, gdy liczba naprawdę się zmieni, i chowa się 20 s później. Dzięki seethingword za zgłoszenie.
 
