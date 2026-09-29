@@ -129,6 +129,11 @@ QList<Engine::HealthItem> Engine::health() const
 			h.why = tx("ClipHound is not installed: run the installer again and tick it "
 				   "for kill-feed clips, Closest and voice (portable OBS: unzip the portable "
 				   "download into the OBS folder).");
+		} else if (!cfg.appPath.empty() && !QFileInfo::exists(QString::fromStdString(cfg.appPath))) {
+			h.level = 3;
+			h.why = tx(
+				"ClipHound.exe is missing (antivirus may have removed it): restore it in Windows Security, "
+				"Protection history, or run the installer again.");
 		} else if (appUserStopped_) {
 			h.level = 3;
 			h.why = tx("ClipHound is stopped: no kill-feed clips, Closest or voice until it runs.");

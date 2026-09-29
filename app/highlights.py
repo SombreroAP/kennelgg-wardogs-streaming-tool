@@ -397,7 +397,7 @@ class Highlights:
                 f.write("file '" + p.replace("\\", "/").replace("'", "'\\''") + "'\n")
         joined = os.path.join(self.work, f"joined{tag}.mp4")
         r = subprocess.run([self.ff, "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst,
-                            "-c", "copy", "-movflags", "+faststart", joined], capture_output=True, text=True,
+                            "-map", "0:v", "-map", "0:a?", "-c", "copy", "-movflags", "+faststart", joined], capture_output=True, text=True,
                            creationflags=_NOWIN | _LOWPRI)
         if r.returncode != 0:
             raise RuntimeError("join: " + r.stderr.strip()[-200:])

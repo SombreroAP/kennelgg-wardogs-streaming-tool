@@ -1,5 +1,12 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.10
+- **Corrigé : OBS pouvait planter quelques secondes après que la Configuration a changé la langue du jeu.** Le modèle de l'écran à terre était reconstruit pendant que le plugin cherchait encore avec. Merci alfadavius1, 01uncia_parvat et zDonik pour les logs.
+- **Corrigé : le POV mélangeait les coéquipiers avec plusieurs pop-outs Discord.** Un pop-out que Discord n'avait pas encore nommé allait au coéquipier encore libre ; un pop-out que Discord réutilisait pour quelqu'un d'autre gardait l'ancien nom ; retirer un coéquipier supprimait la fenêtre Discord sur laquelle un autre se repliait ; et la vérification d'image retirait de la liste puis remettait un coéquipier affiché à la main. La touche « auto » du Stream Deck te ramène maintenant toujours à ton POV quand un coéquipier est affiché. Merci Adventure Bear pour les logs.
+- **Corrigé : le solde de session se corrigeait sans arrêt vers le bas puis le haut** (-$160, +$160) quand le portefeuille restait illisible un moment. Il n'est plus comparé qu'à un portefeuille lu à l'instant.
+- **Corrigé : les clips raccourcis et assemblés ne gardaient que la première piste audio.** Avec le jeu et le micro sur des pistes séparées, un clip pouvait sortir avec seulement ton micro. Toutes les pistes sont gardées maintenant. (Coche la piste 1 dans Paramètres OBS, Sortie, Enregistrement pour des clips avec le son partout.)
+- **Corrigé : ClipHound supprimé par l'antivirus.** Le dock indique maintenant que ClipHound.exe manque et comment le récupérer, au lieu de « introuvable » chaque minute, et une mise à jour en direct ne peut plus le laisser supprimé. Merci moikka11 et VanceFeste pour les logs.
+
 ## 0.34.9
 - **Corrigé : « Une autre copie de ClipHound est en cours d'exécution » juste après une mise à jour automatique.** Le plugin comparait la version de l'appli compagnon uniquement à la sienne, mais une mise à jour toute seule (0.34.0) peut laisser ClipHound une version en avance jusqu'à la fermeture d'OBS — donc chaque mise à jour en arrière-plan affichait cet avertissement, demandant de fermer ClipHound, alors que tout allait bien. Il ne s'affiche plus quand le compagnon est exactement la version qu'une mise à jour vient d'installer.
 

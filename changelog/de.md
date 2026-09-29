@@ -1,5 +1,12 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.10
+- **Behoben: OBS konnte ein paar Sekunden abstürzen, nachdem das Setup die Spielsprache geändert hatte.** Die Vorlage für den Niedergegangen-Bildschirm wurde neu gebaut, während das Plugin noch damit suchte. Danke alfadavius1, 01uncia_parvat und zDonik für die Logs.
+- **Behoben: Der POV verwechselte Squad-Mitglieder bei mehreren Discord-Pop-outs.** Ein Pop-out, das Discord noch nicht benannt hatte, ging an das Squad-Mitglied, das noch nicht gebunden war; ein Pop-out, das Discord für jemand anderen weiterverwendete, behielt den alten Namen; das Entfernen eines Squad-Mitglieds nahm das Discord-Fenster weg, auf das ein anderes noch zurückfiel; und die Bildprüfung nahm ein Squad-Mitglied, das du von Hand eingeblendet hattest, von der Liste und wieder zurück. Die „Auto“-Taste des Stream Decks bringt dich jetzt immer zurück zu deinem eigenen POV, solange ein Squad-Mitglied im Bild ist. Danke Adventure Bear für die Logs.
+- **Behoben: Der Sitzungskontostand korrigierte sich immer wieder nach unten und oben** (-$160, +$160), während das Guthaben eine Weile nicht lesbar war. Er wird jetzt nur noch mit einem gerade gelesenen Guthaben abgeglichen.
+- **Behoben: Gekürzte und zusammengefügte Clips behielten nur die erste Tonspur.** Mit Spiel und Mikro auf getrennten Spuren konnte ein Clip nur dein Mikro enthalten. Jetzt bleiben alle Spuren erhalten. (Hake Spur 1 unter OBS-Einstellungen, Ausgabe, Aufnahme an, damit Clips überall mit Ton laufen.)
+- **Behoben: ClipHound vom Antivirenprogramm entfernt.** Das Dock sagt jetzt, dass ClipHound.exe fehlt und wie du es zurückbekommst, statt jede Minute „nicht gefunden“, und ein Live-Update kann es nicht mehr gelöscht zurücklassen. Danke moikka11 und VanceFeste für die Logs.
+
 ## 0.34.9
 - **Behoben: „Eine andere Kopie von ClipHound läuft" direkt nach einem automatischen Update.** Das Plugin verglich die Version der Begleit-App nur mit seiner eigenen, aber ein Update von selbst (0.34.0) kann ClipHound bis zum Schließen von OBS einen Patch voraus lassen – so zeigte jedes Hintergrund-Update diese Warnung und riet, ClipHound zu schließen, obwohl alles in Ordnung war. Sie erscheint jetzt nicht mehr, wenn die Begleit-App genau die Version ist, die ein Update gerade installiert hat.
 

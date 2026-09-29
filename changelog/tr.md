@@ -1,5 +1,12 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.10
+- **Düzeltildi: Kurulum oyun dilini değiştirdikten birkaç saniye sonra OBS çökebiliyordu.** Yere düşme ekranı şablonu, eklenti hâlâ onunla ararken yeniden oluşturuluyordu. Loglar için teşekkürler alfadavius1, 01uncia_parvat ve zDonik.
+- **Düzeltildi: birden fazla Discord pop-out'unda POV takım arkadaşlarını karıştırıyordu.** Discord'un henüz adlandırmadığı bir pop-out, hâlâ bağlanmamış takım arkadaşına gidiyordu; Discord'un başkası için yeniden kullandığı bir pop-out eski adı taşıyordu; bir takım arkadaşını çıkarmak, bir başkasının geri döndüğü Discord penceresini siliyordu; görüntü kontrolü de elle açtığın bir takım arkadaşını listeden çıkarıp geri koyuyordu. Stream Deck'in "auto" tuşu artık bir takım arkadaşı ekrandayken seni her zaman kendi POV'una döndürür. Loglar için teşekkürler Adventure Bear.
+- **Düzeltildi: oturum bakiyesi durmadan aşağı yukarı düzeltiliyordu** (-$160, +$160), cüzdan bir süre okunamadığında. Artık yalnızca az önce okunan bir cüzdanla karşılaştırılıyor.
+- **Düzeltildi: kırpılan ve birleştirilen klipler yalnızca ilk ses kanalını tutuyordu.** Oyun ve mikrofon ayrı kanallardayken bir klipte yalnızca mikrofonun kalabiliyordu. Artık tüm kanallar korunuyor. (Kliplerin her yerde sesli oynaması için OBS Ayarları, Çıkış, Kayıt'ta 1. kanalı işaretle.)
+- **Düzeltildi: antivirüsün sildiği ClipHound.** Dock artık her dakika "bulunamadı" demek yerine ClipHound.exe'nin eksik olduğunu ve nasıl geri alınacağını söylüyor; canlı güncelleme de onu artık silinmiş bırakamaz. Loglar için teşekkürler moikka11 ve VanceFeste.
+
 ## 0.34.9
 - **Düzeltildi: kendiliğinden bir güncellemeden hemen sonra "Başka bir ClipHound kopyası çalışıyor" uyarısı.** Eklenti, yardımcı uygulamanın sürümünü yalnızca kendi sürümüyle karşılaştırıyordu, ama kendiliğinden güncelleme (0.34.0) OBS kapatılana kadar ClipHound'u bir yama önde bırakabiliyor — bu yüzden her arka plan güncellemesi, her şey yolunda olsa bile ClipHound'u kapatmanızı isteyen bu uyarıyı gösteriyordu. Artık yardımcı uygulama, bir güncellemenin az önce kurduğu sürümle tam olarak eşleştiğinde gösterilmiyor.
 

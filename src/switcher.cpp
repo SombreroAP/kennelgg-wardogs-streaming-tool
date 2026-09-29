@@ -366,7 +366,9 @@ int Switcher::removeFriendSources(const Config &cfg, const Friend &f)
 		// of them, not the first
 		int users = 0;
 		for (const auto &g : cfg.friends)
-			if (g.source == name || g.audioSource == name)
+			// a slot on a pop-out still falls back to the call capture (baseSource): removing another slot took it
+			// away, and the pop-out's slot came back to a source that no longer existed (LOG-11BC)
+			if (g.source == name || g.audioSource == name || g.baseSource == name)
 				users++;
 		if (users > 1)
 			continue;
@@ -711,6 +713,7 @@ std::string Switcher::bindPopout(const Config &cfg, Friend &f, const Popout &p)
 		f.baseSource = f.source; // where to go back to; their audio capture stays as it is
 	f.source = mine;
 	f.popout = p.window;
+	f.popoutHwnd = p.hwnd;
 	groupFeeds(cfg);
 	return "";
 }
@@ -744,6 +747,7 @@ void Switcher::unbindPopout(const Config &cfg, Friend &f)
 					   : "Kennel.gg · " + (f.name.empty() ? std::string("squad mate") : f.name);
 	f.baseSource.clear();
 	f.popout.clear();
+	f.popoutHwnd = 0;
 	f.popoutMissingMs = 0;
 	// The capture itself stays: hidden, still in the scene, still bound to that exact title. When the
 	// pop-out comes back OBS re-hooks it by itself, and binding again is a rename, not a re-create.

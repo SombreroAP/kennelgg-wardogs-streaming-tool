@@ -1,5 +1,12 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.10
+- **Naprawiono: OBS mógł się wysypać kilka sekund po tym, jak Konfiguracja zmieniła język gry.** Szablon ekranu powalenia był przebudowywany, gdy wtyczka wciąż nim szukała. Dzięki alfadavius1, 01uncia_parvat i zDonik za logi.
+- **Naprawiono: POV mylił kolegów przy kilku pop-outach Discorda.** Pop-out, któremu Discord nie nadał jeszcze nazwy, trafiał do kolegi jeszcze bez okna; pop-out, który Discord użył ponownie dla kogoś innego, zachowywał starą nazwę; usunięcie kolegi zabierało okno Discorda, do którego wracał inny; a sprawdzanie obrazu zdejmowało z listy i przywracało kolegę pokazanego ręcznie. Klawisz „auto” na Stream Decku zawsze wraca teraz do twojego POV, gdy kolega jest na ekranie. Dzięki Adventure Bear za logi.
+- **Naprawiono: saldo sesji korygowało się w kółko w dół i w górę** (-$160, +$160), gdy portfela przez chwilę nie dało się odczytać. Porównuje się je teraz tylko z portfelem odczytanym przed chwilą.
+- **Naprawiono: przycięte i łączone klipy zachowywały tylko pierwszą ścieżkę dźwięku.** Przy grze i mikrofonie na osobnych ścieżkach klip mógł mieć tylko twój mikrofon. Teraz zostają wszystkie ścieżki. (Zaznacz ścieżkę 1 w Ustawieniach OBS, Wyjście, Nagrywanie, żeby klipy grały z dźwiękiem wszędzie.)
+- **Naprawiono: ClipHound usunięty przez antywirusa.** Dock mówi teraz, że brakuje ClipHound.exe i jak go odzyskać, zamiast „nie znaleziono” co minutę, a aktualizacja na żywo nie może go już zostawić usuniętego. Dzięki moikka11 i VanceFeste za logi.
+
 ## 0.34.9
 - **Naprawiono: „Działa inna kopia ClipHound" zaraz po samoczynnej aktualizacji.** Wtyczka porównywała wersję aplikacji towarzyszącej tylko z własną, ale aktualizacja samoczynna (0.34.0) może zostawić ClipHound o jedną wersję do przodu, dopóki OBS nie zostanie zamknięty — więc każda aktualizacja w tle pokazywała to ostrzeżenie, każąc zamknąć ClipHound, mimo że wszystko było w porządku. Nie pojawia się już, gdy aplikacja towarzysząca ma dokładnie tę wersję, którą właśnie zainstalowała aktualizacja.
 

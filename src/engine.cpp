@@ -360,9 +360,17 @@ void Engine::launchApp()
 		return;
 	}
 	if (!QFileInfo::exists(p)) {
-		log(tx("ClipHound not found at %1 (Settings, Advanced, ClipHound connection, Browse).").arg(p));
+		// it was there and went: antivirus quarantine is the usual reason (LOG-7066: gone mid-stream, then this
+		// line every minute for an hour and a half from the relaunch watchdog)
+		if (!appMissingLogged_) {
+			appMissingLogged_ = true;
+			log(tx("ClipHound.exe is missing from %1 - antivirus often removes it: restore it in Windows Security, "
+			       "Protection history, or run the installer again.")
+				    .arg(p));
+		}
 		return;
 	}
+	appMissingLogged_ = false;
 	QString dir = QFileInfo(p).absolutePath();
 	qint64 pid = 0;
 	QProcess proc;
@@ -412,6 +420,7 @@ Engine::~Engine()
 
 void Engine::loadTemplates()
 {
+	std::lock_guard<std::recursive_mutex> lk(detMx_);
 	detGame_.threshold = cfg.threshold;
 	detRevive_.threshold = cfg.reviveThreshold;
 	applySearchWidth();
@@ -547,6 +556,7 @@ bool Engine::hasDownedTemplate(const std::string &lang)
 /// How much of the frame, and how many sizes, the damage-log search covers.
 void Engine::applySearchWidth()
 {
+	std::lock_guard<std::recursive_mutex> lk(detMx_);
 	auto set = [&](Detector &d) {
 		if (cfg.wideSearch) {
 			d.fromX = 0.0f;
@@ -611,7 +621,10 @@ QString Engine::learnTemplate(const QImage &img, QRectF rect)
 			g[(size_t)yy * w + xx] = 0.299f * qRed(p) + 0.587f * qGreen(p) + 0.114f * qBlue(p);
 		}
 	cfg.customTemplateWidthFrac = (double)w / img.width();
-	detGame_.setTemplate(g, w, h, (float)cfg.customTemplateWidthFrac);
+	{
+		std::lock_guard<std::recursive_mutex> lk(detMx_);
+		detGame_.setTemplate(g, w, h, (float)cfg.customTemplateWidthFrac);
+	}
 	std::ofstream out(Config::configFile("template.bin"), std::ios::binary);
 	out.write((const char *)&w, 4);
 	out.write((const char *)&h, 4);
@@ -1978,10 +1991,6 @@ void Engine::watchPopouts()
 	int bound = (int)wins.size(); // how many pop-outs there are to place, for the spacing
 	const Friend *active = cfg.active();
 	std::string activeName = active ? active->name : "";
-	int liveShared = 0; // Discord squad mates who are not on a pop-out yet
-	for (const auto &f : cfg.friends)
-		if (f.kind == FriendKind::Discord && !f.onPopout())
-			liveShared++;
 
 	// 1. everyone: is their window still there, or is there one for them now
 	for (auto &f : cfg.friends) {
@@ -1994,12 +2003,35 @@ void Engine::watchPopouts()
 		QString picked = f.sharesDiscordCall() || f.channel.empty() ? QString()
 									    : popoutOwner(windowTitle(f.channel));
 		int hit = -1;
+		auto owns = [&](const QString &owner) {
+			return (!handle.isEmpty() && owner == handle) || owner == name || owner == nameOwner ||
+			       (!picked.isEmpty() && owner == picked) ||
+			       (bare(owner).size() >= 2 &&
+				(bare(owner) == bare(name) || (!handle.isEmpty() && bare(owner) == bare(handle))));
+		};
 		// the window the slot is already on, while it is open: a rename, or a name that matches nothing, does not
 		// take it away (26 Sep 2026 report: "_bgb_" renamed "BGB" lost its pop-out and fell back to Discord's
-		// main window, which showed the streamer's own stream, or the same squad mate under every name)
-		for (size_t i = 0; i < wins.size() && hit < 0 && f.onPopout(); ++i)
-			if (!taken[i] && wins[i].window == f.popout)
-				hit = (int)i;
+		// main window, which showed the streamer's own stream, or the same squad mate under every name). Known by
+		// the window itself where we have it: two pop-outs can share a title, and Discord can retitle one
+		for (size_t i = 0; i < wins.size() && hit < 0 && f.onPopout(); ++i) {
+			if (taken[i] || (f.popoutHwnd ? wins[i].hwnd != f.popoutHwnd : wins[i].window != f.popout))
+				continue;
+			QString owner = popoutOwner(wins[i].title);
+			if (owner != "discord popout" && !owns(owner)) {
+				// the same window now shows somebody else (Discord reused it): it is not theirs any more, and
+				// OBS would go on showing that other person under their name (LOG-11BC)
+				sw.unbindPopout(cfg, f);
+				changed = true;
+				log(tx("Squad: %1's pop-out now shows %2 - back to the Discord window for them.")
+					    .arg(QString::fromStdString(f.name), owner));
+				if (applied_ && f.name == activeName)
+					applyNow(true, TX_NOOP("their pop-out shows someone else"));
+				break;
+			}
+			if (!f.popoutHwnd)
+				f.popoutHwnd = wins[i].hwnd;
+			hit = (int)i;
+		}
 		// exact owner first, so "bryan" can never take "bryanx's Stream"; letters and digits only, so "BGB"
 		// is "_bgb_"
 		for (size_t i = 0; i < wins.size() && hit < 0; ++i) {
@@ -2008,10 +2040,7 @@ void Engine::watchPopouts()
 			QString owner = popoutOwner(wins[i].title);
 			if (owner == "discord popout") // not drawn yet, so not named yet
 				continue;
-			if ((!handle.isEmpty() && owner == handle) || owner == name || owner == nameOwner ||
-			    (!picked.isEmpty() && owner == picked) ||
-			    (bare(owner).size() >= 2 &&
-			     (bare(owner) == bare(name) || (!handle.isEmpty() && bare(owner) == bare(handle)))))
+			if (owns(owner))
 				hit = (int)i;
 		}
 		// then a looser look for slots named by hand: the slot name inside the owner's username
@@ -2024,18 +2053,9 @@ void Engine::watchPopouts()
 			if (name.size() >= 4 && owner.contains(name))
 				hit = (int)i;
 		}
-		// the one pop-out that has no name yet: if exactly one of the squad is on the shared call
-		// it can only be theirs. Anything more ambiguous waits for Discord to title it.
-		if (hit < 0 && liveShared == 1 && !f.onPopout()) {
-			int unnamed = -1, count = 0;
-			for (size_t i = 0; i < wins.size(); ++i)
-				if (!taken[i] && lower(wins[i].title) == "discord popout") {
-					unnamed = (int)i;
-					count++;
-				}
-			if (count == 1)
-				hit = unnamed;
-		}
+		// a pop-out with no name yet is left alone until Discord titles it (about a second): guessing it was the
+		// one squad mate still unbound gave that slot a re-opened pop-out of someone else, or your own stream
+		// (LOG-11BC)
 		if (hit >= 0) {
 			taken[hit] = true;
 			f.popoutMissingMs = 0;
@@ -2204,12 +2224,15 @@ void Engine::reloadConfig()
 	applyRosterConfig();
 	armPopoutWatch();
 	applyReplaySeconds();
-	detGame_.threshold = cfg.threshold;
-	detRevive_.threshold = cfg.reviveThreshold;
-	detGame_.unlock();
-	for (auto &d : *altDets_) {
-		d->threshold = cfg.threshold;
-		d->unlock();
+	{
+		std::lock_guard<std::recursive_mutex> lk(detMx_);
+		detGame_.threshold = cfg.threshold;
+		detRevive_.threshold = cfg.reviveThreshold;
+		detGame_.unlock();
+		for (auto &d : *altDets_) {
+			d->threshold = cfg.threshold;
+			d->unlock();
+		}
 	}
 	timer_.setInterval(std::max(100, cfg.pollMs));
 	if (cfg.groupFeeds)
@@ -2870,7 +2893,16 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 	// wrong, or money that moved while the HUD was hidden (a payout between matches) is made good
 	// once the wallet and the lines have held still for 4 s, so one missed line never leaves the
 	// running total wrong.
-	if (session_.haveBalance && !dropPending_) {
+	// Only against a wallet read just now. While it goes unread for minutes (a white sky, a menu), every reward
+	// line read in that time was taken back as SPENT against the old balance, and the lot came back as one
+	// REWARD when the wallet reappeared: $160 zone ticks corrected down and up 72 times (LOG-11BC). The 4 s
+	// settle starts again once it is read.
+	int64_t walletV = 0, walletSeen = 0;
+	bool walletFresh = cashStab_.balance(&walletV, &walletSeen) && t - walletSeen <= 1500;
+	if (session_.haveBalance && !dropPending_ && !walletFresh) {
+		if (gapSeen_ != 0)
+			gapSince_ = t;
+	} else if (session_.haveBalance && !dropPending_) {
 		int64_t gap = (session_.balanceNow - session_.balanceStart) - session_.net();
 		if (gap == 0) {
 			gapSeen_ = 0;
@@ -3461,6 +3493,13 @@ void Engine::onControl(const QJsonObject &o)
 		if (o.contains("index"))
 			idx = o.value("index").toInt(-1);
 		else if (name == "auto" || name.isEmpty()) {
+			// "auto" while a squad mate is up is the same key again: back to you. Asking again who is live could
+			// hand over the other squad mate instead, when the one on screen had just flickered off the offer
+			// list (LOG-11BC)
+			if (applied_ && o.value("toggle").toBool(true)) {
+				applyNow(false, TX_NOOP("controller"));
+				return;
+			}
 			idx = anyLiveFriend();
 			if (idx < 0)
 				idx = cfg.activeFriend;
@@ -4146,7 +4185,9 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 	if (picture) {
 		p.good++;
 		p.bad = 0;
-		if (!p.off || p.good < 2)
+		// three good looks to come back on offer (two to go off): a feed on the edge flipped on and off the list
+		// every few seconds, and every flip changed the squad the Stream Deck showed (LOG-11BC: 8 flips)
+		if (!p.off || p.good < 3)
 			return;
 		p.off = false;
 		log(tx("Picture check: %1 - a game picture again, back on offer.").arg(names));
@@ -4159,6 +4200,11 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 	}
 	p.bad++;
 	p.good = 0;
+	// put up by hand: a dark scene or Discord's window around the stream can fail the check (26 Sep log: shows from
+	// the Stream Deck taken down, pressed again 7 s later). Yours to take down, and not taken off offer under you
+	// either (LOG-11BC)
+	if (onScreen && manualShow_)
+		return;
 	// two looks on screen (about two seconds), three when it is only warm: a stream loading or a
 	// dark moment never takes a squad mate off
 	if (p.off || p.bad < (onScreen ? 2 : 3))
@@ -4182,13 +4228,7 @@ void Engine::pictureSeen(const QString &source, bool picture, double area, doubl
 			     .arg((int)std::lround(density * 100))
 			     .arg((int)std::lround(Picture::kMinArea * 100))
 			     .arg((int)std::lround(Picture::kMinDensity * 100)));
-	if (onScreen && manualShow_) {
-		// you put them up yourself: a dark scene or Discord's window around the stream can fail the check
-		// (26 Sep log: shows from the Stream Deck taken down, pressed again 7 s later). Yours to take down
-		log(tx("Picture check: %1's feed does not look like a game picture, but you put it up yourself, so it "
-		       "stays.")
-			    .arg(QString::fromStdString(act->name)));
-	} else if (onScreen) {
+	if (onScreen) {
 		// somebody else whose picture comes from another capture: live first, then unknown. The
 		// roster may still call this one live, so anyLiveFriend() could hand them straight back
 		int alt = -1;
@@ -4686,6 +4726,8 @@ void Engine::tick()
 			int w, h, ls;
 			if (capGame_.grab(src, Detector::FrameWidth, bgra, w, h, ls)) {
 				Frame f = Detector::fromBGRA(bgra.data(), w, h, ls);
+				// taken after the grab, never with OBS's graphics lock held
+				std::lock_guard<std::recursive_mutex> lk(detMx_);
 				r.game = detGame_.compare(f, quick);
 				// game language on auto: the other wordings get the same look; the best of them
 				// is kept apart and onResult decides whether it is really the one on screen
@@ -4714,6 +4756,7 @@ void Engine::tick()
 				int w, h, ls;
 				if (capFriend_.grab(fs, Detector::FrameWidth, bgra, w, h, ls)) {
 					Frame f = Detector::fromBGRA(bgra.data(), w, h, ls);
+					std::lock_guard<std::recursive_mutex> lk(detMx_);
 					r.revive = detRevive_.compare(f, !reviveFull);
 					if (r.revive.score >= detRevive_.threshold) {
 						// the progress ring sits at a fixed offset below the word (measured on a real frame)
@@ -4748,6 +4791,7 @@ void Engine::tick()
 				int w, h, ls;
 				if (capMate_.grab(ms, Detector::FrameWidth, bgra, w, h, ls)) {
 					Frame f = Detector::fromBGRA(bgra.data(), w, h, ls);
+					std::lock_guard<std::recursive_mutex> lk(detMx_);
 					r.mate = detMate_.compare(f, false);
 					r.mateOk = true;
 				}
@@ -4780,7 +4824,7 @@ void Engine::onResult(Result r)
 		}
 	}
 	busy_ = false;
-	if (stopping_)
+	if (stopping_ || paused_) // a result that lands while OBS takes the scenes down switches nothing in them
 		return;
 	if (!r.ok) {
 		std::string e = tx("Watch: cannot render game source '%1'.")
@@ -4793,6 +4837,7 @@ void Engine::onResult(Result r)
 		return;
 	}
 	lastWatchError_.clear();
+	gameSeen_ = true;
 	if (r.altLang >= 0 && r.alts == altDets_ && r.altLang < (int)altDets_->size() && r.alt.score > r.game.score &&
 	    r.alt.score >= std::max(cfg.threshold, kLangSure)) {
 		// another language's wording, clearly on screen: it counts as the downed screen, and once
@@ -4808,7 +4853,10 @@ void Engine::onResult(Result r)
 		}
 		if (now - langSince_ >= std::chrono::milliseconds(kLangHoldMs)) {
 			std::string lang = altLangs_[(size_t)r.altLang];
-			detGame_ = std::move(*(*altDets_)[(size_t)r.altLang]);
+			{
+				std::lock_guard<std::recursive_mutex> lk(detMx_);
+				detGame_ = std::move(*(*altDets_)[(size_t)r.altLang]);
+			}
 			altDets_ = std::make_shared<AltSet>();
 			altLangs_.clear();
 			langRun_ = -1;
@@ -5283,6 +5331,7 @@ void Engine::onStreaming(bool live)
 	if (live) {
 		sessionStart_ = QDateTime::currentDateTime();
 		streamStart_ = sessionStart_;
+		gameSeen_ = false;
 		chapters_.clear();
 		resetSession(TX_NOOP("the stream started"));
 		log(tx("Streaming: the highlights session starts here."));
@@ -5291,7 +5340,8 @@ void Engine::onStreaming(bool live)
 	writeChapters();
 	writeSessionSummary();
 	// helping build the plugin: a stream where something was broken sends its logs by itself, with what it was
-	if (cfg.helpBuild() && !problems_.isEmpty() && streamStart_.isValid() &&
+	// a stream the game never showed in (Just Chatting, another game: LOG-B72B) is not a broken setup to report
+	if (cfg.helpBuild() && gameSeen_ && !problems_.isEmpty() && streamStart_.isValid() &&
 	    streamStart_.secsTo(QDateTime::currentDateTime()) >= 180 && autoLogsSent_ < 3) {
 		autoLogsSent_++;
 		SendLogs::sendAuto(this,
@@ -6043,7 +6093,10 @@ void Engine::captureTemplate()
 			g[(size_t)yy * w + xx] = 0.299f * qRed(p) + 0.587f * qGreen(p) + 0.114f * qBlue(p);
 		}
 	cfg.customTemplateWidthFrac = (double)w / img.width();
-	detGame_.setTemplate(g, w, h, (float)cfg.customTemplateWidthFrac);
+	{
+		std::lock_guard<std::recursive_mutex> lk(detMx_);
+		detGame_.setTemplate(g, w, h, (float)cfg.customTemplateWidthFrac);
+	}
 	std::string dir = Config::configDir();
 	std::ofstream out(Config::configFile("template.bin"), std::ios::binary);
 	out.write((const char *)&w, 4);
@@ -6087,7 +6140,7 @@ void Engine::checkLastCrash()
 		return;
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).section('/', 0, -2) +
 		 "/obs-studio/logs");
-	QFileInfoList l = dir.entryInfoList({"*.txt"}, QDir::Files, QDir::Time);
+	QFileInfoList l = dir.entryInfoList({"*.txt"}, QDir::Files, QDir::Name | QDir::Reversed); // named by start time
 	if (l.size() < 2)
 		return;
 	QFile f(l.first().absoluteFilePath());
@@ -6378,15 +6431,24 @@ static QString copyTree(const QString &from, const QString &to)
 			continue;
 		QString dst = to + "/" + rel;
 		QDir().mkpath(QFileInfo(dst).absolutePath());
+		// the new file goes in next to the old one first: removing the old one before a copy that then failed left
+		// ClipHound.exe deleted with nothing in its place
+		QString tmp = dst + ".new";
+		QFile::remove(tmp);
+		if (!QFile::copy(src, tmp))
+			return rel;
 		bool ok = false;
 		for (int i = 0; i < 20 && !ok; ++i) { // a file ClipHound was still closing: a moment more
-			QFile::remove(dst);
-			ok = QFile::copy(src, dst);
-			if (!ok)
+			if (QFileInfo::exists(dst) && !QFile::remove(dst)) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				continue;
+			}
+			ok = QFile::rename(tmp, dst);
 		}
-		if (!ok)
+		if (!ok) {
+			QFile::remove(tmp);
 			return rel;
+		}
 	}
 	return QString();
 }

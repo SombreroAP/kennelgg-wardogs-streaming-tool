@@ -39,7 +39,9 @@ static QString obsLogTail(qint64 bytes, int nth = 0)
 {
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).section('/', 0, -2) +
 		 "/obs-studio/logs");
-	QFileInfoList l = dir.entryInfoList({"*.txt"}, QDir::Files, QDir::Time);
+	// OBS names its logs by the time the session started: newest first by name. By modified time, a log OBS
+	// touched later (an older session's) came first, and the stream's own log was left out (LOG-6B46, 11BC)
+	QFileInfoList l = dir.entryInfoList({"*.txt"}, QDir::Files, QDir::Name | QDir::Reversed);
 	if (l.size() <= nth)
 		return QString();
 	QFile f(l[nth].absoluteFilePath());
@@ -48,6 +50,31 @@ static QString obsLogTail(qint64 bytes, int nth = 0)
 	if (f.size() > bytes)
 		f.seek(f.size() - bytes);
 	return l[nth].fileName() + "\n" + QString::fromUtf8(f.readAll());
+}
+
+/// OBS's own crash report for the session that log `nth` belongs to (written when OBS crashed): it names the
+/// thread and module, which a log that just stops cannot (LOG-4D7E died mid-shutdown with no cause to see).
+static QString obsCrashFor(int nth)
+{
+	QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).section('/', 0, -2);
+	QFileInfoList logs =
+		QDir(base + "/obs-studio/logs").entryInfoList({"*.txt"}, QDir::Files, QDir::Name | QDir::Reversed);
+	QFileInfoList crashes = QDir(base + "/obs-studio/crashes").entryInfoList({"*.txt"}, QDir::Files, QDir::Time);
+	if (crashes.isEmpty() || logs.size() <= nth)
+		return QString();
+	// written after that session's log started, and before the session after it began
+	QDateTime from = logs[nth].birthTime().isValid() ? logs[nth].birthTime()
+							 : logs[nth].lastModified().addSecs(-86400);
+	QDateTime to = nth > 0 ? logs[nth - 1].birthTime() : QDateTime();
+	for (const QFileInfo &c : crashes) {
+		if (c.lastModified() < from || (to.isValid() && c.lastModified() > to))
+			continue;
+		QFile f(c.absoluteFilePath());
+		if (!f.open(QIODevice::ReadOnly))
+			return QString();
+		return "\n\n=== OBS crash report " + c.fileName() + " ===\n" + QString::fromUtf8(f.read(256 * 1024));
+	}
+	return QString();
 }
 
 /// The plugin's settings as sent with the logs: every key, minus anything secret (the account token, the
@@ -86,10 +113,11 @@ static QByteArray payload(Engine *e, const QString &note, const QString &contact
 	o["plugin_log"] = plugin;
 	o["settings"] = settingsForLogs();
 	o["cliphound_log"] = tailOf(appDir + "/cliphound.log", 4000);
-	o["obs_log"] = obsLogTail(2 * 1024 * 1024, obsNth);
+	QString crash = obsNth > 0 ? obsCrashFor(obsNth) : QString(); // only for the session that did not close
+	o["obs_log"] = obsLogTail(2 * 1024 * 1024, obsNth) + crash;
 	QByteArray body = QJsonDocument(o).toJson(QJsonDocument::Compact);
 	if (body.size() > 4 * 1024 * 1024 - 4096) {
-		o["obs_log"] = obsLogTail(1024 * 1024, obsNth);
+		o["obs_log"] = obsLogTail(1024 * 1024, obsNth) + crash;
 		body = QJsonDocument(o).toJson(QJsonDocument::Compact);
 	}
 	return body;

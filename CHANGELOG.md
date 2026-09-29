@@ -2,6 +2,13 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.10
+- **Fixed: OBS could crash a few seconds after Setup changed the game language.** The downed-screen template was rebuilt while the plugin was still searching with it. Thanks alfadavius1, 01uncia_parvat and zDonik for the logs.
+- **Fixed: the POV mixing up squad mates with several Discord pop-outs.** A pop-out Discord had not named yet went to whichever squad mate was still unbound; a pop-out Discord reused for someone else kept the old name; removing one squad mate took away the Discord window another still fell back to; and the picture check took a squad mate you put up by hand off the list and back again. The Stream Deck's "auto" key now always takes you back to your own POV while a squad mate is up. Thanks Adventure Bear for the logs.
+- **Fixed: the session balance correcting itself down and up over and over** (-$160, +$160) while the wallet could not be read for a while. It is only checked against a wallet read just now.
+- **Fixed: trimmed and joined clips kept only the first audio track.** With game and mic on separate tracks, a clip could come out with only your mic. Every track is kept now. (Tick Track 1 under OBS Settings, Output, Recording for clips that play with sound everywhere.)
+- **Fixed: ClipHound removed by antivirus.** The dock now says ClipHound.exe is missing and how to get it back, instead of "not found" every minute, and a live update can no longer leave it deleted. Thanks moikka11 and VanceFeste for the logs.
+
 ## 0.34.9
 - **Fixed: "Another copy of ClipHound is running" right after an update installed itself.** The plugin compared the companion app's version only against its own, but updating by itself (0.34.0) can leave ClipHound a patch ahead until OBS is closed — so every background update showed this warning, telling you to close ClipHound, even though everything was fine. It is not shown anymore when the companion is exactly the version an update just installed.
 

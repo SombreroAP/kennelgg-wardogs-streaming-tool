@@ -1,5 +1,12 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.10
+- **Corregido: OBS podía cerrarse de golpe unos segundos después de que la Configuración cambiara el idioma del juego.** La plantilla de la pantalla de caído se reconstruía mientras el plugin todavía buscaba con ella. Gracias alfadavius1, 01uncia_parvat y zDonik por los logs.
+- **Corregido: el POV confundía a los compañeros con varios pop-outs de Discord.** Un pop-out que Discord aún no había nombrado iba al compañero que seguía sin asignar; un pop-out que Discord reutilizaba para otra persona mantenía el nombre viejo; quitar a un compañero borraba la ventana de Discord a la que otro volvía; y la comprobación de imagen sacaba de la lista y volvía a meter a un compañero que habías puesto a mano. La tecla «auto» del Stream Deck ahora siempre te devuelve a tu POV mientras hay un compañero en pantalla. Gracias Adventure Bear por los logs.
+- **Corregido: el saldo de la sesión se corregía una y otra vez hacia abajo y hacia arriba** (-$160, +$160) cuando la cartera no se podía leer durante un rato. Ahora solo se compara con una cartera leída en ese momento.
+- **Corregido: los clips recortados y unidos solo conservaban la primera pista de audio.** Con el juego y el micro en pistas separadas, un clip podía salir solo con tu micro. Ahora se conservan todas las pistas. (Marca la pista 1 en Ajustes de OBS, Salida, Grabación para que los clips suenen en todas partes.)
+- **Corregido: ClipHound borrado por el antivirus.** El dock ahora dice que falta ClipHound.exe y cómo recuperarlo, en vez de «no encontrado» cada minuto, y una actualización en directo ya no puede dejarlo borrado. Gracias moikka11 y VanceFeste por los logs.
+
 ## 0.34.9
 - **Corregido: «Hay otra copia de ClipHound en ejecución» justo después de una actualización automática.** El plugin comparaba la versión de la app compañera solo con la suya propia, pero una actualización por sí sola (0.34.0) puede dejar a ClipHound una versión por delante hasta que se cierra OBS, así que cada actualización en segundo plano mostraba este aviso, pidiendo cerrar ClipHound, aunque todo estaba bien. Ya no aparece cuando la app compañera es exactamente la versión que una actualización acaba de instalar.
 

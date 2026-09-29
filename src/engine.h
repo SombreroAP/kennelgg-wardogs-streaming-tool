@@ -625,6 +625,11 @@ private:
 	QDateTime appStartedAt_;
 	bool appCrashReported_ = false;
 	Detector detGame_, detRevive_;
+	// every detector (these, detMate_ and the alt-language ones): the poll worker holds it while it compares, the
+	// UI thread while it changes a template, the search band, a threshold or the lock. A template rebuilt under a
+	// running compare freed what it was reading: OBS crashed seconds after Setup changed the game language
+	// (LOG-F1CD, LOG-1C2C, LOG-0A43). Recursive: loadTemplates calls applySearchWidth.
+	std::recursive_mutex detMx_;
 	// clutch: the same downed screen looked for on the squad mates' feeds, one feed per check
 	Detector detMate_;
 	Capture capMate_;
@@ -704,8 +709,10 @@ private:
 	QStringList nameCheck_;              // just added while Closest is on: check their in-game names
 	bool closestAsk_ = false;            // Closest pressed without ClipHound
 	bool appUserStopped_ = false;
-	QString frameSaved_;       // a frame saved from a banner, to attach to a ticket
-	double lastNearBest_ = -1; // the best below-threshold score of the last whole minute
+	bool appMissingLogged_ = false; // ClipHound.exe gone: said once, not every minute (LOG-7066)
+	bool gameSeen_ = false;         // the game source gave a picture during this stream
+	QString frameSaved_;            // a frame saved from a banner, to attach to a ticket
+	double lastNearBest_ = -1;      // the best below-threshold score of the last whole minute
 	QString holding_;
 	QString voiceStatus_;          // what ClipHound says the listener is doing
 	QString voicePending_;         // the manual clip waiting for its spoken name

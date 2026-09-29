@@ -777,7 +777,9 @@ QString Clips::request(const QString &title, const QStringList &tags, const QStr
 			       ? tx("no clip method: turn on the replay buffer or pick a hotkey (Settings, Clips & replays)")
 			       : QString();
 	if (!obs_frontend_replay_buffer_active()) {
-		if (!autoStartReplay)
+		// a start already failed (it is switched off in OBS's Output settings): saying "started it" on every clip
+		// was untrue (LOG-12CD); the minute retry still tries
+		if (!autoStartReplay || replayOff_)
 			return tx("the replay buffer is not running (Settings → Output → Replay Buffer)");
 		ensureReplayBuffer();
 		return tx("replay buffer was off; started it - this moment is lost, the next one will save");

@@ -46,6 +46,7 @@ struct Friend {
 	/// While set, `source` is a capture of that window and `baseSource` is the one to go back to.
 	std::string popout, baseSource;
 	long long popoutMissingMs = 0; // how long the window has been gone, runtime only
+	uintptr_t popoutHwnd = 0;      // the pop-out window itself (its title can change under it), runtime only
 	bool onPopout() const { return kind == FriendKind::Discord && !popout.empty(); }
 	static const char *discordCallSourceName() { return "Kennel.gg · Discord call"; }
 	static const char *discordCallAudioName() { return "Kennel.gg · Discord call audio"; }

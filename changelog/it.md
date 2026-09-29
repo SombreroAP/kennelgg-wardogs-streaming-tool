@@ -1,5 +1,12 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.10
+- **Risolto: OBS poteva chiudersi di colpo pochi secondi dopo che la Configurazione cambiava la lingua del gioco.** Il modello della schermata di abbattuto veniva ricostruito mentre il plugin ci stava ancora cercando. Grazie alfadavius1, 01uncia_parvat e zDonik per i log.
+- **Risolto: il POV confondeva i compagni con più pop-out di Discord.** Un pop-out che Discord non aveva ancora nominato andava al compagno ancora libero; un pop-out che Discord riusava per qualcun altro teneva il vecchio nome; rimuovere un compagno eliminava la finestra di Discord a cui un altro tornava; e il controllo dell'immagine toglieva dalla lista e rimetteva un compagno messo a mano. Il tasto «auto» dello Stream Deck ora ti riporta sempre al tuo POV quando c'è un compagno a schermo. Grazie Adventure Bear per i log.
+- **Risolto: il saldo della sessione si correggeva di continuo in giù e in su** (-$160, +$160) quando il portafoglio restava illeggibile per un po'. Ora viene confrontato solo con un portafoglio appena letto.
+- **Risolto: le clip tagliate e unite tenevano solo la prima traccia audio.** Con gioco e microfono su tracce separate, una clip poteva avere solo il tuo microfono. Ora tutte le tracce restano. (Spunta la traccia 1 in Impostazioni di OBS, Uscita, Registrazione per clip con l'audio ovunque.)
+- **Risolto: ClipHound rimosso dall'antivirus.** Il dock ora dice che ClipHound.exe manca e come recuperarlo, invece di «non trovato» ogni minuto, e un aggiornamento dal vivo non può più lasciarlo cancellato. Grazie moikka11 e VanceFeste per i log.
+
 ## 0.34.9
 - **Risolto: «Un'altra copia di ClipHound è in esecuzione» subito dopo un aggiornamento automatico.** Il plugin confrontava la versione dell'app compagna solo con la propria, ma un aggiornamento da solo (0.34.0) può lasciare ClipHound una versione avanti finché OBS non viene chiuso, quindi ogni aggiornamento in background mostrava questo avviso, chiedendo di chiudere ClipHound, anche se andava tutto bene. Non compare più quando l'app compagna è esattamente la versione appena installata da un aggiornamento.
 

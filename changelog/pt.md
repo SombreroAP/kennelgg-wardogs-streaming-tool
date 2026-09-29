@@ -1,5 +1,12 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.10
+- **Corrigido: o OBS podia fechar do nada alguns segundos depois de a Configuração mudar o idioma do jogo.** O modelo da tela de caído era reconstruído enquanto o plugin ainda procurava com ele. Valeu alfadavius1, 01uncia_parvat e zDonik pelos logs.
+- **Corrigido: o POV confundia os parceiros com vários pop-outs do Discord.** Um pop-out que o Discord ainda não tinha nomeado ia para o parceiro ainda sem janela; um pop-out que o Discord reaproveitava para outra pessoa mantinha o nome antigo; remover um parceiro apagava a janela do Discord para a qual outro voltava; e a verificação de imagem tirava da lista e devolvia um parceiro que você colocou na mão. A tecla "auto" do Stream Deck agora sempre te leva de volta ao seu POV enquanto um parceiro está na tela. Valeu Adventure Bear pelos logs.
+- **Corrigido: o saldo da sessão se corrigia sem parar para baixo e para cima** (-$160, +$160) enquanto a carteira ficava ilegível por um tempo. Agora só é comparado com uma carteira lida na hora.
+- **Corrigido: clipes cortados e juntados mantinham só a primeira faixa de áudio.** Com jogo e microfone em faixas separadas, um clipe podia sair só com o seu microfone. Agora todas as faixas ficam. (Marque a faixa 1 em Configurações do OBS, Saída, Gravação para clipes com som em qualquer lugar.)
+- **Corrigido: ClipHound removido pelo antivírus.** O dock agora avisa que o ClipHound.exe sumiu e como recuperar, em vez de "não encontrado" a cada minuto, e uma atualização ao vivo não pode mais deixá-lo apagado. Valeu moikka11 e VanceFeste pelos logs.
+
 ## 0.34.9
 - **Corrigido: "Outra cópia do ClipHound está rodando" logo após uma atualização automática.** O plugin comparava a versão do app complementar só com a própria, mas uma atualização por conta própria (0.34.0) pode deixar o ClipHound uma versão à frente até o OBS ser fechado, então toda atualização em segundo plano mostrava esse aviso, pedindo para fechar o ClipHound, mesmo estando tudo certo. Ele não aparece mais quando o complementar é exatamente a versão que uma atualização acabou de instalar.
 

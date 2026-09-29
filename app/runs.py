@@ -119,7 +119,10 @@ class Runs:
         out = base + ".trim" + ext
         # -ss before -i on a stream copy starts at the keyframe at or before the point: the lead
         # comes out a little longer than asked, never shorter
-        cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.2f}", "-i", path, "-c", "copy",
+        cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.2f}", "-i", path,
+               # every audio track, not just the first: a replay buffer recording tracks 2-5 (game on one, mic on
+               # another) came out of the trim with the mic alone (Adventure Bear, 29 Sep 2026)
+               "-map", "0:v", "-map", "0:a?", "-c", "copy",
                "-avoid_negative_ts", "make_zero", "-movflags", "+faststart", out]
         r = subprocess.run(cmd, capture_output=True, text=True, creationflags=_NOWIN | _LOWPRI)
         if r.returncode != 0 or not os.path.exists(out) or os.path.getsize(out) < 1000:
@@ -295,7 +298,7 @@ class Runs:
             for p in parts:
                 f.write("file '" + p.replace("\\", "/").replace("'", "'\\''") + "'\n")
         r = subprocess.run([self.ff, "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst,
-                            "-c", "copy", "-movflags", "+faststart", out], capture_output=True, text=True,
+                            "-map", "0:v", "-map", "0:a?", "-c", "copy", "-movflags", "+faststart", out], capture_output=True, text=True,
                            creationflags=_NOWIN | _LOWPRI)
         if r.returncode != 0:
             raise RuntimeError("join: " + r.stderr.strip()[-200:])
