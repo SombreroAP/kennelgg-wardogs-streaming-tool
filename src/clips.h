@@ -109,7 +109,8 @@ private:
 	};
 	std::deque<Watch> watches_;
 	int lostHotkeyClips_ = 0;
-	bool replayOff_ = false; // our start of the replay buffer failed: retried every minute
+	bool replayOff_ =
+		false; // our start of the replay buffer failed (changes the messaging, no longer gates the retry)
 	QDateTime lostSaidAt_;
 	/// Give a vertical Backtrack file to the entry it belongs with (the newest within 30 s of `when`).
 	bool attachVertical(const QDateTime &when, const QString &path);

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.11
+- **Corregido: si el búfer de repetición se detenía solo durante el directo, podía quedar apagado el resto del directo.** La comprobación de cada minuto solo intentaba reiniciarlo después de que nuestro propio inicio hubiera fallado - un búfer que se detenía solo (un fallo, un problema de disco, OBS) se quedaba apagado sin que nadie lo notara, hasta que se pedía un clip. Ahora se reintenta cada minuto, igual que un inicio fallido. Gracias a AdisBak por los logs.
+
 ## 0.34.10
 - **Corregido: OBS podía cerrarse de golpe unos segundos después de que la Configuración cambiara el idioma del juego.** La plantilla de la pantalla de caído se reconstruía mientras el plugin todavía buscaba con ella. Gracias alfadavius1, 01uncia_parvat y zDonik por los logs.
 - **Corregido: el POV confundía a los compañeros con varios pop-outs de Discord.** Un pop-out que Discord aún no había nombrado iba al compañero que seguía sin asignar; un pop-out que Discord reutilizaba para otra persona mantenía el nombre viejo; quitar a un compañero borraba la ventana de Discord a la que otro volvía; y la comprobación de imagen sacaba de la lista y volvía a meter a un compañero que habías puesto a mano. La tecla «auto» del Stream Deck ahora siempre te devuelve a tu POV mientras hay un compañero en pantalla. Gracias Adventure Bear por los logs.

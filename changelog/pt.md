@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.11
+- **Corrigido: se o buffer de replay parasse sozinho durante a live, ele podia ficar desligado pelo resto da live.** A verificação a cada minuto só tentava reiniciá-lo depois que nosso próprio início tivesse falhado - um buffer que parava sozinho (uma queda, um problema de disco, o OBS) ficava desligado sem ninguém perceber, até que um clipe fosse pedido. Agora ele é tentado de novo a cada minuto, igual a um início que falhou. Obrigado ao AdisBak pelos logs.
+
 ## 0.34.10
 - **Corrigido: o OBS podia fechar do nada alguns segundos depois de a Configuração mudar o idioma do jogo.** O modelo da tela de caído era reconstruído enquanto o plugin ainda procurava com ele. Valeu alfadavius1, 01uncia_parvat e zDonik pelos logs.
 - **Corrigido: o POV confundia os parceiros com vários pop-outs do Discord.** Um pop-out que o Discord ainda não tinha nomeado ia para o parceiro ainda sem janela; um pop-out que o Discord reaproveitava para outra pessoa mantinha o nome antigo; remover um parceiro apagava a janela do Discord para a qual outro voltava; e a verificação de imagem tirava da lista e devolvia um parceiro que você colocou na mão. A tecla "auto" do Stream Deck agora sempre te leva de volta ao seu POV enquanto um parceiro está na tela. Valeu Adventure Bear pelos logs.

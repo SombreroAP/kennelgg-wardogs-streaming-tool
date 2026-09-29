@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.11
+- **Düzeltildi: tekrar oynatma arabelleği yayın sırasında kendiliğinden durursa, yayının geri kalanında kapalı kalabiliyordu.** Dakikada bir yapılan kontrol, onu yalnızca kendi başlatmamız başarısız olduysa yeniden başlatmaya çalışıyordu - kendiliğinden duran bir arabellek (bir çökme, bir disk aksaklığı, OBS) bir klip istenene kadar fark edilmeden kapalı kalıyordu. Artık başarısız bir başlatmayla aynı şekilde her dakika yeniden deneniyor. Günlükler için AdisBak'a teşekkürler.
+
 ## 0.34.10
 - **Düzeltildi: Kurulum oyun dilini değiştirdikten birkaç saniye sonra OBS çökebiliyordu.** Yere düşme ekranı şablonu, eklenti hâlâ onunla ararken yeniden oluşturuluyordu. Loglar için teşekkürler alfadavius1, 01uncia_parvat ve zDonik.
 - **Düzeltildi: birden fazla Discord pop-out'unda POV takım arkadaşlarını karıştırıyordu.** Discord'un henüz adlandırmadığı bir pop-out, hâlâ bağlanmamış takım arkadaşına gidiyordu; Discord'un başkası için yeniden kullandığı bir pop-out eski adı taşıyordu; bir takım arkadaşını çıkarmak, bir başkasının geri döndüğü Discord penceresini siliyordu; görüntü kontrolü de elle açtığın bir takım arkadaşını listeden çıkarıp geri koyuyordu. Stream Deck'in "auto" tuşu artık bir takım arkadaşı ekrandayken seni her zaman kendi POV'una döndürür. Loglar için teşekkürler Adventure Bear.

@@ -656,9 +656,12 @@ void Clips::ensureReplayBuffer()
 
 void Clips::retryReplayBuffer()
 {
-	// only after our own start failed: a buffer you stopped yourself stays stopped. A log that sat 12 hours
-	// with it off (the setting fixed at once, but no restart of OBS) made no clip all evening
-	if (replayOff_ && autoStartReplay && useReplay && !obs_frontend_replay_buffer_active())
+	// Not gated on replayOff_ (28-29 Sep 2026, LOG-B72B/LOG-BA12): that flag only turns true when our
+	// OWN start attempt has failed, so a buffer that was running fine and then stopped by itself
+	// (crash, disk, OBS hiccup - nothing we asked for) sat off for hours, unnoticed, because nothing
+	// ever tried it again until the next clip request found it off. autoStartReplay/useReplay already
+	// cover "the user turned the feature off"; if they are on, keep the buffer running every minute.
+	if (autoStartReplay && useReplay && !obs_frontend_replay_buffer_active())
 		ensureReplayBuffer();
 }
 

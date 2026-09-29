@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.11
+- **Fixed: the replay buffer stopping by itself mid-stream could leave it off for the rest of the stream.** The once-a-minute check only tried to start it again after our own start had failed - a buffer that stopped on its own (a crash, a disk hiccup, OBS) just sat off, unnoticed, until a clip was asked for. It is retried every minute now, the same as a failed start. Thanks AdisBak for the logs.
+
 ## 0.34.10
 - **Fixed: OBS could crash a few seconds after Setup changed the game language.** The downed-screen template was rebuilt while the plugin was still searching with it. Thanks alfadavius1, 01uncia_parvat and zDonik for the logs.
 - **Fixed: the POV mixing up squad mates with several Discord pop-outs.** A pop-out Discord had not named yet went to whichever squad mate was still unbound; a pop-out Discord reused for someone else kept the old name; removing one squad mate took away the Discord window another still fell back to; and the picture check took a squad mate you put up by hand off the list and back again. The Stream Deck's "auto" key now always takes you back to your own POV while a squad mate is up. Thanks Adventure Bear for the logs.

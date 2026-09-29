@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.11
+- **Corrigé : si le tampon de relecture s'arrêtait tout seul en cours de stream, il pouvait rester coupé pour le reste du stream.** La vérification une fois par minute ne réessayait de le démarrer qu'après l'échec de notre propre démarrage - un tampon arrêté tout seul (un crash, un souci de disque, OBS) restait coupé sans que personne s'en aperçoive, jusqu'à ce qu'un clip soit demandé. Il est maintenant réessayé chaque minute, comme un démarrage raté. Merci à AdisBak pour les logs.
+
 ## 0.34.10
 - **Corrigé : OBS pouvait planter quelques secondes après que la Configuration a changé la langue du jeu.** Le modèle de l'écran à terre était reconstruit pendant que le plugin cherchait encore avec. Merci alfadavius1, 01uncia_parvat et zDonik pour les logs.
 - **Corrigé : le POV mélangeait les coéquipiers avec plusieurs pop-outs Discord.** Un pop-out que Discord n'avait pas encore nommé allait au coéquipier encore libre ; un pop-out que Discord réutilisait pour quelqu'un d'autre gardait l'ancien nom ; retirer un coéquipier supprimait la fenêtre Discord sur laquelle un autre se repliait ; et la vérification d'image retirait de la liste puis remettait un coéquipier affiché à la main. La touche « auto » du Stream Deck te ramène maintenant toujours à ton POV quand un coéquipier est affiché. Merci Adventure Bear pour les logs.

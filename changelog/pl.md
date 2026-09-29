@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.11
+- **Naprawiono: jeśli bufor powtórek zatrzymywał się sam podczas streama, mógł zostać wyłączony do końca streama.** Sprawdzanie raz na minutę próbowało go uruchomić ponownie tylko wtedy, gdy nasz własny start się nie powiódł - bufor, który zatrzymał się sam (awaria, problem z dyskiem, OBS), po prostu zostawał wyłączony, niezauważony, dopóki nie poproszono o klip. Teraz próbuje ponownie co minutę, tak samo jak przy nieudanym starcie. Dzięki AdisBak za logi.
+
 ## 0.34.10
 - **Naprawiono: OBS mógł się wysypać kilka sekund po tym, jak Konfiguracja zmieniła język gry.** Szablon ekranu powalenia był przebudowywany, gdy wtyczka wciąż nim szukała. Dzięki alfadavius1, 01uncia_parvat i zDonik za logi.
 - **Naprawiono: POV mylił kolegów przy kilku pop-outach Discorda.** Pop-out, któremu Discord nie nadał jeszcze nazwy, trafiał do kolegi jeszcze bez okna; pop-out, który Discord użył ponownie dla kogoś innego, zachowywał starą nazwę; usunięcie kolegi zabierało okno Discorda, do którego wracał inny; a sprawdzanie obrazu zdejmowało z listy i przywracało kolegę pokazanego ręcznie. Klawisz „auto” na Stream Decku zawsze wraca teraz do twojego POV, gdy kolega jest na ekranie. Dzięki Adventure Bear za logi.
