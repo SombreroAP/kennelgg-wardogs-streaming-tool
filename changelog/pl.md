@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.5
+- **Naprawiono: jeden klip wysyłany do ClipHound w kółko, co sekundę.** Gdy dla skrótu klipu przychodził tylko pionowy plik Backtrack (bez poziomego obok), wtyczka trzymała klip i co sekundę od nowa przekazywała go ClipHound, dopóki działał OBS: tysiące razy, a ClipHound za każdym razem próbował tego samego segmentu highlightów. Teraz jest przekazywany raz. Dzięki BrokenArrow za logi.
+- **Naprawiono: „klipy ze skrótu utracone”, choć nic nie zginęło.** Skrót znacznika rozdziału albo własny skrót OBS Zapisz powtórkę wybrany w Klipy i powtórki nie zapisuje własnego pliku klipu, a mimo to każdy klip czekał na niego 90 s i liczył się jako utracony, z podpowiedzią o Aitum Backtrack. Te skróty dalej są wywoływane; po prostu się na nie nie czeka. Pionowy plik dołączony do klipu z bufora powtórek też już nie liczy się jako utracony.
+
 ## 0.34.4
 - **Naprawiono: POV w środku walki raz po raz przełączał się na kolegę.** Przy języku gry na automacie wystarczyła jedna klatka trochę podobna do francuskiego ekranu powalenia, żeby na stałe uznać, że gra jest po francusku. Francuski napis „znajdował” potem ekran powalenia w zwykłej grze (lobby, mgła, strzelanina), a stream co kilka sekund przełączał się na kolegę. Teraz inny język musi być wyraźnie na ekranie i utrzymać się tam przez chwilę, zanim się liczy. Wszystkim na automacie znaleziony język zostaje raz zapomniany; właściwy znajdzie się znowu, gdy następnym razem padniesz. Dzięki, DaDao, za logi.
 

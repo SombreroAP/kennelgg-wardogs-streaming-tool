@@ -131,6 +131,7 @@ void Clips::pollWatches()
 				if (fi.lastModified().msecsTo(now) < 2000)
 					continue; // still being written
 				w.seen.insert(fi.absoluteFilePath());
+				w.gotFile = true;
 				bool v = fi.absoluteFilePath().contains("vertical", Qt::CaseInsensitive) ||
 					 fi.fileName().contains("portrait", Qt::CaseInsensitive);
 				(v ? vert : horiz).append(fi);
@@ -173,7 +174,7 @@ void Clips::pollWatches()
 				w.vertPath = target; // its partner has not landed yet: kept for it
 		}
 		if (w.since.secsTo(now) > 90) {
-			if (w.vertPath.isEmpty()) {
+			if (!w.gotFile) {
 				// nothing came at all: the hotkey went to nobody (Backtrack's output not started, or its folder
 				// is somewhere we do not look). It used to be dropped without a word: 25 clips of a 2 h stream
 				lostHotkeyClips_++;
@@ -193,6 +194,8 @@ void Clips::pollWatches()
 				history_.push_back(e);
 				logEntry(e);
 				emit saved(e);
+				// handed on: left set, the watch was never dropped and re-sent this clip every second
+				w.vertPath.clear();
 			}
 			done = true;
 		}
@@ -677,6 +680,14 @@ QList<QPair<QString, QString>> Clips::allHotkeys()
 	return out;
 }
 
+/// OBS's own replay-buffer save (already handled by the replay path) and chapter markers write no
+/// clip file of their own: waiting for one only counted every clip as lost.
+bool Clips::writesNoFile(const QString &hotkey)
+{
+	return hotkey.startsWith("ReplayBuffer.", Qt::CaseInsensitive) ||
+	       hotkey.contains("chapter", Qt::CaseInsensitive);
+}
+
 bool Clips::fireHotkey(const QString &name)
 {
 	struct Ctx {
@@ -729,10 +740,14 @@ QString Clips::request(const QString &title, const QStringList &tags, const QStr
 		return tx("ignored: too soon after the last clip");
 	lastRequest_ = now;
 	QStringList missed;
-	for (const QString &hk : hotkeys)
+	bool writesFile = false;
+	for (const QString &hk : hotkeys) {
 		if (!fireHotkey(hk))
 			missed << hk;
-	if (!hotkeys.isEmpty() && missed.size() < hotkeys.size()) {
+		else if (!writesNoFile(hk))
+			writesFile = true;
+	}
+	if (writesFile) {
 		// something else (Backtrack) is writing a file: give it our name when it appears
 		Watch w;
 		w.since = now;

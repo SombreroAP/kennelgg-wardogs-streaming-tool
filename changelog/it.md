@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.5
+- **Risolto: una clip mandata a ClipHound ancora e ancora, ogni secondo.** Quando per una scorciatoia di clip arrivava solo un file Backtrack verticale (senza file orizzontale accanto), il plugin teneva la clip e la ripassava a ClipHound ogni secondo finché OBS era aperto: migliaia di volte, e ClipHound ritentava ogni volta lo stesso segmento degli highlight. Ora viene passata una volta sola. Grazie a BrokenArrow per i log.
+- **Risolto: «clip da scorciatoia perse» quando non si era perso nulla.** Una scorciatoia per i marcatori di capitolo o la scorciatoia Salva replay di OBS scelta in Clip & replay non scrive un file di clip suo, eppure ogni clip lo aspettava 90 s e veniva contata come persa, con un suggerimento su Aitum Backtrack. Quelle scorciatoie scattano ancora; semplicemente non vengono più aspettate. Anche un file verticale unito a una clip del buffer replay non conta più come perso.
+
 ## 0.34.4
 - **Risolto: il POV passava di continuo a un compagno nel mezzo di uno scontro.** Con la lingua del gioco su automatico, bastava un solo fotogramma che somigliasse un po' alla schermata di abbattuto in francese per decidere che il tuo gioco era in francese, per sempre. Il testo francese poi «trovava» la schermata di abbattuto nel gioco normale (lobby, nebbia, una sparatoria), e la diretta passava a un compagno ogni pochi secondi. Ora un'altra lingua deve essere chiaramente a schermo, e restarci un momento, prima di contare. Per tutti quelli su automatico la lingua trovata viene dimenticata una volta; quella giusta viene ritrovata la prossima volta che vai a terra. Grazie a DaDao per i log.
 

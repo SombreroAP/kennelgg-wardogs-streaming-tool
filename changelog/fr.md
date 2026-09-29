@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.5
+- **Corrigé : un même clip renvoyé à ClipHound chaque seconde.** Quand seul un fichier Backtrack vertical arrivait pour un raccourci de clip (sans fichier horizontal à côté), le plugin gardait le clip et le redonnait à ClipHound chaque seconde tant qu'OBS tournait : des milliers de fois, et ClipHound retentait le même segment de highlights à chaque fois. Il n'est transmis qu'une fois maintenant. Merci à BrokenArrow pour les logs.
+- **Corrigé : « clips de raccourci perdus » alors que rien n'était perdu.** Un raccourci de marqueur de chapitre ou le raccourci Enregistrer le replay d'OBS choisi dans Clips & replays n'écrit aucun fichier de clip à lui, pourtant chaque clip l'attendait 90 s et était compté comme perdu, avec un conseil sur Aitum Backtrack. Ces raccourcis se déclenchent toujours ; on ne les attend simplement plus. Un fichier vertical rattaché à un clip du tampon de relecture ne compte plus non plus comme perdu.
+
 ## 0.34.4
 - **Corrigé : le POV passait sans arrêt sur un coéquipier en plein combat.** Avec la langue du jeu sur auto, une seule image qui ressemblait un peu à l'écran à terre en français suffisait pour décider que ton jeu était en français, pour de bon. Le texte français « trouvait » ensuite l'écran à terre en jeu normal (lobby, brouillard, fusillade), et le stream passait sur un coéquipier toutes les quelques secondes. Une autre langue doit maintenant être nettement à l'écran, et y rester un instant, avant de compter. Pour tous ceux en auto, la langue trouvée est oubliée une fois ; la bonne est retrouvée la prochaine fois que tu es à terre. Merci DaDao pour les journaux.
 

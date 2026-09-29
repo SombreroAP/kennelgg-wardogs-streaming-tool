@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.5
+- **Corrigido: um clipe mandado ao ClipHound de novo e de novo, a cada segundo.** Quando só chegava um arquivo vertical do Backtrack para um atalho de clipe (sem arquivo horizontal ao lado), o plugin ficava com o clipe e o entregava de novo ao ClipHound a cada segundo enquanto o OBS estivesse aberto: milhares de vezes, e o ClipHound tentava o mesmo segmento de destaques toda vez. Agora ele é entregue uma vez só. Valeu, BrokenArrow, pelos logs.
+- **Corrigido: "clipes de atalho perdidos" sem nada perdido.** Um atalho de marcador de capítulo ou o atalho Salvar replay do próprio OBS escolhido em Clipes & replays não grava arquivo de clipe próprio, mas cada clipe esperava 90 s por um e contava como perdido, com uma dica sobre o Aitum Backtrack. Esses atalhos continuam disparando; só não são mais esperados. Um arquivo vertical que se juntou a um clipe do buffer de replay também não conta mais como perdido.
+
 ## 0.34.4
 - **Corrigido: o POV trocava para um parceiro sem parar no meio da luta.** Com o idioma do jogo no automático, bastava um único quadro parecido com a tela de caído em francês para decidir que seu jogo estava em francês, de vez. O texto em francês então "achava" a tela de caído no jogo normal (lobby, neblina, tiroteio), e a live trocava para um parceiro a cada poucos segundos. Agora outro idioma precisa aparecer claramente na tela, e ficar ali por um momento, antes de contar. Para todos no automático, o idioma encontrado é esquecido uma vez; o certo é encontrado de novo na próxima vez que você cair. Valeu, DaDao, pelos logs.
 

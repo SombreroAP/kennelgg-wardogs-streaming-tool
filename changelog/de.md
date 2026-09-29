@@ -1,5 +1,9 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.5
+- **Behoben: Ein Clip ging jede Sekunde erneut an ClipHound.** Kam für einen Clip-Hotkey nur eine vertikale Backtrack-Datei (keine horizontale daneben), behielt das Plugin den Clip und gab ihn ClipHound jede Sekunde erneut, solange OBS lief: tausende Male, und ClipHound versuchte jedes Mal dasselbe Highlight-Segment. Jetzt wird er einmal weitergegeben. Danke an BrokenArrow für die Logs.
+- **Behoben: „Hotkey-Clips verloren“, obwohl nichts verloren war.** Ein Kapitelmarken-Hotkey oder OBS' eigener Hotkey „Replay speichern“ unter Clips & Replays schreibt keine eigene Clip-Datei, trotzdem wartete jeder Clip 90 s darauf und zählte als verloren, mit einem Hinweis auf Aitum Backtrack. Diese Hotkeys werden weiter ausgelöst, nur wird nicht mehr auf sie gewartet. Eine vertikale Datei, die zu einem Replay-Puffer-Clip kam, zählt auch nicht mehr als verloren.
+
 ## 0.34.4
 - **Behoben: Der POV wechselte mitten im Gefecht immer wieder zu einem Squad-Mitglied.** Mit der Spielsprache auf Automatisch reichte ein einziges Bild, das dem französischen Niedergegangen-Bildschirm ein wenig ähnelte, damit dein Spiel dauerhaft als Französisch galt. Der französische Text „fand“ dann den Niedergegangen-Bildschirm im normalen Spiel (Lobby, Nebel, Feuergefecht), und der Stream wechselte alle paar Sekunden zu einem Squad-Mitglied. Eine andere Sprache muss jetzt deutlich im Bild sein und einen Moment dort bleiben, bevor sie zählt. Bei allen mit Automatisch wird die gefundene Sprache einmal vergessen; beim nächsten Mal, wenn du niedergehst, wird die richtige wieder gefunden. Danke an DaDao für die Logs.
 

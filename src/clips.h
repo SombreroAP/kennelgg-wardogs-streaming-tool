@@ -42,6 +42,7 @@ public:
 	static QStringList discoverBacktrackFolders();
 	static QList<QPair<QString, QString>> allHotkeys(); // (name, description)
 	static bool fireHotkey(const QString &name);
+	static bool writesNoFile(const QString &hotkey);
 	int minGapMs = 4000; // ignore clip requests closer than this
 
 	/// Ask OBS to save the replay buffer; the rename happens when OBS reports the file.
@@ -103,7 +104,8 @@ private:
 		double momentS = -1, firstS = -1;
 		int kills = 0;
 		QJsonObject info;
-		QString vertPath; // a vertical Backtrack file found before its horizontal partner
+		QString vertPath;     // a vertical Backtrack file found before its horizontal partner
+		bool gotFile = false; // any file came for it, even one handed to a replay-buffer clip
 	};
 	std::deque<Watch> watches_;
 	int lostHotkeyClips_ = 0;

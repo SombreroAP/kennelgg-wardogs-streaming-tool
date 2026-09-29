@@ -2,6 +2,10 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.5
+- **Fixed: one clip sent to ClipHound over and over, every second.** When only a vertical Backtrack file came for a clip hotkey (no horizontal file next to it), the plugin kept the clip and handed it to ClipHound again every second for as long as OBS ran: thousands of times, and ClipHound retried the same highlight segment each time. It is handed on once now. Thanks BrokenArrow for the logs.
+- **Fixed: "hotkey clips lost" when nothing was lost.** A chapter-marker hotkey or OBS's own Save Replay hotkey picked under Clips & replays writes no clip file of its own, yet every clip waited 90 s for one and was counted as lost, with a hint about Aitum Backtrack. Those hotkeys still fire; they are just not waited on. A vertical file that joined a replay-buffer clip no longer counts as lost either.
+
 ## 0.34.4
 - **Fixed: the POV swapping to a squad mate over and over mid-fight.** With the game language on auto, one frame that looked a little like the French downed screen was enough to decide your game was in French, for good. The French wording then kept "finding" the downed screen in ordinary play (a lobby, fog, a gunfight), so the stream swapped to a squad mate every few seconds. Another language now has to be clearly on screen, and stay there for a moment, before it counts. Everyone on auto has the language it found forgotten once; the right one is found again the next time you go down. Thanks DaDao for the logs.
 
