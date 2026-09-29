@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.8
+- **Corrigido: a barra da sessão nunca saía com "Entra quando um número muda, sai 20 s depois".** Cada atualização do plugin contava como mudança, mesmo sem nenhum número mudar, então a contagem de 20 segundos recomeçava sem parar e a barra ficava na tela. Agora ela entra quando um número muda de verdade e sai 20 s depois. Valeu seethingword pelo aviso.
+
 ## 0.34.7
 - **Corrigido: o ClipHound não voltava se fechasse no meio da live.** Se o ClipHound fechasse sozinho durante uma live (uma falha, ou o Windows encerrando ele), o plugin nunca o reiniciava: sem clipes do feed de abates, Closest ou voz pelo resto da live. Agora ele é reiniciado automaticamente, do mesmo jeito que um buffer de replay perdido é tentado de novo, a menos que você mesmo o tenha parado.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.8
+- **Corrigé : la barre de session ne ressortait jamais avec « Apparaît quand un chiffre change, repart 20 s après ».** Chaque mise à jour du plugin comptait comme un changement, même quand aucun chiffre n'avait bougé, donc le compte à rebours de 20 secondes repartait sans cesse et la barre restait à l'écran. Elle entre maintenant quand un chiffre change vraiment et ressort 20 s plus tard. Merci seethingword pour le signalement.
+
 ## 0.34.7
 - **Corrigé : ClipHound ne revenait pas s'il se fermait en pleine diffusion.** Si ClipHound se fermait tout seul pendant un stream (un plantage, ou Windows qui le terminait), le plugin ne le relançait jamais : plus de clips du fil des éliminations, de Closest ni de voix pour le reste du stream. Il est maintenant relancé automatiquement, comme un tampon de replay perdu qui est retenté, sauf si tu l'as arrêté toi-même.
 

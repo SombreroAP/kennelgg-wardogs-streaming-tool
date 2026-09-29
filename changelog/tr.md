@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.8
+- **Düzeltildi: "Bir sayı değişince kayarak girer, 20 sn sonra çıkar" seçiliyken oturum çubuğu hiç geri çekilmiyordu.** Eklentinin gönderdiği her güncelleme, hiçbir sayı değişmese bile değişiklik sayılıyordu; bu yüzden 20 saniyelik sayaç sürekli baştan başlıyor ve çubuk ekranda kalıyordu. Artık bir sayı gerçekten değişince kayarak gelir ve 20 sn sonra çekilir. Bildirim için teşekkürler seethingword.
+
 ## 0.34.7
 - **Düzeltildi: ClipHound yayın ortasında kapanırsa geri gelmiyordu.** ClipHound bir yayın sırasında kendiliğinden kapanırsa (çökme ya da Windows'un sonlandırması), eklenti onu bir daha başlatmıyordu: yayının geri kalanında öldürme akışı klibi, Closest veya ses yoktu. Artık kaybolan bir tekrar arabelleği yeniden denendiği gibi otomatik olarak yeniden başlatılıyor, kendin durdurmadığın sürece.
 

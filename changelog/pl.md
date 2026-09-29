@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.8
+- **Naprawiono: pasek sesji nigdy nie chował się przy „Wsuwa się, gdy zmieni się liczba, i wysuwa 20 s później”.** Każda aktualizacja wtyczki liczyła się jako zmiana, nawet gdy żadna liczba się nie ruszyła, więc 20-sekundowe odliczanie ciągle zaczynało się od nowa i pasek zostawał na ekranie. Teraz wjeżdża, gdy liczba naprawdę się zmieni, i chowa się 20 s później. Dzięki seethingword za zgłoszenie.
+
 ## 0.34.7
 - **Naprawiono: ClipHound nie wracał, jeśli zamknął się w trakcie streamu.** Jeśli ClipHound sam się zamknął podczas streamu (awaria albo zakończenie przez Windows), wtyczka nigdy nie uruchamiała go ponownie: żadnych klipów z tablicy zabójstw, Closest ani głosu do końca streamu. Teraz jest uruchamiany ponownie automatycznie, tak samo jak ponawiana jest utracona bufor powtórek, chyba że sam go zatrzymałeś.
 

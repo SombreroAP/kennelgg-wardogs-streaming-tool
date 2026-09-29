@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.8
+- **Behoben: Die Sitzungsleiste fuhr bei „Gleitet rein, wenn sich eine Zahl ändert, 20 s später wieder raus“ nie wieder raus.** Jede Aktualisierung des Plugins zählte als Änderung, auch wenn sich keine Zahl bewegt hatte, also begann der 20-Sekunden-Countdown immer von vorn und die Leiste blieb im Bild. Jetzt fährt sie rein, wenn sich wirklich eine Zahl ändert, und 20 s später wieder raus. Danke seethingword für die Meldung.
+
 ## 0.34.7
 - **Behoben: ClipHound kam nicht zurück, wenn es mitten im Stream geschlossen wurde.** Wenn ClipHound während eines Streams von selbst beendet wurde (ein Absturz, oder Windows hat es beendet), startete das Plugin es nie wieder: keine Kill-Feed-Clips, Closest oder Voice für den Rest des Streams. Es wird jetzt automatisch neu gestartet, genau wie ein verlorener Replay-Puffer erneut versucht wird, außer du hast es selbst gestoppt.
 

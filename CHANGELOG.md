@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.8
+- **Fixed: the session bar never slid out with "Slides in when a number changes, out 20 s later".** Every update the plugin sent counted as a change, even when no number had moved, so the 20-second countdown kept starting over and the bar stayed on screen. It now slides in when a number really changes and out 20 s later. Thanks seethingword for the report.
+
 ## 0.34.7
 - **Fixed: ClipHound not coming back if it closed mid-stream.** If ClipHound closed on its own during a stream (a crash, or Windows ending it), the plugin never started it again: no kill-feed clips, Closest or voice for the rest of the stream. It is relaunched automatically now, the same way a lost replay buffer is retried, unless you stopped it yourself.
 

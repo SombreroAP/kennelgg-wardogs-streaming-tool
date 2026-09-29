@@ -249,7 +249,9 @@ body { font-family: "Chakra Petch", var(--cjk, "Segoe UI"), sans-serif; font-wei
         setTimeout(function () { el.classList.remove("up"); }, 1600);
       }
     });
-    var changed = Object.keys(d).length > 0;
+    // a real change only: d.kda is always there (empty when no K/D/A moved), and every state message the plugin
+    // sends (several a second at times) counted as a change, so "slides in when a number changes" never slid out
+    var changed = Object.keys(d).some(function (k) { return !!d[k]; });
     prev = s;
     place(s.overlay || {}, changed);
   }
