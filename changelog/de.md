@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.13
+- **Behoben: „Jeden Kill clippen" konnte für einen ganzen Stream unbemerkt aus bleiben, obwohl das Kästchen angehakt war.** ClipHound speichert eine eigene Kopie dieser Einstellung, und beim erneuten Verbinden vertraute das Plugin bisher deren Meldung mehr als seinem eigenen Wert - eine veraltete Kopie (eine neu installierte oder ältere ClipHound-Version) bedeutete keine Kill-Clips, bis du die Einstellungen erneut geöffnet und das Kästchen selbst umgeschaltet hast. Der Wert des Plugins gewinnt jetzt immer. Danke an _bgb_ für das Log.
+
 ## 0.34.12
 - **Behoben: eine falsche Warnung „Aufnahmequelle zeigt nichts" (und ein passender Eintrag in jedem automatischen Bericht am Streamende) während deiner Intro- oder BRB-Szene.** Die Spielprüfung konnte nicht unterscheiden, ob die Quelle wirklich ausfällt oder einfach noch nicht in der Live-Szene ist, also konnte der Wechsel zu deinem „Starting Soon"-Bildschirm vor der Spielszene als kaputt erscheinen. Sie sagt jetzt stattdessen, dass sie nicht beobachtet, und bleibt aus dem Bericht heraus. Danke supraren1n für die Logs.
 

@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.13
+- **Fixed: "Clip every kill I get" could silently stay off for a whole stream even with the box checked.** ClipHound keeps its own saved copy of that setting, and reconnecting used to trust whatever it reported back over the plugin's own value - a stale copy (from a reinstalled or older ClipHound) meant no per-kill clips until you reopened Settings and toggled the box yourself. The plugin's value always wins now. Thanks _bgb_ for the log.
+
 ## 0.34.12
 - **Fixed: a false "game capture shows nothing" warning (and a matching entry in every automatic end-of-stream report) during your intro or BRB scene.** The game health check couldn't tell a source that had really failed from one simply not on the live scene yet, so switching to your "Starting Soon" screen before the game scene could show up as broken. It now says it isn't watching instead, and stays out of the report. Thanks supraren1n for the logs.
 

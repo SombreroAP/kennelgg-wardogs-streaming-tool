@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.13
+- **Corregido: «Hacer clip de cada baja que consiga» podía quedarse desactivado sin avisar durante todo un directo, aunque la casilla estuviera marcada.** ClipHound guarda su propia copia de ese ajuste, y al reconectar el plugin solía confiar más en lo que ella reportaba que en su propio valor - una copia desactualizada (una ClipHound reinstalada o más antigua) significaba que no se hacían clips de cada baja hasta que volvías a abrir Ajustes y marcabas la casilla tú mismo. Ahora siempre gana el valor del plugin. Gracias a _bgb_ por el log.
+
 ## 0.34.12
 - **Corregido: una falsa advertencia de «la captura del juego no muestra nada» (y una entrada correspondiente en cada informe automático de fin de directo) durante tu escena de introducción o de pausa.** La comprobación del juego no distinguía entre una fuente realmente rota y una que simplemente aún no estaba en la escena en directo, así que cambiar a tu pantalla «Starting Soon» antes de la escena de juego podía aparecer como roto. Ahora dice que no está vigilando, y queda fuera del informe. Gracias supraren1n por los logs.
 

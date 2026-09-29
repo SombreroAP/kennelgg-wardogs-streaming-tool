@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.13
+- **Düzeltildi: kutu işaretliyken bile "Aldığım her leşi klip olarak kaydet" tüm yayın boyunca sessizce kapalı kalabiliyordu.** ClipHound bu ayarın kendi kopyasını tutuyor ve yeniden bağlanırken eklenti artık kendi değerinden çok onun bildirdiğine güveniyordu - eski bir kopya (yeniden kurulmuş veya eski bir ClipHound) sen Ayarlar'ı tekrar açıp kutuyu kendin işaretleyene kadar leş başına klip olmaması demekti. Artık her zaman eklentinin değeri kazanıyor. Log için _bgb_'ye teşekkürler.
+
 ## 0.34.12
 - **Düzeltildi: giriş veya ara sahnende görünen sahte "oyun yakalama hiçbir şey göstermiyor" uyarısı (ve her otomatik yayın sonu raporundaki karşılık gelen kayıt).** Oyun kontrolü, kaynağın gerçekten bozuk olmasıyla henüz canlı sahnede olmamasını ayırt edemiyordu, bu yüzden oyun sahnesine geçmeden önce "Starting Soon" ekranına geçmek bozukmuş gibi görünebiliyordu. Artık izlemediğini söylüyor ve raporun dışında kalıyor. Loglar için supraren1n'e teşekkürler.
 

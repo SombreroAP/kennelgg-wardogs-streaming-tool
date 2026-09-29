@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.13
+- **Corrigido: "Clipar todo abate meu" podia continuar desligado silenciosamente durante uma live inteira, mesmo com a caixa marcada.** O ClipHound guarda sua própria cópia dessa configuração, e ao reconectar o plugin costumava confiar mais no que ele reportava do que no próprio valor - uma cópia desatualizada (um ClipHound reinstalado ou mais antigo) significava nenhum clipe por abate até você reabrir as Configurações e marcar a caixa de novo. Agora o valor do plugin sempre vence. Obrigado a _bgb_ pelo log.
+
 ## 0.34.12
 - **Corrigido: um aviso falso de "a captura do jogo não mostra nada" (e uma entrada correspondente em todo relatório automático de fim de live) durante sua cena de abertura ou pausa.** A verificação do jogo não distinguia entre uma fonte realmente quebrada e uma que simplesmente ainda não estava na cena ao vivo, então trocar para a tela "Starting Soon" antes da cena do jogo podia aparecer como quebrado. Agora ela diz que não está observando, e fica fora do relatório. Obrigado supraren1n pelos logs.
 

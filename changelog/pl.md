@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.13
+- **Naprawiono: „Klip z każdego mojego zabójstwa” mógł po cichu pozostać wyłączony przez cały stream, mimo zaznaczonego pola.** ClipHound trzyma własną kopię tego ustawienia, a przy ponownym połączeniu wtyczka ufała temu, co zgłosiła, bardziej niż własnej wartości - nieaktualna kopia (przeinstalowany lub starszy ClipHound) oznaczała brak klipów z każdego zabójstwa, dopóki nie otworzyłeś ponownie Ustawień i sam nie zaznaczyłeś pola jeszcze raz. Teraz zawsze wygrywa wartość wtyczki. Dzięki _bgb_ za log.
+
 ## 0.34.12
 - **Naprawiono: fałszywe ostrzeżenie „przechwytywanie gry nic nie pokazuje” (i pasujący wpis w każdym automatycznym raporcie na koniec streamu) podczas sceny intro lub przerwy.** Sprawdzanie gry nie odróżniało naprawdę zepsutego źródła od takiego, które po prostu nie jest jeszcze na scenie na żywo, więc przełączenie na ekran „Starting Soon” przed sceną gry mogło wyglądać jak awaria. Teraz mówi, że nie obserwuje, i nie trafia do raportu. Dzięki supraren1n za logi.
 

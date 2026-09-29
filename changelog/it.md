@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.13
+- **Risolto: "Fai una clip di ogni mia uccisione" poteva restare disattivato senza avviso per tutta una diretta, anche con la casella spuntata.** ClipHound conserva una propria copia di questa impostazione e, alla riconnessione, finora il plugin si fidava di quanto riportato da essa più del proprio valore - una copia non aggiornata (una ClipHound reinstallata o più vecchia) significava niente clip per ogni uccisione finché non riaprivi le Impostazioni e spuntavi di nuovo tu la casella. Ora vince sempre il valore del plugin. Grazie a _bgb_ per il log.
+
 ## 0.34.12
 - **Risolto: un falso avviso «la cattura del gioco non mostra nulla» (con una voce corrispondente in ogni rapporto automatico di fine diretta) durante la tua scena di intro o pausa.** Il controllo del gioco non distingueva tra una sorgente davvero guasta e una semplicemente non ancora nella scena in diretta, quindi passare alla schermata «Starting Soon» prima della scena di gioco poteva sembrare un guasto. Ora dice che non sta controllando, e resta fuori dal rapporto. Grazie a supraren1n per i log.
 

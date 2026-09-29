@@ -2405,8 +2405,6 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 			cfg.appLibrary = v.value("library").toString().toStdString();
 			cfg.appBroadcaster = v.value("broadcaster").toString().toStdString();
 			cfg.appTwitchEnabled = v.value("twitch_enabled").toBool();
-			cfg.appEveryKill = v.value("clip_every_kill").toBool();
-			cfg.appMultikillWindow = v.value("multikill_window").toDouble(30);
 			cfg.save();
 			emit appConfigReceived();
 			// the kill-feed and NEARBY areas are picked in this window, so ours win
@@ -2418,10 +2416,15 @@ void Engine::onBridgeMessage(const QJsonObject &o)
 				       std::abs(a[1].toDouble() - y) < 1e-4 && std::abs(a[2].toDouble() - w) < 1e-4 &&
 				       std::abs(a[3].toDouble() - h) < 1e-4;
 			};
+			// clip_every_kill and the multikill window only ever come from our Settings dialog; ClipHound's
+			// own copy can be stale (a fresh install, an old config.yaml) and must never overwrite ours -
+			// a stream could run for hours with the checkbox checked but the app silently still off (LOG-201D)
 			if (!same(r, cfg.feedX, cfg.feedY, cfg.feedW, cfg.feedH) ||
 			    !same(nr, cfg.nearX, cfg.nearY, cfg.nearW, cfg.nearH) ||
 			    nb.value("enabled").toBool() != cfg.nearEnabled ||
-			    (int)v.value("fps").toDouble() != cfg.appFps)
+			    (int)v.value("fps").toDouble() != cfg.appFps ||
+			    v.value("clip_every_kill").toBool() != cfg.appEveryKill ||
+			    std::abs(v.value("multikill_window").toDouble(30) - cfg.appMultikillWindow) > 1e-6)
 				pushAppConfig();
 		}
 	} else if (type == "name_guess") {

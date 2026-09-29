@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.13
+- **Corrigé : « Clipper chacun de mes kills » pouvait rester désactivé sans prévenir pendant tout un stream, même case cochée.** ClipHound garde sa propre copie de ce réglage, et à la reconnexion, le plugin faisait jusqu'ici davantage confiance à ce qu'elle rapportait qu'à sa propre valeur - une copie périmée (une ClipHound réinstallée ou plus ancienne) voulait dire aucun clip par kill tant que tu ne rouvrais pas les Paramètres pour recocher la case toi-même. La valeur du plugin l'emporte désormais toujours. Merci à _bgb_ pour le log.
+
 ## 0.34.12
 - **Corrigé : une fausse alerte « la capture du jeu ne montre rien » (et une entrée correspondante dans chaque rapport automatique de fin de stream) pendant ton écran d'intro ou de pause.** La vérification du jeu ne faisait pas la différence entre une source vraiment en panne et une source simplement pas encore sur la scène en direct, donc passer à ton écran « Starting Soon » avant la scène de jeu pouvait apparaître comme cassé. Elle indique maintenant qu'elle ne surveille pas, et reste hors du rapport. Merci à supraren1n pour les logs.
 
