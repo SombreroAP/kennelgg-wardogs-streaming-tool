@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.7
+- **Corregido: ClipHound no volvía si se cerraba a mitad de la transmisión.** Si ClipHound se cerraba solo durante una transmisión (un fallo, o Windows lo terminaba), el plugin nunca lo volvía a iniciar: sin clips del feed de bajas, Closest ni voz por el resto de la transmisión. Ahora se relanza automáticamente, igual que un búfer de repetición perdido se reintenta, a menos que tú mismo lo hayas detenido.
+
 ## 0.34.6
 - **Los POV de la escuadra en un solo grupo.** Cada feed de compañero que crea el plugin está ahora en un grupo, «Kennel.gg · Squad POVs», en vez de una fila cada uno en tu lista de fuentes. Su ojo apaga o enciende todos los POV a la vez (el dock te avisa mientras están apagados), y mover o redimensionar el grupo los coloca todos juntos. Los feeds que ya están en tu escena entran solos y se quedan donde están. Se desactiva en Ajustes, Escuadra & POV, Extras.
 

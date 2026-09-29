@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.7
+- **Naprawiono: ClipHound nie wracał, jeśli zamknął się w trakcie streamu.** Jeśli ClipHound sam się zamknął podczas streamu (awaria albo zakończenie przez Windows), wtyczka nigdy nie uruchamiała go ponownie: żadnych klipów z tablicy zabójstw, Closest ani głosu do końca streamu. Teraz jest uruchamiany ponownie automatycznie, tak samo jak ponawiana jest utracona bufor powtórek, chyba że sam go zatrzymałeś.
+
 ## 0.34.6
 - **POV drużyny w jednej grupie.** Każdy feed kolegi, który tworzy wtyczka, jest teraz w jednej grupie, „Kennel.gg · Squad POVs”, zamiast osobnego wiersza na liście źródeł. Jej oko wyłącza lub włącza wszystkie POV naraz (dock mówi ci o tym, dopóki są wyłączone), a przesunięcie lub zmiana rozmiaru grupy ustawia wszystkie razem. Feedy, które już są w scenie, trafiają tam same i zostają na swoim miejscu. Wyłączysz to w Ustawienia, Drużyna & POV, Dodatki.
 

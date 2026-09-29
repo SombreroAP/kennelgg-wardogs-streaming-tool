@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.7
+- **Corrigé : ClipHound ne revenait pas s'il se fermait en pleine diffusion.** Si ClipHound se fermait tout seul pendant un stream (un plantage, ou Windows qui le terminait), le plugin ne le relançait jamais : plus de clips du fil des éliminations, de Closest ni de voix pour le reste du stream. Il est maintenant relancé automatiquement, comme un tampon de replay perdu qui est retenté, sauf si tu l'as arrêté toi-même.
+
 ## 0.34.6
 - **Les POV de l'escouade dans un seul groupe.** Chaque flux de coéquipier créé par le plugin est maintenant dans un groupe, « Kennel.gg · Squad POVs », au lieu d'une ligne chacun dans ta liste de sources. Son œil coupe ou rallume tous les POV d'un coup (le dock te le signale tant qu'ils sont coupés), et déplacer ou redimensionner le groupe les place tous ensemble. Les flux déjà dans ta scène y entrent tout seuls et restent où ils sont. À désactiver dans Paramètres, Escouade & POV, Extras.
 

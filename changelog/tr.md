@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.7
+- **Düzeltildi: ClipHound yayın ortasında kapanırsa geri gelmiyordu.** ClipHound bir yayın sırasında kendiliğinden kapanırsa (çökme ya da Windows'un sonlandırması), eklenti onu bir daha başlatmıyordu: yayının geri kalanında öldürme akışı klibi, Closest veya ses yoktu. Artık kaybolan bir tekrar arabelleği yeniden denendiği gibi otomatik olarak yeniden başlatılıyor, kendin durdurmadığın sürece.
+
 ## 0.34.6
 - **Takım POV'ları tek bir grupta.** Eklentinin oluşturduğu her takım arkadaşı yayını artık kaynak listende her biri ayrı satır yerine tek bir grupta, "Kennel.gg · Squad POVs" içinde. Gözü tüm takım POV'larını tek seferde kapatır ya da açar (kapalıyken dock söyler), grubu taşımak ya da boyutlandırmak hepsini birlikte yerleştirir. Sahnende zaten olan yayınlar kendiliğinden gruba girer ve yerlerinde kalır. Ayarlar, Takım & POV, Ekstralar'dan kapatılabilir.
 

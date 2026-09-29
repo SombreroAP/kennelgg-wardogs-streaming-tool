@@ -74,8 +74,13 @@ Engine::Engine(QObject *parent) : QObject(parent)
 	connect(&healthTimer_, &QTimer::timeout, this, &Engine::sendObsHealth);
 	connect(&healthTimer_, &QTimer::timeout, this, &Engine::vehicleDualCheck);
 	connect(&healthTimer_, &QTimer::timeout, this, [this]() {
-		if (++replayRetryTick_ % 12 == 0) // the health timer runs every 5 s: once a minute
+		if (++replayRetryTick_ % 12 == 0) { // the health timer runs every 5 s: once a minute
 			clips.retryReplayBuffer();
+			// it died mid-stream (no crash-right-after-start, no Stop pressed): bring it back, the
+			// same way a lost replay buffer is retried
+			if (cfg.launchApp && !appUserStopped_ && appState() == "stopped")
+				launchApp();
+		}
 		// a staged live update goes in when nothing is on screen that it would interrupt
 		if (!liveStaged_.isEmpty() && !liveBusy_ && !applied_ && !detected_ && !replaying() && !povPending_)
 			applyLiveUpdate();
