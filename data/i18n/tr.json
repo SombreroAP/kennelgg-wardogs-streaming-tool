@@ -437,6 +437,7 @@
 "Choose it": "Seç",
 "'%1' is not in OBS any more.": "'%1' artık OBS'te yok.",
 "Choose another": "Başka birini seç",
+"Not watching: the live scene isn't '%1'.": "İzlenmiyor: canlı sahne '%1' değil.",
 "'%1' shows nothing: is it in a scene and turned on?": "'%1' hiçbir şey göstermiyor: bir sahnede ve açık mı?",
 "Check it": "Kontrol et",
 "No downed-screen template is loaded.": "Yere düşme ekranı şablonu yüklenmedi.",

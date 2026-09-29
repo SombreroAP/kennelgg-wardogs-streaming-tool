@@ -437,6 +437,7 @@
 "Choose it": "选择",
 "'%1' is not in OBS any more.": "“%1”已不在 OBS 中。",
 "Choose another": "选择其他",
+"Not watching: the live scene isn't '%1'.": "未在监视：直播场景不是“%1”。",
 "'%1' shows nothing: is it in a scene and turned on?": "“%1”没有画面：它是否在场景中并已开启？",
 "Check it": "检查",
 "No downed-screen template is loaded.": "未加载倒地画面模板。",

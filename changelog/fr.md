@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.12
+- **Corrigé : une fausse alerte « la capture du jeu ne montre rien » (et une entrée correspondante dans chaque rapport automatique de fin de stream) pendant ton écran d'intro ou de pause.** La vérification du jeu ne faisait pas la différence entre une source vraiment en panne et une source simplement pas encore sur la scène en direct, donc passer à ton écran « Starting Soon » avant la scène de jeu pouvait apparaître comme cassé. Elle indique maintenant qu'elle ne surveille pas, et reste hors du rapport. Merci à supraren1n pour les logs.
+
 ## 0.34.11
 - **Corrigé : si le tampon de relecture s'arrêtait tout seul en cours de stream, il pouvait rester coupé pour le reste du stream.** La vérification une fois par minute ne réessayait de le démarrer qu'après l'échec de notre propre démarrage - un tampon arrêté tout seul (un crash, un souci de disque, OBS) restait coupé sans que personne s'en aperçoive, jusqu'à ce qu'un clip soit demandé. Il est maintenant réessayé chaque minute, comme un démarrage raté. Merci à AdisBak pour les logs.
 

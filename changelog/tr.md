@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.12
+- **Düzeltildi: giriş veya ara sahnende görünen sahte "oyun yakalama hiçbir şey göstermiyor" uyarısı (ve her otomatik yayın sonu raporundaki karşılık gelen kayıt).** Oyun kontrolü, kaynağın gerçekten bozuk olmasıyla henüz canlı sahnede olmamasını ayırt edemiyordu, bu yüzden oyun sahnesine geçmeden önce "Starting Soon" ekranına geçmek bozukmuş gibi görünebiliyordu. Artık izlemediğini söylüyor ve raporun dışında kalıyor. Loglar için supraren1n'e teşekkürler.
+
 ## 0.34.11
 - **Düzeltildi: tekrar oynatma arabelleği yayın sırasında kendiliğinden durursa, yayının geri kalanında kapalı kalabiliyordu.** Dakikada bir yapılan kontrol, onu yalnızca kendi başlatmamız başarısız olduysa yeniden başlatmaya çalışıyordu - kendiliğinden duran bir arabellek (bir çökme, bir disk aksaklığı, OBS) bir klip istenene kadar fark edilmeden kapalı kalıyordu. Artık başarısız bir başlatmayla aynı şekilde her dakika yeniden deneniyor. Günlükler için AdisBak'a teşekkürler.
 

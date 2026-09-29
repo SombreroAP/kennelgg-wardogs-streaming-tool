@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.12
+- **Corrigido: um aviso falso de "a captura do jogo não mostra nada" (e uma entrada correspondente em todo relatório automático de fim de live) durante sua cena de abertura ou pausa.** A verificação do jogo não distinguia entre uma fonte realmente quebrada e uma que simplesmente ainda não estava na cena ao vivo, então trocar para a tela "Starting Soon" antes da cena do jogo podia aparecer como quebrado. Agora ela diz que não está observando, e fica fora do relatório. Obrigado supraren1n pelos logs.
+
 ## 0.34.11
 - **Corrigido: se o buffer de replay parasse sozinho durante a live, ele podia ficar desligado pelo resto da live.** A verificação a cada minuto só tentava reiniciá-lo depois que nosso próprio início tivesse falhado - um buffer que parava sozinho (uma queda, um problema de disco, o OBS) ficava desligado sem ninguém perceber, até que um clipe fosse pedido. Agora ele é tentado de novo a cada minuto, igual a um início que falhou. Obrigado ao AdisBak pelos logs.
 

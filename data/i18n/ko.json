@@ -437,6 +437,7 @@
 "Choose it": "선택하기",
 "'%1' is not in OBS any more.": "'%1'이(가) 더 이상 OBS에 없습니다.",
 "Choose another": "다른 소스 선택",
+"Not watching: the live scene isn't '%1'.": "감시하지 않음: 방송 중인 장면이 '%1'이 아닙니다.",
 "'%1' shows nothing: is it in a scene and turned on?": "'%1'에 아무것도 나오지 않습니다: 장면에 있고 켜져 있나요?",
 "Check it": "확인하기",
 "No downed-screen template is loaded.": "다운 화면 템플릿이 로드되지 않았습니다.",

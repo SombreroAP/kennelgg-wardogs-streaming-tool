@@ -437,6 +437,7 @@
 "Choose it": "Sceglila",
 "'%1' is not in OBS any more.": "'%1' non è più in OBS.",
 "Choose another": "Scegline un'altra",
+"Not watching: the live scene isn't '%1'.": "Non sotto controllo: la scena in diretta non è '%1'.",
 "'%1' shows nothing: is it in a scene and turned on?": "'%1' non mostra niente: è in una scena ed è attiva?",
 "Check it": "Controllala",
 "No downed-screen template is loaded.": "Nessun modello della schermata a terra caricato.",

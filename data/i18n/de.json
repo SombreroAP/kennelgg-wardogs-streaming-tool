@@ -437,6 +437,7 @@
 "Choose it": "Wählen",
 "'%1' is not in OBS any more.": "'%1' ist nicht mehr in OBS.",
 "Choose another": "Andere wählen",
+"Not watching: the live scene isn't '%1'.": "Beobachte nicht: die Live-Szene ist nicht '%1'.",
 "'%1' shows nothing: is it in a scene and turned on?": "'%1' zeigt nichts: ist sie in einer Szene und eingeschaltet?",
 "Check it": "Prüfen",
 "No downed-screen template is loaded.": "Keine Down-Vorlage geladen.",

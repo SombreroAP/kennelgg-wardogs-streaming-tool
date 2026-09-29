@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.12
+- **Naprawiono: fałszywe ostrzeżenie „przechwytywanie gry nic nie pokazuje” (i pasujący wpis w każdym automatycznym raporcie na koniec streamu) podczas sceny intro lub przerwy.** Sprawdzanie gry nie odróżniało naprawdę zepsutego źródła od takiego, które po prostu nie jest jeszcze na scenie na żywo, więc przełączenie na ekran „Starting Soon” przed sceną gry mogło wyglądać jak awaria. Teraz mówi, że nie obserwuje, i nie trafia do raportu. Dzięki supraren1n za logi.
+
 ## 0.34.11
 - **Naprawiono: jeśli bufor powtórek zatrzymywał się sam podczas streama, mógł zostać wyłączony do końca streama.** Sprawdzanie raz na minutę próbowało go uruchomić ponownie tylko wtedy, gdy nasz własny start się nie powiódł - bufor, który zatrzymał się sam (awaria, problem z dyskiem, OBS), po prostu zostawał wyłączony, niezauważony, dopóki nie poproszono o klip. Teraz próbuje ponownie co minutę, tak samo jak przy nieudanym starcie. Dzięki AdisBak za logi.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.12
+- **Risolto: un falso avviso «la cattura del gioco non mostra nulla» (con una voce corrispondente in ogni rapporto automatico di fine diretta) durante la tua scena di intro o pausa.** Il controllo del gioco non distingueva tra una sorgente davvero guasta e una semplicemente non ancora nella scena in diretta, quindi passare alla schermata «Starting Soon» prima della scena di gioco poteva sembrare un guasto. Ora dice che non sta controllando, e resta fuori dal rapporto. Grazie a supraren1n per i log.
+
 ## 0.34.11
 - **Risolto: se il buffer delle replay si fermava da solo durante la diretta, poteva restare spento per il resto della diretta.** Il controllo una volta al minuto provava a riavviarlo solo dopo che il nostro avvio era fallito - un buffer che si fermava da solo (un crash, un problema al disco, OBS) restava spento, inosservato, finché non veniva richiesta una clip. Ora viene ritentato ogni minuto, come un avvio fallito. Grazie ad AdisBak per i log.
 

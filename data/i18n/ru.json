@@ -437,6 +437,7 @@
 "Choose it": "Выбрать",
 "'%1' is not in OBS any more.": "«%1» больше нет в OBS.",
 "Choose another": "Выбрать другой",
+"Not watching: the live scene isn't '%1'.": "Не слежу: в эфире не сцена «%1».",
 "'%1' shows nothing: is it in a scene and turned on?": "«%1» ничего не показывает: он есть в сцене и включён?",
 "Check it": "Проверить",
 "No downed-screen template is loaded.": "Шаблон экрана нокаута не загружен.",

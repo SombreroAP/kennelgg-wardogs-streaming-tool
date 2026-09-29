@@ -49,6 +49,13 @@ QList<Engine::HealthItem> Engine::health() const
 			h.level = 2;
 			h.why = tx("'%1' is not in OBS any more.").arg(q(cfg.gameSource));
 			h.fixes = {Fix("settings:general", tx("Choose another"))};
+		} else if (!lastWatchError_.empty() && !sceneMismatch().isEmpty()) {
+			// the live scene isn't the plugin's working scene, so of course nothing renders (an
+			// intro/BRB scene before or between games): not broken, just not watching right now.
+			// The 'scene' item below already says why. Reported broken here too, this false alarm
+			// rode along in every automatic end-of-stream report and the dock banner (LOG-AF6B).
+			h.level = 1;
+			h.why = tx("Not watching: the live scene isn't '%1'.").arg(q(cfg.sceneName));
 		} else if (!lastWatchError_.empty()) {
 			h.level = 2;
 			h.why = tx("'%1' shows nothing: is it in a scene and turned on?").arg(q(cfg.gameSource));

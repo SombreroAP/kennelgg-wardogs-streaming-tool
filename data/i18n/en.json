@@ -437,6 +437,7 @@
 "Choose it": "",
 "'%1' is not in OBS any more.": "",
 "Choose another": "",
+"Not watching: the live scene isn't '%1'.": "",
 "'%1' shows nothing: is it in a scene and turned on?": "",
 "Check it": "",
 "No downed-screen template is loaded.": "",

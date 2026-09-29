@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.12
+- **Corregido: una falsa advertencia de «la captura del juego no muestra nada» (y una entrada correspondiente en cada informe automático de fin de directo) durante tu escena de introducción o de pausa.** La comprobación del juego no distinguía entre una fuente realmente rota y una que simplemente aún no estaba en la escena en directo, así que cambiar a tu pantalla «Starting Soon» antes de la escena de juego podía aparecer como roto. Ahora dice que no está vigilando, y queda fuera del informe. Gracias supraren1n por los logs.
+
 ## 0.34.11
 - **Corregido: si el búfer de repetición se detenía solo durante el directo, podía quedar apagado el resto del directo.** La comprobación de cada minuto solo intentaba reiniciarlo después de que nuestro propio inicio hubiera fallado - un búfer que se detenía solo (un fallo, un problema de disco, OBS) se quedaba apagado sin que nadie lo notara, hasta que se pedía un clip. Ahora se reintenta cada minuto, igual que un inicio fallido. Gracias a AdisBak por los logs.
 

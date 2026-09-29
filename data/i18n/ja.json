@@ -437,6 +437,7 @@
 "Choose it": "選ぶ",
 "'%1' is not in OBS any more.": "「%1」はもうOBSにありません。",
 "Choose another": "別のものを選ぶ",
+"Not watching: the live scene isn't '%1'.": "監視していません: ライブ中のシーンが「%1」ではありません。",
 "'%1' shows nothing: is it in a scene and turned on?": "「%1」に何も映っていません: シーンに入っていて、表示がオンになっていますか？",
 "Check it": "確認する",
 "No downed-screen template is loaded.": "ダウン画面のテンプレートが読み込まれていません。",

@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.12
+- **Fixed: a false "game capture shows nothing" warning (and a matching entry in every automatic end-of-stream report) during your intro or BRB scene.** The game health check couldn't tell a source that had really failed from one simply not on the live scene yet, so switching to your "Starting Soon" screen before the game scene could show up as broken. It now says it isn't watching instead, and stays out of the report. Thanks supraren1n for the logs.
+
 ## 0.34.11
 - **Fixed: the replay buffer stopping by itself mid-stream could leave it off for the rest of the stream.** The once-a-minute check only tried to start it again after our own start had failed - a buffer that stopped on its own (a crash, a disk hiccup, OBS) just sat off, unnoticed, until a clip was asked for. It is retried every minute now, the same as a failed start. Thanks AdisBak for the logs.
 

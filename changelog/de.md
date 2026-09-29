@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.12
+- **Behoben: eine falsche Warnung „Aufnahmequelle zeigt nichts" (und ein passender Eintrag in jedem automatischen Bericht am Streamende) während deiner Intro- oder BRB-Szene.** Die Spielprüfung konnte nicht unterscheiden, ob die Quelle wirklich ausfällt oder einfach noch nicht in der Live-Szene ist, also konnte der Wechsel zu deinem „Starting Soon"-Bildschirm vor der Spielszene als kaputt erscheinen. Sie sagt jetzt stattdessen, dass sie nicht beobachtet, und bleibt aus dem Bericht heraus. Danke supraren1n für die Logs.
+
 ## 0.34.11
 - **Behoben: Wenn der Replay-Puffer während des Streams von selbst stoppte, blieb er für den Rest des Streams aus.** Die Prüfung einmal pro Minute versuchte ihn nur neu zu starten, nachdem unser eigener Start fehlgeschlagen war - ein Puffer, der von selbst stoppte (ein Absturz, ein Festplatten-Aussetzer, OBS), blieb einfach unbemerkt aus, bis ein Clip angefordert wurde. Er wird jetzt jede Minute neu versucht, genau wie ein fehlgeschlagener Start. Danke an AdisBak für die Logs.
 
