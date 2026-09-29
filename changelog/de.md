@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.16
+- **Behoben: „Eine andere Kopie von ClipHound läuft bereits" konnte für den Rest des Streams stehen bleiben, obwohl alles in Ordnung war.** Direkt nach einem Live-Update, oder beim Öffnen von OBS, wenn ClipHound schon in einer früheren Sitzung aktualisiert wurde, meldet ClipHound eine neuere Version als das Plugin, bis OBS vollständig geschlossen und neu geöffnet wird - genau das soll das Live-Update ja während der Sendung ersparen. Die Prüfung vertraute nur einer Version, die diese Sitzung schon vom Update-Server abgerufen hatte; jetzt akzeptiert sie auch die Version, die ein Live-Update selbst installiert hat, die sofort bekannt ist und Sitzungen übersteht. Danke an ginilson_ für das Log.
+
 ## 0.34.15
 - **Behoben: keine Kill- oder Regel-Clips (Headshot, RPG, gesnipt ...) die ganze Sendung, selbst mit aktiviertem „Jeden Kill clippen“.** Ein Name, den der Kill-Feed gelernt hat - oder einer, der mit einem Leerzeichen zwischen jedem Buchstaben eingegeben wurde, wie „B G B“ - passte nach dem Speichern nie wieder zu dir, sodass nichts im Feed als dein eigener Kill oder Tod erkannt wurde; „Niedergegangen“-Clips funktionierten weiterhin, da die vom Bildschirm gelesen werden, nicht vom Namen. Bestehende Installationen beheben sich selbst beim nächsten OBS-Start. Danke an _bgb_ für das Protokoll.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.16
+- **Corrigido: "Outra cópia do ClipHound está rodando" podia ficar aparecendo pelo resto da live, mesmo sem nada de errado.** Logo após uma atualização ao vivo, ou ao abrir o OBS quando o ClipHound já tinha sido atualizado numa sessão anterior, o ClipHound informa uma versão mais nova que o plugin até o OBS ser fechado por completo e reaberto - exatamente o que a atualização ao vivo existe para evitar durante a live. A checagem só confiava numa versão que esta sessão já tivesse buscado no servidor de atualização; agora ela também aceita a versão que uma atualização ao vivo instalou sozinha, que é conhecida na hora e sobrevive entre sessões. Obrigado a ginilson_ pelo log.
+
 ## 0.34.15
 - **Corrigido: nenhum clipe de abate ou de regra (headshot, RPG, sniped...) durante toda a live, mesmo com "Gravar cada abate" marcado.** Um nome que o feed de abates aprendeu - ou digitado com um espaço perdido entre cada letra, como "B G B" - nunca mais combinava com você depois de salvo, então nada no feed era reconhecido como seu próprio abate ou morte; os clipes de "caído" continuavam funcionando, pois esses leem a tela, não o nome. Instalações existentes se corrigem sozinhas na próxima vez que o OBS abrir. Obrigado a _bgb_ pelo log.
 

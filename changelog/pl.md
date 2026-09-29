@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.16
+- **Naprawiono: „Działa inna kopia ClipHound" mogło wisieć do końca transmisji, mimo że wszystko było w porządku.** Zaraz po aktualizacji na żywo albo przy otwarciu OBS, gdy ClipHound był już zaktualizowany w poprzedniej sesji, ClipHound zgłasza nowszą wersję niż wtyczka, dopóki OBS nie zostanie w pełni zamknięty i otwarty ponownie - czyli dokładnie to, czego aktualizacja na żywo ma oszczędzić podczas transmisji. Sprawdzenie ufało tylko wersji, którą ta sesja już pobrała z serwera aktualizacji; teraz akceptuje też wersję, którą sama zainstalowała aktualizacja na żywo, znaną od razu i przetrwałą między sesjami. Dzięki ginilson_ za log.
+
 ## 0.34.15
 - **Naprawiono: żadnych klipów z zabójstw ani reguł (headshot, RPG, zestrzelenie z dystansu...) przez cały stream, nawet z zaznaczonym „Nagrywaj każde zabójstwo”.** Imię wyuczone z paska zabójstw - albo wpisane z przypadkowym odstępem między literami, np. „B G B” - po zapisaniu nigdy już nie dopasowywało się do ciebie, więc nic na pasku nie było rozpoznawane jako twoje zabójstwo czy śmierć; klipy „powalenia” działały dalej, bo te odczytują ekran, nie imię. Istniejące instalacje naprawiają się same przy następnym starcie OBS. Dzięki _bgb_ za log.
 

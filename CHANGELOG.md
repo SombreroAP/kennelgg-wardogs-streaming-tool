@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.16
+- **Fixed: "Another copy of ClipHound is running" could show for the rest of the stream, even though nothing was wrong.** Right after a live update, or on opening OBS when ClipHound had already been updated in an earlier session, ClipHound reports a newer version than the plugin until OBS is fully closed and reopened - which live update exists precisely so you don't have to do while live. The check only trusted a version this session had already fetched from the update server; it now also accepts the version a live update itself installed, which is known at once and survives between sessions. Thanks ginilson_ for the log.
+
 ## 0.34.15
 - **Fixed: no kills or rule clips (headshot, RPG, sniped...) all stream, even with "Clip every kill I get" checked.** A name the kill feed learned - or one typed with a stray space between each letter, like "B G B" - never matched you again once it was saved, so nothing in the feed was recognised as your own kill or death; "downed" clips still worked, since those read the screen, not the name. Existing installs fix themselves the next time OBS starts. Thanks _bgb_ for the log.
 

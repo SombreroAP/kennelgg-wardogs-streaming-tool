@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.16
+- **Corrigé : « Une autre copie de ClipHound est en cours d'exécution » pouvait rester affiché pour le reste du direct, alors que tout allait bien.** Juste après une mise à jour en direct, ou à l'ouverture d'OBS quand ClipHound avait déjà été mis à jour lors d'une session précédente, ClipHound signale une version plus récente que le plugin jusqu'à ce qu'OBS soit complètement fermé puis rouvert - ce que la mise à jour en direct existe justement pour éviter pendant le direct. La vérification ne faisait confiance qu'à une version déjà récupérée par cette session auprès du serveur de mise à jour ; elle accepte maintenant aussi la version qu'une mise à jour en direct a elle-même installée, connue aussitôt et conservée d'une session à l'autre. Merci à ginilson_ pour le journal.
+
 ## 0.34.15
 - **Corrigé : aucun clip de kill ou de règle (headshot, RPG, sniped...) pendant tout le stream, même avec « Filmer chaque kill » cochée.** Un nom appris par le fil des kills - ou tapé avec un espace parasite entre chaque lettre, comme « B G B » - ne te correspondait plus jamais une fois enregistré, si bien que rien dans le fil n'était reconnu comme ton propre kill ou ta propre mort ; les clips « à terre » continuaient de fonctionner, car ils lisent l'écran, pas le nom. Les installations existantes se corrigent seules au prochain démarrage d'OBS. Merci à _bgb_ pour le journal.
 

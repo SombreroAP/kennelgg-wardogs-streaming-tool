@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.16
+- **Corregido: «Hay otra copia de ClipHound en marcha» podía quedarse el resto del directo, aunque no pasara nada malo.** Justo después de una actualización en directo, o al abrir OBS cuando ClipHound ya se había actualizado en una sesión anterior, ClipHound informa de una versión más nueva que el plugin hasta que OBS se cierra del todo y se vuelve a abrir - justo lo que la actualización en directo existe para evitarte mientras emites. La comprobación solo confiaba en una versión que esta sesión ya hubiera obtenido del servidor de actualizaciones; ahora también acepta la versión que una actualización en directo instaló ella misma, que se conoce al instante y sobrevive entre sesiones. Gracias a ginilson_ por el registro.
+
 ## 0.34.15
 - **Corregido: ningún clip de baja ni de regla (headshot, RPG, francotirador...) durante toda la transmisión, incluso con «Grabar cada baja» activado.** Un nombre que el feed de bajas aprendió -o uno escrito con un espacio parásito entre cada letra, como «B G B»- dejaba de coincidir contigo en cuanto se guardaba, así que nada en el feed se reconocía como tu propia baja o muerte; los clips de «caído» seguían funcionando, porque esos leen la pantalla, no el nombre. Las instalaciones existentes se corrigen solas la próxima vez que arranque OBS. Gracias a _bgb_ por el registro.
 

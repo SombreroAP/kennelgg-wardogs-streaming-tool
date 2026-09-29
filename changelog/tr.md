@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.16
+- **Düzeltildi: hiçbir sorun olmasa bile "Başka bir ClipHound kopyası çalışıyor" uyarısı yayının geri kalanında takılı kalabiliyordu.** Bir canlı güncellemeden hemen sonra ya da ClipHound önceki bir oturumda zaten güncellenmişken OBS açıldığında, ClipHound - OBS tamamen kapatılıp yeniden açılana kadar - eklentiden daha yeni bir sürüm bildiriyordu; canlı güncelleme tam olarak bunu yayın sırasında yapmana gerek kalmasın diye var. Kontrol yalnızca bu oturumun güncelleme sunucusundan zaten aldığı bir sürüme güveniyordu; artık bir canlı güncellemenin kendisinin kurduğu, hemen bilinen ve oturumlar arasında kalıcı olan sürümü de kabul ediyor. Günlük için ginilson_'a teşekkürler.
+
 ## 0.34.15
 - **Düzeltildi: "Her öldürmeyi kaydet" işaretli olsa bile tüm yayın boyunca hiç öldürme veya kural klibi (kafa vuruşu, RPG, uzaktan vurulma...) alınmadı.** Öldürme akışının öğrendiği - veya "B G B" gibi her harf arasına yanlışlıkla boşluk konarak yazılan - bir isim, kaydedildikten sonra artık seninle hiç eşleşmiyordu, bu yüzden akıştaki hiçbir şey kendi öldürmen veya ölümün olarak tanınmadı; "yerde" klipleri ekranı okuduğu için isimden bağımsız çalışmaya devam etti. Var olan kurulumlar OBS bir dahaki açılışta kendini düzeltir. Log için _bgb_'ye teşekkürler.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.16
+- **Risolto: "Un'altra copia di ClipHound è in esecuzione" poteva restare per il resto della diretta, anche se andava tutto bene.** Subito dopo un aggiornamento live, o all'apertura di OBS quando ClipHound era già stato aggiornato in una sessione precedente, ClipHound segnala una versione più recente del plugin finché OBS non viene chiuso del tutto e riaperto - proprio ciò che l'aggiornamento live serve a evitarti durante la diretta. Il controllo si fidava solo di una versione già ottenuta dal server di aggiornamento in questa sessione; ora accetta anche la versione che un aggiornamento live ha installato lui stesso, nota subito e che sopravvive tra le sessioni. Grazie a ginilson_ per il log.
+
 ## 0.34.15
 - **Risolto: nessuna clip di uccisione o regola (headshot, RPG, sniped...) per tutta la diretta, anche con «Filma ogni uccisione» attivata.** Un nome imparato dal feed delle uccisioni - o digitato con uno spazio indesiderato tra ogni lettera, come «B G B» - non corrispondeva più a te una volta salvato, quindi nulla nel feed veniva riconosciuto come tua uccisione o morte; le clip «a terra» continuavano a funzionare, perché leggono lo schermo, non il nome. Le installazioni esistenti si correggono da sole al prossimo avvio di OBS. Grazie a _bgb_ per il log.
 
