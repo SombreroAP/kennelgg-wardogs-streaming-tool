@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.14
+- **Fixed: ClipHound never starting - no kill-feed clips, Closest or voice, for the whole stream.** When the direct launch failed, the fallback opened ClipHound like a web link, and Windows always blocks that for a program (access denied) even though the file was right there. It now opens it the same way Explorer does when you double-click it. Thanks alfadavius1 for the log.
+
 ## 0.34.13
 - **Fixed: "Clip every kill I get" could silently stay off for a whole stream even with the box checked.** ClipHound keeps its own saved copy of that setting, and reconnecting used to trust whatever it reported back over the plugin's own value - a stale copy (from a reinstalled or older ClipHound) meant no per-kill clips until you reopened Settings and toggled the box yourself. The plugin's value always wins now. Thanks _bgb_ for the log.
 

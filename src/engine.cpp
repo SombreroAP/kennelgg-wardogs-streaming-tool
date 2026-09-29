@@ -407,10 +407,22 @@ void Engine::launchApp()
 		return;
 	}
 	// fall back to the shell (handles .bat/.cmd and anything Windows wants to elevate or associate)
+#ifdef _WIN32
+	// ShellExecute a file:// URI (what QDesktopServices::openUrl builds) always refuses to launch an
+	// .exe with access denied (error 5) - Windows only allows that through a plain native path, the
+	// same way Explorer double-clicks it (LOG-BB3F: ClipHound never started, every stream).
+	HINSTANCE sh = ShellExecuteW(nullptr, L"open", (const wchar_t *)QDir::toNativeSeparators(p).utf16(), nullptr,
+				     (const wchar_t *)QDir::toNativeSeparators(dir).utf16(), SW_SHOWNORMAL);
+	if ((INT_PTR)sh > 32)
+		log(tx("Started ClipHound via the shell: %1").arg(p));
+	else
+		log(tx("Could not start ClipHound: %1 (try the Start-menu shortcut and send me the Logs).").arg(p));
+#else
 	if (QDesktopServices::openUrl(QUrl::fromLocalFile(p)))
 		log(tx("Started ClipHound via the shell: %1").arg(p));
 	else
 		log(tx("Could not start ClipHound: %1 (try the Start-menu shortcut and send me the Logs).").arg(p));
+#endif
 }
 
 Engine::~Engine()

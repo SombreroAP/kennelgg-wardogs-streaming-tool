@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.14
+- **Corregido: ClipHound nunca arrancaba - sin clips del feed de bajas, Closest ni voz, durante todo el directo.** Cuando el inicio directo fallaba, la alternativa abría ClipHound como un enlace web, y Windows siempre bloquea eso para un programa (acceso denegado) aunque el archivo estuviera justo ahí. Ahora se abre igual que lo haría el Explorador al hacer doble clic. Gracias a alfadavius1 por el registro.
+
 ## 0.34.13
 - **Corregido: «Hacer clip de cada baja que consiga» podía quedarse desactivado sin avisar durante todo un directo, aunque la casilla estuviera marcada.** ClipHound guarda su propia copia de ese ajuste, y al reconectar el plugin solía confiar más en lo que ella reportaba que en su propio valor - una copia desactualizada (una ClipHound reinstalada o más antigua) significaba que no se hacían clips de cada baja hasta que volvías a abrir Ajustes y marcabas la casilla tú mismo. Ahora siempre gana el valor del plugin. Gracias a _bgb_ por el log.
 

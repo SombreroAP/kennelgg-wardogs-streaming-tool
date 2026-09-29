@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.14
+- **Corrigido: o ClipHound nunca iniciava - sem clipes do feed de abates, Closest ou voz, a live inteira.** Quando o início direto falhava, o método alternativo abria o ClipHound como um link da web, e o Windows sempre bloqueia isso para um programa (acesso negado), mesmo com o arquivo bem ali. Agora ele abre do mesmo jeito que o Explorador faria com um clique duplo. Obrigado a alfadavius1 pelo log.
+
 ## 0.34.13
 - **Corrigido: "Clipar todo abate meu" podia continuar desligado silenciosamente durante uma live inteira, mesmo com a caixa marcada.** O ClipHound guarda sua própria cópia dessa configuração, e ao reconectar o plugin costumava confiar mais no que ele reportava do que no próprio valor - uma cópia desatualizada (um ClipHound reinstalado ou mais antigo) significava nenhum clipe por abate até você reabrir as Configurações e marcar a caixa de novo. Agora o valor do plugin sempre vence. Obrigado a _bgb_ pelo log.
 

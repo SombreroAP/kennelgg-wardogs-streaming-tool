@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.14
+- **Risolto: ClipHound non partiva mai - niente clip del kill feed, Closest o voce, per tutta la diretta.** Quando l'avvio diretto falliva, il metodo di riserva apriva ClipHound come un link web, e Windows blocca sempre questo per un programma (accesso negato) anche se il file era proprio lì. Ora lo apre come farebbe Esplora risorse con un doppio clic. Grazie ad alfadavius1 per il log.
+
 ## 0.34.13
 - **Risolto: "Fai una clip di ogni mia uccisione" poteva restare disattivato senza avviso per tutta una diretta, anche con la casella spuntata.** ClipHound conserva una propria copia di questa impostazione e, alla riconnessione, finora il plugin si fidava di quanto riportato da essa più del proprio valore - una copia non aggiornata (una ClipHound reinstallata o più vecchia) significava niente clip per ogni uccisione finché non riaprivi le Impostazioni e spuntavi di nuovo tu la casella. Ora vince sempre il valore del plugin. Grazie a _bgb_ per il log.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.14
+- **Naprawiono: ClipHound nigdy się nie uruchamiał - żadnych klipów z paska zabójstw, Closest ani głosu, przez cały stream.** Gdy bezpośrednie uruchomienie zawodziło, zapasowa metoda otwierała ClipHound jak link internetowy, a Windows zawsze to blokuje dla programu (odmowa dostępu), mimo że plik tam był. Teraz otwiera go tak, jak zrobiłby to Eksplorator po dwukliku. Dzięki alfadavius1 za log.
+
 ## 0.34.13
 - **Naprawiono: „Klip z każdego mojego zabójstwa” mógł po cichu pozostać wyłączony przez cały stream, mimo zaznaczonego pola.** ClipHound trzyma własną kopię tego ustawienia, a przy ponownym połączeniu wtyczka ufała temu, co zgłosiła, bardziej niż własnej wartości - nieaktualna kopia (przeinstalowany lub starszy ClipHound) oznaczała brak klipów z każdego zabójstwa, dopóki nie otworzyłeś ponownie Ustawień i sam nie zaznaczyłeś pola jeszcze raz. Teraz zawsze wygrywa wartość wtyczki. Dzięki _bgb_ za log.
 

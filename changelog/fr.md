@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.14
+- **Corrigé : ClipHound ne démarrait jamais - aucun clip du fil des kills, Closest ni voix, pendant tout le stream.** Quand le lancement direct échouait, la solution de secours ouvrait ClipHound comme un lien web, ce que Windows bloque toujours pour un programme (accès refusé), même si le fichier était bien là. Il s'ouvre maintenant comme le ferait l'Explorateur en double-cliquant dessus. Merci à alfadavius1 pour le journal.
+
 ## 0.34.13
 - **Corrigé : « Clipper chacun de mes kills » pouvait rester désactivé sans prévenir pendant tout un stream, même case cochée.** ClipHound garde sa propre copie de ce réglage, et à la reconnexion, le plugin faisait jusqu'ici davantage confiance à ce qu'elle rapportait qu'à sa propre valeur - une copie périmée (une ClipHound réinstallée ou plus ancienne) voulait dire aucun clip par kill tant que tu ne rouvrais pas les Paramètres pour recocher la case toi-même. La valeur du plugin l'emporte désormais toujours. Merci à _bgb_ pour le log.
 

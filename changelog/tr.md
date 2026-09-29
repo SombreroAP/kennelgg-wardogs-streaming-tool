@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.14
+- **Düzeltildi: ClipHound hiç başlamıyordu - tüm yayın boyunca öldürme akışı klibi, Closest ya da ses yoktu.** Doğrudan başlatma başarısız olduğunda, yedek yöntem ClipHound'u bir web bağlantısı gibi açıyordu ve Windows dosya tam orada olsa bile bunu bir program için her zaman engelliyor (erişim reddedildi). Artık Gezgin'de çift tıklandığında olduğu gibi açılıyor. Log için alfadavius1'e teşekkürler.
+
 ## 0.34.13
 - **Düzeltildi: kutu işaretliyken bile "Aldığım her leşi klip olarak kaydet" tüm yayın boyunca sessizce kapalı kalabiliyordu.** ClipHound bu ayarın kendi kopyasını tutuyor ve yeniden bağlanırken eklenti artık kendi değerinden çok onun bildirdiğine güveniyordu - eski bir kopya (yeniden kurulmuş veya eski bir ClipHound) sen Ayarlar'ı tekrar açıp kutuyu kendin işaretleyene kadar leş başına klip olmaması demekti. Artık her zaman eklentinin değeri kazanıyor. Log için _bgb_'ye teşekkürler.
 
