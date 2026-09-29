@@ -865,6 +865,7 @@ void Engine::start()
 		log(tx("Session stats: the cash reader could not start (%1) - kills and deaths are still counted.")
 			    .arg(QString::fromStdString(hudModelErr_)));
 	healthTimer_.start(5000);
+	sw.groupFeeds(cfg);    // feeds made before 0.34.6 were loose in the scene, one row each
 	clearSquadLeftovers(); // OBS keeps what was showing when it closed; the stream starts on your own POV
 	if (cfg.keepWarm && !applied_ && cfg.active())
 		sw.armWarm(cfg);
@@ -2206,6 +2207,10 @@ void Engine::reloadConfig()
 		d->unlock();
 	}
 	timer_.setInterval(std::max(100, cfg.pollMs));
+	if (cfg.groupFeeds)
+		sw.groupFeeds(cfg); // loose feeds into "Kennel.gg · Squad POVs" (and the ones there before 0.34.6)
+	else
+		sw.ungroupFeeds(cfg); // Settings turned the group off: the feeds back in the scene as they are
 	if (cfg.keepWarm && !applied_ && cfg.active())
 		sw.armWarm(cfg);
 	sw.raiseOnTop(cfg);                 // the camera and alerts list may have just changed

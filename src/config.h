@@ -87,9 +87,10 @@ struct Config {
 	/// Discord squad mates are shown only while their capture holds a game picture: never the call
 	/// grid, a text channel or a "stream ended" card (Picture::look decides).
 	bool pictureCheck = true;
-	bool preloadFeeds = true;    // every squad mate's feed loaded and playing, hidden and silent
-	bool preloadV1 = false;      // turned on once for everyone (0.34.2): no pre-roll ad on every swap
-	bool friendAudio = true;     // the squad mate on screen is the one feed with sound on your stream
+	bool preloadFeeds = true; // every squad mate's feed loaded and playing, hidden and silent
+	bool groupFeeds = true;  // every squad mate feed the plugin makes sits in one group in the source list (0.34.6)
+	bool preloadV1 = false;  // turned on once for everyone (0.34.2): no pre-roll ad on every swap
+	bool friendAudio = true; // the squad mate on screen is the one feed with sound on your stream
 	bool audioDefaults2 = false; // one-time move to "nothing of yours is muted by default"
 	bool audioDefaults3 = false; // ...and once more: nothing muted, and no sound taken from their feed
 	bool playingV1 = false;      // one-time: Discord squad mates with no pop-out start unticked
@@ -324,6 +325,7 @@ struct Config {
 	double boxX = 0.84, boxY = 0.62, boxW = 0.13, boxH = 0.035; // capture box for a custom template
 
 	static const char *webSourceName() { return "Kennel.gg web"; }
+	static const char *feedGroupName() { return "Kennel.gg · Squad POVs"; }
 	/// Browser source a web feed lives in. With preloading each squad mate gets their own, so
 	/// every stream is already playing when the swap happens; otherwise they share one.
 	std::string webSourceFor(const Friend &f) const

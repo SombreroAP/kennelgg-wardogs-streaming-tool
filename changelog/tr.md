@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.6
+- **Takım POV'ları tek bir grupta.** Eklentinin oluşturduğu her takım arkadaşı yayını artık kaynak listende her biri ayrı satır yerine tek bir grupta, "Kennel.gg · Squad POVs" içinde. Gözü tüm takım POV'larını tek seferde kapatır ya da açar (kapalıyken dock söyler), grubu taşımak ya da boyutlandırmak hepsini birlikte yerleştirir. Sahnende zaten olan yayınlar kendiliğinden gruba girer ve yerlerinde kalır. Ayarlar, Takım & POV, Ekstralar'dan kapatılabilir.
+
 ## 0.34.5
 - **Düzeltildi: bir klip her saniye tekrar tekrar ClipHound'a gönderiliyordu.** Bir klip kısayolu için yalnızca dikey bir Backtrack dosyası geldiğinde (yanında yatay dosya olmadan), eklenti klibi tutup OBS açık kaldıkça her saniye yeniden ClipHound'a veriyordu: binlerce kez, ve ClipHound her seferinde aynı öne çıkan segmenti yeniden deniyordu. Artık bir kez veriliyor. Loglar için BrokenArrow'a teşekkürler.
 - **Düzeltildi: hiçbir şey kaybolmadığı hâlde "kısayol klipleri kayboldu".** Klipler & tekrarlar altında seçilen bir bölüm işareti kısayolu ya da OBS'nin kendi Tekrarı kaydet kısayolu kendine ait klip dosyası yazmaz, yine de her klip 90 sn onu bekliyor ve Aitum Backtrack ipucuyla kayıp sayılıyordu. Bu kısayollar yine tetikleniyor; sadece artık beklenmiyor. Tekrar arabelleği klibine katılan dikey bir dosya da artık kayıp sayılmıyor.

@@ -342,6 +342,18 @@ QList<Engine::Banner> Engine::banners() const
 		b.actions = {Fix("popout:restore:" + it.key(), tx("Restore it"))};
 		add(b);
 	}
+	if (cfg.groupFeeds && !cfg.friends.empty() && sw.feedGroupHidden(cfg)) {
+		// the group's eye is the one switch for every squad mate feed: off, a swap puts nothing on screen
+		Banner b;
+		b.id = "feedgroup";
+		b.level = 1;
+		b.text =
+			tx("Squad mates' POVs are switched off: the group '%1' is hidden in your source list, so a swap "
+			   "shows nothing. Turn its eye back on to show them again.")
+				.arg(QString(Config::feedGroupName()).toHtmlEscaped());
+		b.actions = {Fix("feedgroup:show", tx("Turn them on"))};
+		add(b);
+	}
 	if (langBanner_) {
 		Banner b;
 		b.id = "lang";
@@ -612,6 +624,8 @@ bool Engine::runAction(const QString &id)
 		startUpdate();
 	} else if (id == "update:install") {
 		installUpdate();
+	} else if (id == "feedgroup:show") {
+		sw.showFeedGroup(cfg);
 	} else if (id == "popouts:show") {
 		showPopouts(true);
 	} else

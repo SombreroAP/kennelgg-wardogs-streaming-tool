@@ -12,6 +12,15 @@
 /// Call on the UI thread.
 class Switcher {
 public:
+	/// The squad mates' feeds in one group ("Kennel.gg · Squad POVs"): one row in the source list, one eye
+	/// for all of them. Its eye is the streamer's: the plugin shows it when it makes it, and on the dock's
+	/// "Turn them on", never otherwise.
+	obs_sceneitem_t *feedGroup(const Config &cfg, obs_scene_t *scene, bool create);
+	int groupFeeds(const Config &cfg);    // the plugin's feeds still loose in the scene moved into the group
+	void ungroupFeeds(const Config &cfg); // the group dissolved, its feeds back in the scene as they are
+	bool feedGroupHidden(const Config &cfg) const;
+	void showFeedGroup(const Config &cfg);
+	std::vector<std::string> feedNames(const Config &cfg);
 	std::function<void(const std::string &)> log;
 	std::string lastVerticalWhere_; // the vertical scene as last logged
 

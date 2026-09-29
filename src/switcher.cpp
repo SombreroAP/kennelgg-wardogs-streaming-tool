@@ -257,7 +257,7 @@ std::string Switcher::createInScene(const Config &cfg, const char *kind, const s
 		if (log)
 			log(tx("Added '%1' to OBS.").arg(qs(name)).toStdString());
 	}
-	obs_sceneitem_t *item = obs_scene_find_source(scene, name.c_str());
+	obs_sceneitem_t *item = obs_scene_find_source_recursive(scene, name.c_str());
 	bool fresh = !item;
 	if (!item)
 		item = obs_scene_add(scene, src);
@@ -346,7 +346,8 @@ int Switcher::removeDiscordAudio(Config &cfg)
 		obs_frontend_get_scenes(&scenes);
 		for (size_t i = 0; i < scenes.sources.num; i++) {
 			obs_scene_t *scene = obs_scene_from_source(scenes.sources.array[i]);
-			if (obs_sceneitem_t *it = scene ? obs_scene_find_source(scene, name.c_str()) : nullptr)
+			if (obs_sceneitem_t *it = scene ? obs_scene_find_source_recursive(scene, name.c_str())
+							: nullptr)
 				obs_sceneitem_remove(it);
 		}
 		obs_frontend_source_list_free(&scenes);
@@ -376,7 +377,8 @@ int Switcher::removeFriendSources(const Config &cfg, const Friend &f)
 		obs_frontend_get_scenes(&scenes);
 		for (size_t i = 0; i < scenes.sources.num; i++) {
 			obs_scene_t *scene = obs_scene_from_source(scenes.sources.array[i]);
-			if (obs_sceneitem_t *it = scene ? obs_scene_find_source(scene, name.c_str()) : nullptr)
+			if (obs_sceneitem_t *it = scene ? obs_scene_find_source_recursive(scene, name.c_str())
+							: nullptr)
 				obs_sceneitem_remove(it);
 		}
 		obs_frontend_source_list_free(&scenes);
@@ -457,6 +459,7 @@ std::string Switcher::createFriendSources(const Config &cfg, Friend &f)
 		if (!e.empty())
 			return e;
 		f.source = video;
+		groupFeeds(cfg);
 		return "";
 	}
 	return "";
@@ -708,6 +711,7 @@ std::string Switcher::bindPopout(const Config &cfg, Friend &f, const Popout &p)
 		f.baseSource = f.source; // where to go back to; their audio capture stays as it is
 	f.source = mine;
 	f.popout = p.window;
+	groupFeeds(cfg);
 	return "";
 }
 
@@ -779,7 +783,7 @@ std::string Switcher::ensureBrowserSource(obs_scene_t *scene, const char *name, 
 		ovi.base_width = (uint32_t)width;
 		ovi.base_height = (uint32_t)height;
 	}
-	obs_sceneitem_t *item = obs_scene_find_source(scene, name);
+	obs_sceneitem_t *item = obs_scene_find_source_recursive(scene, name);
 	obs_source_t *src = obs_get_source_by_name(name);
 	if (!src) {
 		obs_data_t *st = obs_data_create();
@@ -862,19 +866,23 @@ int Switcher::hideEverywhere(const std::string &sourceName)
 		obs_scene_t *scene = obs_scene_from_source(ss);
 		if (!scene)
 			return true;
-		obs_scene_enum_items(
-			scene,
-			[](obs_scene_t *, obs_sceneitem_t *item, void *p) {
-				auto *c = (Ctx *)p;
-				obs_source_t *src = obs_sceneitem_get_source(item);
-				if (src && obs_source_get_name(src) && *c->name == obs_source_get_name(src) &&
-				    obs_sceneitem_visible(item)) {
-					obs_sceneitem_set_visible(item, false);
-					c->hidden++;
-				}
+		// items inside a group (the squad POVs group) are the group's, not the scene's: walk into it
+		static bool (*visit)(obs_scene_t *, obs_sceneitem_t *, void *) = [](obs_scene_t *,
+										    obs_sceneitem_t *item, void *p) {
+			auto *c = (Ctx *)p;
+			if (obs_sceneitem_is_group(item)) {
+				obs_sceneitem_group_enum_items(item, visit, p);
 				return true;
-			},
-			c);
+			}
+			obs_source_t *src = obs_sceneitem_get_source(item);
+			if (src && obs_source_get_name(src) && *c->name == obs_source_get_name(src) &&
+			    obs_sceneitem_visible(item)) {
+				obs_sceneitem_set_visible(item, false);
+				c->hidden++;
+			}
+			return true;
+		};
+		obs_scene_enum_items(scene, visit, c);
 		return true;
 	};
 	obs_enum_scenes(perScene, &ctx);
@@ -927,7 +935,7 @@ std::string Switcher::trimToContent(const Config &cfg, const Friend &f)
 	if (!ss)
 		return txs("no scene");
 	obs_scene_t *scene = obs_scene_from_source(ss);
-	obs_sceneitem_t *item = obs_scene_find_source(scene, f.source.c_str());
+	obs_sceneitem_t *item = obs_scene_find_source_recursive(scene, f.source.c_str());
 	obs_source_t *src = obs_get_source_by_name(f.source.c_str());
 	std::string err;
 	if (!item || !src) {
@@ -1374,8 +1382,9 @@ void Switcher::armOne(const Config &cfg, const Friend &f)
 	obs_scene_t *scene = obs_scene_from_source(ss);
 	if (f.isWeb())
 		ensureBrowserSource(scene, name.c_str(), webUrl(f), true);
+	groupFeeds(cfg);
 	obs_source_t *src = obs_get_source_by_name(name.c_str());
-	obs_sceneitem_t *item = obs_scene_find_source(scene, name.c_str());
+	obs_sceneitem_t *item = obs_scene_find_source_recursive(scene, name.c_str());
 	if (src && item) {
 		ensureHideFilter(src);
 		obs_source_t *hf = obs_source_get_filter_by_name(src, Config::hideFilterName());
@@ -1392,7 +1401,7 @@ void Switcher::armOne(const Config &cfg, const Friend &f)
 		log(tx("Warm feed: '%1' is not in the scene.").arg(qs(name)).toStdString());
 	if (!f.audioSource.empty()) {
 		obs_source_t *a = obs_get_source_by_name(f.audioSource.c_str());
-		obs_sceneitem_t *ai = obs_scene_find_source(scene, f.audioSource.c_str());
+		obs_sceneitem_t *ai = obs_scene_find_source_recursive(scene, f.audioSource.c_str());
 		if (a && ai) {
 			obs_source_set_muted(a, true);
 			obs_sceneitem_set_visible(ai, false);
@@ -2068,7 +2077,7 @@ std::string Switcher::applyDual(const Config &cfg, bool on, bool rearm)
 				obs_source_set_enabled(hf, false);
 				obs_source_release(hf);
 			}
-			if (obs_sceneitem_t *main = obs_scene_find_source(scene, inner.c_str()))
+			if (obs_sceneitem_t *main = obs_scene_find_source_recursive(scene, inner.c_str()))
 				obs_sceneitem_set_visible(main, false);
 			obs_source_release(src);
 			dualInner_ = inner;
@@ -2232,15 +2241,19 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 			if (!e.empty())
 				errors.push_back(e);
 		}
+		groupFeeds(cfg);
 		obs_source_t *src = obs_get_source_by_name(name.c_str());
-		obs_sceneitem_t *item = obs_scene_find_source(scene, name.c_str());
+		obs_sceneitem_t *item = obs_scene_find_source_recursive(scene, name.c_str());
 		if (!src || !item) {
 			errors.push_back(tx("friend source '%1' is not in scene '%2'")
 						 .arg(qs(name), QString::fromUtf8(obs_source_get_name(ss)))
 						 .toStdString());
 		} else {
-			if (on && cfg.bringToFront)
+			if (on && cfg.bringToFront) {
 				moveToTop(item);
+				if (obs_sceneitem_t *g = obs_sceneitem_get_group(scene, item))
+					moveToTop(g); // the group goes up with it
+			}
 			if (on && cfg.povFill)
 				fitToCanvas(src, item, f->isWeb());
 			if (cfg.keepWarm) {
@@ -2278,7 +2291,7 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 	// 1b. a companion audio source (Discord): follows the same show/hide, mute-based in warm mode
 	if (!f->audioSource.empty()) {
 		obs_source_t *a = obs_get_source_by_name(f->audioSource.c_str());
-		obs_sceneitem_t *ai = obs_scene_find_source(scene, f->audioSource.c_str());
+		obs_sceneitem_t *ai = obs_scene_find_source_recursive(scene, f->audioSource.c_str());
 		if (a && ai) {
 			// muted unless "play the squad mate's own game audio" is ticked, in every mode
 			obs_source_set_muted(a, !(on && cfg.friendAudio));
@@ -2323,4 +2336,98 @@ std::vector<std::string> Switcher::apply(const Config &cfg, bool on)
 	obs_source_release(ss);
 	raiseOnTop(cfg); // the streamer's camera and alerts stay over whatever we just showed
 	return errors;
+}
+
+std::vector<std::string> Switcher::feedNames(const Config &cfg)
+{
+	// the ones the plugin made: a squad mate set up as "an OBS source you already have" keeps theirs where it is
+	std::vector<std::string> out{Config::webSourceName()};
+	for (const auto &f : cfg.friends) {
+		if (f.isWeb())
+			out.push_back(std::string(Config::webSourceName()) + " - " + f.name);
+		for (const auto &n : friendSourceNames(cfg, f))
+			out.push_back(n);
+	}
+	return out;
+}
+
+obs_sceneitem_t *Switcher::feedGroup(const Config &cfg, obs_scene_t *scene, bool create)
+{
+	if (!scene)
+		return nullptr;
+	if (obs_sceneitem_t *g = obs_scene_get_group(scene, Config::feedGroupName()))
+		return g;
+	if (!create)
+		return nullptr;
+	// a group is a source, and a source name is OBS-wide: one left in another scene (the plugin's scene was
+	// changed) keeps the name, so the feeds stay loose rather than a second group being made under it
+	if (obs_source_t *other = obs_get_source_by_name(Config::feedGroupName())) {
+		obs_source_release(other);
+		return nullptr;
+	}
+	(void)cfg;
+	obs_sceneitem_t *g = obs_scene_add_group2(scene, Config::feedGroupName(), true);
+	if (g) {
+		obs_sceneitem_set_visible(g, true);
+		if (log)
+			log(tx("Squad mates' feeds are now in the group '%1' in your source list: one eye shows or hides them all.")
+				    .arg(qs(Config::feedGroupName()))
+				    .toStdString());
+	}
+	return g;
+}
+
+int Switcher::groupFeeds(const Config &cfg)
+{
+	if (!cfg.groupFeeds)
+		return 0;
+	obs_source_t *ss = sceneSource(cfg);
+	if (!ss)
+		return 0;
+	obs_scene_t *scene = obs_scene_from_source(ss);
+	int moved = 0;
+	for (const auto &name : feedNames(cfg)) {
+		// only a feed loose in the scene itself; one already in a group (ours or the streamer's own) stays
+		obs_sceneitem_t *item = obs_scene_find_source(scene, name.c_str());
+		if (!item)
+			continue;
+		obs_sceneitem_t *g = feedGroup(cfg, scene, true);
+		if (!g)
+			break;
+		obs_sceneitem_group_add_item(g, item); // keeps where it is on the canvas
+		moved++;
+	}
+	obs_source_release(ss);
+	return moved;
+}
+
+void Switcher::ungroupFeeds(const Config &cfg)
+{
+	obs_source_t *ss = sceneSource(cfg);
+	if (!ss)
+		return;
+	if (obs_sceneitem_t *g = feedGroup(cfg, obs_scene_from_source(ss), false))
+		obs_sceneitem_group_ungroup2(g, true);
+	obs_source_release(ss);
+}
+
+bool Switcher::feedGroupHidden(const Config &cfg) const
+{
+	obs_source_t *ss = const_cast<Switcher *>(this)->sceneSource(cfg);
+	if (!ss)
+		return false;
+	obs_sceneitem_t *g = obs_scene_get_group(obs_scene_from_source(ss), Config::feedGroupName());
+	bool hidden = g && !obs_sceneitem_visible(g);
+	obs_source_release(ss);
+	return hidden;
+}
+
+void Switcher::showFeedGroup(const Config &cfg)
+{
+	obs_source_t *ss = sceneSource(cfg);
+	if (!ss)
+		return;
+	if (obs_sceneitem_t *g = feedGroup(cfg, obs_scene_from_source(ss), false))
+		obs_sceneitem_set_visible(g, true);
+	obs_source_release(ss);
 }

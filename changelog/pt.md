@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.6
+- **Os POVs do squad num só grupo.** Cada feed de parceiro que o plugin cria agora fica num grupo, "Kennel.gg · Squad POVs", em vez de uma linha cada na sua lista de fontes. O olho dele desliga ou liga todos os POVs de uma vez (o dock avisa enquanto estão desligados), e mover ou redimensionar o grupo posiciona todos juntos. Os feeds que já estão na sua cena entram sozinhos e ficam onde estão. Desligue em Configurações, Squad & POV, Extras.
+
 ## 0.34.5
 - **Corrigido: um clipe mandado ao ClipHound de novo e de novo, a cada segundo.** Quando só chegava um arquivo vertical do Backtrack para um atalho de clipe (sem arquivo horizontal ao lado), o plugin ficava com o clipe e o entregava de novo ao ClipHound a cada segundo enquanto o OBS estivesse aberto: milhares de vezes, e o ClipHound tentava o mesmo segmento de destaques toda vez. Agora ele é entregue uma vez só. Valeu, BrokenArrow, pelos logs.
 - **Corrigido: "clipes de atalho perdidos" sem nada perdido.** Um atalho de marcador de capítulo ou o atalho Salvar replay do próprio OBS escolhido em Clipes & replays não grava arquivo de clipe próprio, mas cada clipe esperava 90 s por um e contava como perdido, com uma dica sobre o Aitum Backtrack. Esses atalhos continuam disparando; só não são mais esperados. Um arquivo vertical que se juntou a um clipe do buffer de replay também não conta mais como perdido.

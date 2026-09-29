@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.6
+- **POV drużyny w jednej grupie.** Każdy feed kolegi, który tworzy wtyczka, jest teraz w jednej grupie, „Kennel.gg · Squad POVs”, zamiast osobnego wiersza na liście źródeł. Jej oko wyłącza lub włącza wszystkie POV naraz (dock mówi ci o tym, dopóki są wyłączone), a przesunięcie lub zmiana rozmiaru grupy ustawia wszystkie razem. Feedy, które już są w scenie, trafiają tam same i zostają na swoim miejscu. Wyłączysz to w Ustawienia, Drużyna & POV, Dodatki.
+
 ## 0.34.5
 - **Naprawiono: jeden klip wysyłany do ClipHound w kółko, co sekundę.** Gdy dla skrótu klipu przychodził tylko pionowy plik Backtrack (bez poziomego obok), wtyczka trzymała klip i co sekundę od nowa przekazywała go ClipHound, dopóki działał OBS: tysiące razy, a ClipHound za każdym razem próbował tego samego segmentu highlightów. Teraz jest przekazywany raz. Dzięki BrokenArrow za logi.
 - **Naprawiono: „klipy ze skrótu utracone”, choć nic nie zginęło.** Skrót znacznika rozdziału albo własny skrót OBS Zapisz powtórkę wybrany w Klipy i powtórki nie zapisuje własnego pliku klipu, a mimo to każdy klip czekał na niego 90 s i liczył się jako utracony, z podpowiedzią o Aitum Backtrack. Te skróty dalej są wywoływane; po prostu się na nie nie czeka. Pionowy plik dołączony do klipu z bufora powtórek też już nie liczy się jako utracony.

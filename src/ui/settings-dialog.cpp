@@ -1157,9 +1157,19 @@ QWidget *SettingsDialog::buildSwitchTab()
 		tx("Keep every squad mate's feed loaded and playing, hidden and silent, so there is no black screen while it starts (uses their bandwidth for each one)"),
 		g4);
 	preload_->setChecked(e_->cfg.preloadFeeds);
+	groupFeeds_ =
+		new QCheckBox(tx("Keep every squad mate's feed in one group in the source list (one eye shows or hides "
+				 "them all)"),
+			      g4);
+	groupFeeds_->setChecked(e_->cfg.groupFeeds);
+	groupFeeds_->setToolTip(tx("The group is '%1'. Hide it to switch squad mates' POVs off; move or resize it to "
+				   "place all of them at once. Untick to put the feeds back in the scene one by one.")
+					.arg(Config::feedGroupName()));
+	connect(groupFeeds_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	v4->addWidget(bringFront_);
 	v4->addWidget(povFill_);
 	v4->addWidget(preload_);
+	v4->addWidget(groupFeeds_);
 	connect(preload_, &QCheckBox::toggled, this, [this](bool) { saveAndApply(); });
 	v4->addWidget(keepWarm_);
 	pictureCheck_ =
@@ -3704,6 +3714,7 @@ void SettingsDialog::collect()
 	if (invSwitch_)
 		c.invSwitch = invSwitch_->isChecked();
 	c.preloadFeeds = preload_ ? preload_->isChecked() : c.preloadFeeds;
+	c.groupFeeds = groupFeeds_ ? groupFeeds_->isChecked() : c.groupFeeds;
 	c.friendAudio = friendAudio_ ? friendAudio_->isChecked() : c.friendAudio;
 	c.lookName = lookName_->isChecked();
 	c.lookPlate = lookPlate_->isChecked();

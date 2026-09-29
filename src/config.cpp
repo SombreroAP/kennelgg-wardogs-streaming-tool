@@ -130,6 +130,7 @@ void Config::load()
 	DEFB(pictureCheck);
 	DEFB(preloadFeeds);
 	DEFB(preloadV1);
+	DEFB(groupFeeds);
 	DEFB(friendAudio);
 	DEFB(audioDefaults2);
 	DEFB(audioDefaults3);
@@ -352,6 +353,7 @@ void Config::load()
 	GETB(pictureCheck);
 	GETB(preloadFeeds);
 	GETB(preloadV1);
+	GETB(groupFeeds);
 	GETB(friendAudio);
 	GETB(audioDefaults2);
 	GETB(audioDefaults3);
@@ -779,6 +781,7 @@ void Config::save() const
 	SETB(pictureCheck);
 	SETB(preloadFeeds);
 	SETB(preloadV1);
+	SETB(groupFeeds);
 	SETB(friendAudio);
 	SETB(audioDefaults2);
 	SETB(audioDefaults3);

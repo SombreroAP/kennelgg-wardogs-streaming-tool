@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.6
+- **Les POV de l'escouade dans un seul groupe.** Chaque flux de coéquipier créé par le plugin est maintenant dans un groupe, « Kennel.gg · Squad POVs », au lieu d'une ligne chacun dans ta liste de sources. Son œil coupe ou rallume tous les POV d'un coup (le dock te le signale tant qu'ils sont coupés), et déplacer ou redimensionner le groupe les place tous ensemble. Les flux déjà dans ta scène y entrent tout seuls et restent où ils sont. À désactiver dans Paramètres, Escouade & POV, Extras.
+
 ## 0.34.5
 - **Corrigé : un même clip renvoyé à ClipHound chaque seconde.** Quand seul un fichier Backtrack vertical arrivait pour un raccourci de clip (sans fichier horizontal à côté), le plugin gardait le clip et le redonnait à ClipHound chaque seconde tant qu'OBS tournait : des milliers de fois, et ClipHound retentait le même segment de highlights à chaque fois. Il n'est transmis qu'une fois maintenant. Merci à BrokenArrow pour les logs.
 - **Corrigé : « clips de raccourci perdus » alors que rien n'était perdu.** Un raccourci de marqueur de chapitre ou le raccourci Enregistrer le replay d'OBS choisi dans Clips & replays n'écrit aucun fichier de clip à lui, pourtant chaque clip l'attendait 90 s et était compté comme perdu, avec un conseil sur Aitum Backtrack. Ces raccourcis se déclenchent toujours ; on ne les attend simplement plus. Un fichier vertical rattaché à un clip du tampon de relecture ne compte plus non plus comme perdu.

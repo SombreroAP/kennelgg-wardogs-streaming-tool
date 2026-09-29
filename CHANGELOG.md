@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.6
+- **Squad POVs in one group.** Every squad mate feed the plugin makes now sits in one group, "Kennel.gg · Squad POVs", instead of a row each in your source list. Its eye switches all squad POVs off or on at once (the dock tells you while they are off), and moving or resizing the group places all of them together. The feeds already in your scene move in by themselves and keep where they are. Settings, Squad & POV, Extras turns it off.
+
 ## 0.34.5
 - **Fixed: one clip sent to ClipHound over and over, every second.** When only a vertical Backtrack file came for a clip hotkey (no horizontal file next to it), the plugin kept the clip and handed it to ClipHound again every second for as long as OBS ran: thousands of times, and ClipHound retried the same highlight segment each time. It is handed on once now. Thanks BrokenArrow for the logs.
 - **Fixed: "hotkey clips lost" when nothing was lost.** A chapter-marker hotkey or OBS's own Save Replay hotkey picked under Clips & replays writes no clip file of its own, yet every clip waited 90 s for one and was counted as lost, with a hint about Aitum Backtrack. Those hotkeys still fire; they are just not waited on. A vertical file that joined a replay-buffer clip no longer counts as lost either.
