@@ -374,6 +374,8 @@ private:
 	qint64 startCandAt_ = 0;
 	int startCandN_ = 0;
 	qint64 lastBalEventAt_ = 0, balHiddenBefore_ = 0; // how long the balance was unseen before a new value
+	bool startGapSeen_ = false; // the first wallet-vs-lines gap since calibration: nothing has paid out
+				    // yet at that point, so it is always the start that was wrong, never money
 	void clearNearby();
 	void pickClosest(const QString &why, bool decisive = false);
 	void switchTo(int idx, const QString &why);

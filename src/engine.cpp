@@ -2672,6 +2672,7 @@ void Engine::resetSession(const QString &why)
 	startCandN_ = 0;
 	lastBalEventAt_ = 0;
 	balHiddenBefore_ = 0;
+	startGapSeen_ = false;
 	log(tx("Session stats: counting from now (%1).").arg(txv(why)));
 	emit stateChanged();
 }
@@ -2936,8 +2937,14 @@ void Engine::onCashReading(const hud::Reading &r, qint64 t)
 					if (now - k.last <= 120000)
 						explained += std::max<int64_t>(0, k.amount - k.credited);
 			}
-			bool misread = std::llabs(gap) >= 10000 && balHiddenBefore_ < 45000 &&
+			// The very first gap since calibration is never a payout picked up while the wallet was
+			// hidden - nothing has had the chance to pay out yet - so it skips the 45 s allowance a
+			// later gap gets: a start read locked onto a wrong number (a menu's font the reader does
+			// not know) and corrected once the real HUD showed up after loading into the match, still
+			// reads as a huge one-off "earned" without this (adventurebear's 1.4M report, LOG-0777).
+			bool misread = std::llabs(gap) >= 10000 && (balHiddenBefore_ < 45000 || !startGapSeen_) &&
 				       (gap < 0 || explained * 2 < gap) && !dropPending_;
+			startGapSeen_ = true;
 			if (misread) {
 				session_.balanceStart += gap;
 				log(tx("Session balance: your wallet read %1 against what the session had counted, with "

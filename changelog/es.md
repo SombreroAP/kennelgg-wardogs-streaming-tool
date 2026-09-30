@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.17
+- **Corregido: las ganancias de la sesión podían dar de repente un salto enorme e inventado.** Si la primerísima lectura de la cartera de una emisión se fijaba en un número mal leído (una pantalla de menú con una fuente que el lector no conoce), el total real que aparecía al cargar en una partida - tras un rato con el saldo fuera de pantalla - se contaba de golpe como dinero ganado, porque un saldo oculto durante mucho tiempo normalmente se toma como un pago real. La primera lectura tras un reinicio ya no recibe esa confianza: un inicio erróneo ahora se corrige en silencio en lugar de convertirse en una ganancia falsa. Gracias a adventurebear por el registro.
+
 ## 0.34.16
 - **Corregido: «Hay otra copia de ClipHound en marcha» podía quedarse el resto del directo, aunque no pasara nada malo.** Justo después de una actualización en directo, o al abrir OBS cuando ClipHound ya se había actualizado en una sesión anterior, ClipHound informa de una versión más nueva que el plugin hasta que OBS se cierra del todo y se vuelve a abrir - justo lo que la actualización en directo existe para evitarte mientras emites. La comprobación solo confiaba en una versión que esta sesión ya hubiera obtenido del servidor de actualizaciones; ahora también acepta la versión que una actualización en directo instaló ella misma, que se conoce al instante y sobrevive entre sesiones. Gracias a ginilson_ por el registro.
 

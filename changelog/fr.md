@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.17
+- **Corrigé : les gains de session pouvaient soudain bondir d'un montant énorme et inventé.** Si la toute première lecture du portefeuille d'un stream se calait sur un nombre mal lu (un écran de menu dans une police que le lecteur ne connaît pas), le vrai total apparu une fois chargé dans une partie - après que le solde soit resté invisible un moment - était compté d'un coup comme de l'argent gagné, car un solde longtemps caché est normalement considéré comme un vrai versement. La première lecture après une remise à zéro ne bénéficie plus de cette confiance : un mauvais départ est maintenant corrigé discrètement au lieu de devenir une fausse manne. Merci à adventurebear pour le journal.
+
 ## 0.34.16
 - **Corrigé : « Une autre copie de ClipHound est en cours d'exécution » pouvait rester affiché pour le reste du direct, alors que tout allait bien.** Juste après une mise à jour en direct, ou à l'ouverture d'OBS quand ClipHound avait déjà été mis à jour lors d'une session précédente, ClipHound signale une version plus récente que le plugin jusqu'à ce qu'OBS soit complètement fermé puis rouvert - ce que la mise à jour en direct existe justement pour éviter pendant le direct. La vérification ne faisait confiance qu'à une version déjà récupérée par cette session auprès du serveur de mise à jour ; elle accepte maintenant aussi la version qu'une mise à jour en direct a elle-même installée, connue aussitôt et conservée d'une session à l'autre. Merci à ginilson_ pour le journal.
 

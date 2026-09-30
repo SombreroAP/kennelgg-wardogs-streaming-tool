@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.17
+- **Corrigido: os ganhos da sessão podiam saltar de repente um valor enorme e inventado.** Se a primeiríssima leitura da carteira de uma live se fixasse num número lido errado (uma tela de menu numa fonte que o leitor não conhece), o total real que aparecia ao carregar numa partida - depois de o saldo ter ficado fora da tela por um tempo - era contado de uma vez como dinheiro ganho, já que um saldo escondido por muito tempo normalmente é tratado como um pagamento real. A primeira leitura depois de um reset já não recebe essa confiança: um início errado agora é corrigido em silêncio em vez de virar um ganho falso. Obrigado a adventurebear pelo log.
+
 ## 0.34.16
 - **Corrigido: "Outra cópia do ClipHound está rodando" podia ficar aparecendo pelo resto da live, mesmo sem nada de errado.** Logo após uma atualização ao vivo, ou ao abrir o OBS quando o ClipHound já tinha sido atualizado numa sessão anterior, o ClipHound informa uma versão mais nova que o plugin até o OBS ser fechado por completo e reaberto - exatamente o que a atualização ao vivo existe para evitar durante a live. A checagem só confiava numa versão que esta sessão já tivesse buscado no servidor de atualização; agora ela também aceita a versão que uma atualização ao vivo instalou sozinha, que é conhecida na hora e sobrevive entre sessões. Obrigado a ginilson_ pelo log.
 

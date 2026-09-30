@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.17
+- **Behoben: Die Sitzungseinnahmen konnten plötzlich um einen riesigen, frei erfundenen Betrag springen.** Wenn die allererste Wallet-Ablesung eines Streams eine falsch gelesene Zahl übernahm (ein Menübildschirm in einer Schrift, die der Leser nicht kennt), wurde die echte Summe, die nach dem Laden ins Match auftauchte - nachdem der Kontostand eine Weile nicht sichtbar war -, auf einen Schlag als verdientes Geld gezählt, weil ein lange verborgener Kontostand normalerweise als echte Auszahlung gilt. Die erste Ablesung nach einem Reset genießt dieses Vertrauen nicht mehr: Ein falscher Start wird jetzt still korrigiert, statt zu einem falschen Geldsegen zu werden. Danke an adventurebear für das Log.
+
 ## 0.34.16
 - **Behoben: „Eine andere Kopie von ClipHound läuft bereits" konnte für den Rest des Streams stehen bleiben, obwohl alles in Ordnung war.** Direkt nach einem Live-Update, oder beim Öffnen von OBS, wenn ClipHound schon in einer früheren Sitzung aktualisiert wurde, meldet ClipHound eine neuere Version als das Plugin, bis OBS vollständig geschlossen und neu geöffnet wird - genau das soll das Live-Update ja während der Sendung ersparen. Die Prüfung vertraute nur einer Version, die diese Sitzung schon vom Update-Server abgerufen hatte; jetzt akzeptiert sie auch die Version, die ein Live-Update selbst installiert hat, die sofort bekannt ist und Sitzungen übersteht. Danke an ginilson_ für das Log.
 

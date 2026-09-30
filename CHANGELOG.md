@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.17
+- **Fixed: session earnings could suddenly jump by an enormous, made-up amount.** If the very first wallet reading of a stream locked onto a misread number (a menu screen in a font the reader does not know), the real total that showed up once you loaded into a match - after the balance had been off screen a while - was counted as money earned in one go, since a long-hidden balance is normally trusted as a real payout. The first reading after a reset no longer gets that trust: a bad start is now corrected quietly instead of becoming a false windfall. Thanks adventurebear for the log.
+
 ## 0.34.16
 - **Fixed: "Another copy of ClipHound is running" could show for the rest of the stream, even though nothing was wrong.** Right after a live update, or on opening OBS when ClipHound had already been updated in an earlier session, ClipHound reports a newer version than the plugin until OBS is fully closed and reopened - which live update exists precisely so you don't have to do while live. The check only trusted a version this session had already fetched from the update server; it now also accepts the version a live update itself installed, which is known at once and survives between sessions. Thanks ginilson_ for the log.
 

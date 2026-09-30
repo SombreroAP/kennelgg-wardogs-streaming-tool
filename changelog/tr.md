@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.17
+- **Düzeltildi: oturum kazançları aniden devasa, uydurma bir miktar sıçrayabiliyordu.** Bir yayının ilk cüzdan okuması, yanlış okunmuş bir sayıya kilitlenirse (okuyucunun tanımadığı bir yazı tipiyle menü ekranı), maça yüklendikten sonra - bakiye bir süre ekran dışında kaldıktan sonra - ortaya çıkan gerçek toplam, tek seferde kazanılmış para olarak sayılıyordu, çünkü uzun süre gizli kalan bir bakiye normalde gerçek bir ödeme olarak güvenilir. Sıfırlamadan sonraki ilk okuma artık bu güveni almıyor: kötü bir başlangıç artık sessizce düzeltiliyor, sahte bir vurgun haline gelmek yerine. Log için adventurebear'a teşekkürler.
+
 ## 0.34.16
 - **Düzeltildi: hiçbir sorun olmasa bile "Başka bir ClipHound kopyası çalışıyor" uyarısı yayının geri kalanında takılı kalabiliyordu.** Bir canlı güncellemeden hemen sonra ya da ClipHound önceki bir oturumda zaten güncellenmişken OBS açıldığında, ClipHound - OBS tamamen kapatılıp yeniden açılana kadar - eklentiden daha yeni bir sürüm bildiriyordu; canlı güncelleme tam olarak bunu yayın sırasında yapmana gerek kalmasın diye var. Kontrol yalnızca bu oturumun güncelleme sunucusundan zaten aldığı bir sürüme güveniyordu; artık bir canlı güncellemenin kendisinin kurduğu, hemen bilinen ve oturumlar arasında kalıcı olan sürümü de kabul ediyor. Günlük için ginilson_'a teşekkürler.
 
