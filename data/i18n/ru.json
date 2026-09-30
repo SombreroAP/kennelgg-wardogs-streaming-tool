@@ -1041,7 +1041,7 @@
 "Match threshold": "Порог совпадения",
 "once you are down the log counts as still there down to this score, in the\nplace it was found - so a bright sky or smoke over the panel cannot say you are up": "когда ты в нокауте, журнал считается на месте вплоть до этой оценки, в том\nместе, где был найден, - так что яркое небо или дым поверх панели не скажут, что ты на ногах",
 "Hold down to": "Удерживать до",
-"polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)": "опросов для подтверждения нокаута / подъёма (10 в секунду; 2 / 1 = 0,2 с нокаут, 0,1 с подъём)",
+"polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)": "опросов для подтверждения нокаута / подъёма (10 в секунду; 2 / 2 = 0,2 с нокаут, 0,2 с подъём)",
 "Confirm frames": "Кадры подтверждения",
 " ms": " мс",
 "show squad mate after": "показать напарника через",

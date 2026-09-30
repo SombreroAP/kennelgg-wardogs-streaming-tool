@@ -1041,7 +1041,7 @@
 "Match threshold": "Umbral de coincidencia",
 "once you are down the log counts as still there down to this score, in the\nplace it was found - so a bright sky or smoke over the panel cannot say you are up": "una vez derribado, el registro cuenta como presente hasta esta puntuación, en el\nsitio donde se encontró - así un cielo brillante o humo sobre el panel no pueden decir que estás en pie",
 "Hold down to": "Mantener hasta",
-"polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)": "lecturas para confirmar derribado / en pie (10 por segundo; 2 / 1 = 0,2 s derribado, 0,1 s en pie)",
+"polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)": "lecturas para confirmar derribado / en pie (10 por segundo; 2 / 2 = 0,2 s derribado, 0,2 s en pie)",
 "Confirm frames": "Fotogramas de confirmación",
 " ms": " ms",
 "show squad mate after": "mostrar al compañero tras",

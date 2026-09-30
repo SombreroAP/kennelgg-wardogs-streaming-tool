@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.19
+- **Risolto: il POV tornava a te troppo presto, e i Fotogrammi di conferma non restavano salvati.** Una modifica alle impostazioni pensata per essere applicata una sola volta veniva applicata a ogni avvio, quindi dal secondo avvio in poi bastava un solo controllo (0.1 s) per decidere che eri di nuovo in piedi, e un controllo così rapido può essere ingannato da un cielo luminoso o dal fumo dietro il registro dei danni mentre sei ancora a terra. Riportava inoltre a 1 qualsiasi valore da 2 a 5 impostato in Impostazioni, Avanzate, Rilevamento a terra, Regolazione, Fotogrammi di conferma. Sono di nuovo due controlli (0.2 s), e quello che imposti lì ora resta. Se avevi scelto 1 apposta, sceglilo di nuovo.
+
 ## 0.34.18
 - **Invia log ora dice quale parte del plugin era ancora occupata quando OBS non si è chiuso correttamente.** Alcuni report automatici hanno mostrato OBS che inizia la chiusura normalmente e poi si ferma di colpo a metà, senza che questo plugin registri più nulla dopo - l'ipotesi principale è un'attività in background che sopravvive ai pochi secondi che il plugin aspetta prima di lasciarla andare, ma il log non diceva mai quale. Ogni attività in background ora si etichetta da sé, così se succede di nuovo il log la nominerà.
 

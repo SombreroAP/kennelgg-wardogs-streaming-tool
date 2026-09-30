@@ -227,6 +227,7 @@ void Config::load()
 	DEFI(pollMs);
 	DEFI(downFrames);
 	DEFI(upFrames);
+	DEFB(upFramesV2);
 	DEFI(minDownMs);
 	DEFI(downDelayMs);
 	DEFI(upDelayMs);
@@ -450,6 +451,7 @@ void Config::load()
 	GETI(pollMs);
 	GETI(downFrames);
 	GETI(upFrames);
+	GETB(upFramesV2);
 	GETI(minDownMs);
 	GETI(downDelayMs);
 	GETI(upDelayMs);
@@ -592,8 +594,6 @@ void Config::load()
 		pollMs = 100;
 		downFrames = 2;
 	}
-	if (upFrames >= 2 && upFrames <= 5)
-		upFrames = 1; // instant return
 	if (minDownMs == 2000 || minDownMs == 500)
 		minDownMs = 0;
 	// the built-in template is the wording only now, which scores lower but stands much further
@@ -647,6 +647,14 @@ void Config::load()
 	// well below the threshold, and stay there for two polls, before we say you are up
 	if (!holdV2) {
 		holdV2 = true;
+		if (upFrames < 2)
+			upFrames = 2;
+	}
+	// 0.34.19: 0.2.23's move to an instant return (2-5 polls -> 1) was never made once-only, so from the
+	// second start on it undid the two polls above and threw away any 2-5 set in Settings. It is gone;
+	// whoever it left on one poll goes back to two, once, and from now on what you set stays
+	if (!upFramesV2) {
+		upFramesV2 = true;
 		if (upFrames < 2)
 			upFrames = 2;
 	}
@@ -884,6 +892,7 @@ void Config::save() const
 	SETI(pollMs);
 	SETI(downFrames);
 	SETI(upFrames);
+	SETB(upFramesV2);
 	SETI(minDownMs);
 	SETI(downDelayMs);
 	SETI(upDelayMs);

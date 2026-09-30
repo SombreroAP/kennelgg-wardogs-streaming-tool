@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.19
+- **Naprawiono: POV wracał do ciebie za wcześnie, a Klatki potwierdzenia się nie zapisywały.** Zmiana ustawień, która miała zadziałać tylko raz, działała przy każdym starcie, więc od drugiego startu jeden odczyt (0,1 s) wystarczał, by uznać, że już stoisz, a tak szybki odczyt da się zmylić jasnym niebem albo dymem za dziennikiem obrażeń, gdy wciąż leżysz. Do tego każdą wartość od 2 do 5 ustawioną w Ustawienia, Zaawansowane, Wykrywanie powalenia, Dostrajanie, Klatki potwierdzenia cofała do 1. Znów są dwa odczyty (0,2 s), a to, co tam ustawisz, teraz zostaje. Jeśli 1 było ustawione celowo, ustaw je jeszcze raz.
+
 ## 0.34.18
 - **Wysyłka logów teraz mówi, która część wtyczki wciąż była zajęta, gdy OBS nie zamknął się poprawnie.** Kilka automatycznych raportów pokazało, że OBS zaczyna zamykanie normalnie, a potem po prostu przestaje w połowie, bez żadnego kolejnego wpisu od tej wtyczki - główną teorią jest zadanie w tle, które przeżywa te kilka sekund, na które wtyczka czeka przed jego puszczeniem, ale log nigdy nie mówił, które. Każde zadanie w tle teraz oznacza się samo, więc jeśli to się powtórzy, log je nazwie.
 

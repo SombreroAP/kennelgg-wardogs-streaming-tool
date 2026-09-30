@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.19
+- **Corrigido: o POV voltava para você cedo demais, e os Quadros de confirmação não ficavam salvos.** Uma mudança de configuração feita para rodar só uma vez rodava a cada início, então a partir do segundo início uma única checagem (0,1 s) bastava para decidir que você estava de pé de novo, e uma checagem tão rápida pode ser enganada por um céu claro ou fumaça atrás do registro de dano enquanto você ainda está caído. Ela também voltava para 1 qualquer valor de 2 a 5 definido em Configurações, Avançado, Detecção de derrubada, Ajuste fino, Quadros de confirmação. São duas checagens (0,2 s) de novo, e o que você definir ali agora fica. Se você tinha escolhido 1 de propósito, escolha de novo.
+
 ## 0.34.18
 - **O Enviar logs agora diz qual parte do plugin ainda estava ocupada quando o OBS não fechou direito.** Alguns relatórios automáticos mostraram o OBS começando a fechar normalmente e depois simplesmente parando no meio do caminho, sem mais nada deste plugin registrado depois - a teoria principal é uma tarefa em segundo plano que sobrevive aos poucos segundos que o plugin espera por ela antes de soltá-la, mas o log nunca dizia qual. Cada tarefa em segundo plano agora se marca, então se isso acontecer de novo, o log vai nomeá-la.
 

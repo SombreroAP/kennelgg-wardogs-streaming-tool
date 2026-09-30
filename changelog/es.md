@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.19
+- **Corregido: el POV volvía a ti demasiado pronto, y los Fotogramas de confirmación no se guardaban.** Un cambio de ajustes pensado para aplicarse una sola vez se aplicaba en cada inicio, así que desde el segundo inicio bastaba una sola comprobación (0,1 s) para decidir que volvías a estar en pie, y un cielo brillante o el humo detrás del registro de daño pueden engañar a una comprobación tan rápida mientras sigues derribado. También devolvía a 1 cualquier valor de 2 a 5 puesto en Ajustes, Avanzado, Detección de derribo, Ajuste fino, Fotogramas de confirmación. Vuelven a ser dos comprobaciones (0,2 s), y lo que pongas ahí ahora se queda. Si habías elegido 1 a propósito, vuelve a elegirlo.
+
 ## 0.34.18
 - **Enviar registros ahora dice qué parte del plugin seguía ocupada cuando OBS no cerró limpiamente.** Unos pocos informes automáticos han mostrado a OBS empezando a cerrarse con normalidad y luego deteniéndose sin más a mitad de camino, sin que este plugin registre nada después - la teoría principal es una tarea en segundo plano que sobrevive a los pocos segundos que el plugin espera por ella antes de soltarla, pero el registro nunca decía cuál. Cada tarea en segundo plano ahora se marca a sí misma, así que si esto vuelve a pasar, el registro la nombrará.
 

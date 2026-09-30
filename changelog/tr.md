@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.19
+- **Düzeltildi: POV sana çok erken geri dönüyordu ve Onay kareleri kaydedilmiyordu.** Yalnızca bir kez çalışması gereken bir ayar güncellemesi her açılışta çalışıyordu; bu yüzden ikinci açılıştan itibaren ayağa kalktığına karar vermek için tek bir kontrol (0.1 sn) yetiyordu ve bu kadar hızlı bir kontrol, sen hâlâ yerdeyken hasar kaydının arkasındaki parlak bir gökyüzü ya da duman yüzünden yanılabilir. Ayrıca Ayarlar, Gelişmiş, Yere düşme algılama, İnce ayar, Onay kareleri altında 2 ile 5 arasında ayarlanan her değeri 1'e geri çekiyordu. Artık yine iki kontrol (0.2 sn) var ve orada ayarladığın değer kalıyor. 1'i bilerek seçtiysen bir kez daha seç.
+
 ## 0.34.18
 - **Send logs artık OBS düzgün kapanmadığında eklentinin hangi kısmının hâlâ meşgul olduğunu söylüyor.** Birkaç otomatik rapor, OBS'nin kapanmaya normal başladığını, sonra yarı yolda hiçbir şey kaydetmeden aniden durduğunu gösterdi - önde gelen teori, eklentinin bırakmadan önce beklediği birkaç saniyeyi aşan bir arka plan görevi, ama günlük hiçbir zaman hangisi olduğunu söylemedi. Her arka plan görevi artık kendini etiketliyor, böylece bu tekrar olursa günlük onu adlandıracak.
 

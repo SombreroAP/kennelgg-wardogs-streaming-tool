@@ -1041,7 +1041,7 @@
 "Match threshold": "Schwelle",
 "once you are down the log counts as still there down to this score, in the\nplace it was found - so a bright sky or smoke over the panel cannot say you are up": "sobald du down bist, zählt das Log bis zu diesem Wert als noch da, an der\nStelle, wo es gefunden wurde - so kann heller Himmel oder Rauch über dem Panel nicht sagen, dass du wieder auf bist",
 "Hold down to": "Halten bis",
-"polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)": "Abfragen zum Bestätigen von down / auf (10 pro Sekunde; 2 / 1 = 0,2 s down, 0,1 s auf)",
+"polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)": "Abfragen zum Bestätigen von down / auf (10 pro Sekunde; 2 / 2 = 0,2 s down, 0,2 s auf)",
 "Confirm frames": "Bestätigungs-Frames",
 " ms": " ms",
 "show squad mate after": "Squad-Mitglied zeigen nach",

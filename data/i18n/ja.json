@@ -1041,7 +1041,7 @@
 "Match threshold": "一致しきい値",
 "once you are down the log counts as still there down to this score, in the\nplace it was found - so a bright sky or smoke over the panel cannot say you are up": "ダウン後は、見つかった場所でこのスコアまでログがあるとみなします -\n明るい空や煙がパネルにかかっても、立ち上がったと誤判定しません",
 "Hold down to": "ダウン維持の下限",
-"polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)": "ダウン／復帰を確定するポーリング回数（1秒に10回。2 / 1 = ダウン 0.2 秒、復帰 0.1 秒）",
+"polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)": "ダウン／復帰を確定するポーリング回数（1秒に10回。2 / 2 = ダウン 0.2 秒、復帰 0.2 秒）",
 "Confirm frames": "確認フレーム数",
 " ms": " ms",
 "show squad mate after": "味方の表示まで",

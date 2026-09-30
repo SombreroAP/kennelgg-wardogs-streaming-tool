@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.19
+- **Corrigé : le POV revenait sur toi trop tôt, et les Images de confirmation ne restaient pas enregistrées.** Une mise à jour des réglages prévue pour ne s'appliquer qu'une fois s'appliquait à chaque démarrage : à partir du deuxième démarrage, une seule vérification (0,1 s) suffisait pour décider que tu étais debout, et une vérification aussi rapide peut être trompée par un ciel lumineux ou de la fumée derrière le journal des dégâts alors que tu es encore à terre. Elle remettait aussi à 1 toute valeur de 2 à 5 choisie dans Paramètres, Avancé, Détection « à terre », Réglages fins, Images de confirmation. C'est de nouveau deux vérifications (0,2 s), et ce que tu y règles reste maintenant. Si tu avais choisi 1 exprès, choisis-le encore une fois.
+
 ## 0.34.18
 - **Envoyer les journaux dit maintenant quelle partie du plugin était encore occupée quand OBS n'a pas fermé proprement.** Quelques rapports automatiques ont montré OBS commençant sa fermeture normalement puis s'arrêtant net en plein milieu, sans plus rien de ce plugin dans le journal après - une tâche en arrière-plan qui survit aux quelques secondes que le plugin attend avant de la lâcher est la théorie principale, mais le journal ne disait jamais laquelle. Chaque tâche en arrière-plan se marque maintenant elle-même, donc si cela se reproduit, le journal la nommera.
 

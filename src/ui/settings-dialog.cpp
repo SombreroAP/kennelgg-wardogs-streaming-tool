@@ -1504,7 +1504,7 @@ QWidget *SettingsDialog::buildDetectTab()
 	upFrames_->setValue(e_->cfg.upFrames);
 	frRow->addWidget(downFrames_);
 	frRow->addWidget(upFrames_);
-	frRow->addWidget(muted(tx("polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)"), g));
+	frRow->addWidget(muted(tx("polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)"), g));
 	frRow->addStretch(1);
 	f->addRow(tx("Confirm frames"), frRow);
 	auto *dlRow = new QHBoxLayout();

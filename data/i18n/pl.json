@@ -1041,7 +1041,7 @@
 "Match threshold": "Próg dopasowania",
 "once you are down the log counts as still there down to this score, in the\nplace it was found - so a bright sky or smoke over the panel cannot say you are up": "gdy już leżysz, dziennik liczy się jako wciąż obecny aż do tego wyniku, w miejscu,\ngdzie go znaleziono - więc jasne niebo albo dym nad panelem nie powie, że stoisz",
 "Hold down to": "Trzymaj do",
-"polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)": "odczyty potwierdzające powalenie / wstanie (10 na sekundę; 2 / 1 = 0,2 s powalenie, 0,1 s wstanie)",
+"polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)": "odczyty potwierdzające powalenie / wstanie (10 na sekundę; 2 / 2 = 0,2 s powalenie, 0,2 s wstanie)",
 "Confirm frames": "Klatki potwierdzenia",
 " ms": " ms",
 "show squad mate after": "pokaż kolegę z drużyny po",

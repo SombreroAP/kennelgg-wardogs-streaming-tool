@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.19
+- **Fixed: the POV swapping back to you too soon, and Confirm frames not sticking.** A settings update meant to run once ran at every start, so from the second start on a single check (0.1 s) was enough to decide you were back up, and a check that quick can be fooled by a bright sky or smoke behind the damage log while you are still down. It also reset any 2 to 5 set under Settings, Advanced, Downed detection, Tuning, Confirm frames to 1. It is two checks (0.2 s) again, and what you set there now stays. If you had picked 1 on purpose, pick it once more.
+
 ## 0.34.18
 - **Send logs now says which part of the plugin was still busy when OBS failed to close cleanly.** A few automatic reports have shown OBS starting its shutdown normally and then simply stopping partway through, with nothing from this plugin logged after - a background task outliving the couple of seconds the plugin waits for it before letting go is the leading theory, but the log never said which one. Each background task now tags itself, so if this happens again, the log will name it.
 

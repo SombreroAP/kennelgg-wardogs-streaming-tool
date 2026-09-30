@@ -1041,7 +1041,7 @@
 "Match threshold": "Limite de correspondência",
 "once you are down the log counts as still there down to this score, in the\nplace it was found - so a bright sky or smoke over the panel cannot say you are up": "depois que você cai, o registro conta como ainda presente até esta pontuação, no\nlugar onde foi encontrado - assim um céu claro ou fumaça sobre o painel não diz que você está de pé",
 "Hold down to": "Manter até",
-"polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)": "leituras para confirmar caído / de pé (10 por segundo; 2 / 1 = 0,2 s caído, 0,1 s de pé)",
+"polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)": "leituras para confirmar caído / de pé (10 por segundo; 2 / 2 = 0,2 s caído, 0,2 s de pé)",
 "Confirm frames": "Quadros de confirmação",
 " ms": " ms",
 "show squad mate after": "mostrar parceiro de squad depois de",

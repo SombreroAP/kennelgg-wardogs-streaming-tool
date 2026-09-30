@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.19
+- **Behoben: Der POV wechselte zu früh zu dir zurück, und die Bestätigungs-Frames blieben nicht gespeichert.** Eine Anpassung der Einstellungen, die nur einmal greifen sollte, griff bei jedem Start. Ab dem zweiten Start reichte deshalb eine einzige Prüfung (0,1 s), um zu entscheiden, dass du wieder auf bist, und eine so schnelle Prüfung lässt sich von hellem Himmel oder Rauch hinter dem Schadenslog täuschen, während du noch down bist. Außerdem setzte sie jeden Wert von 2 bis 5 unter Einstellungen, Erweitert, Down-Erkennung, Feintuning, Bestätigungs-Frames auf 1 zurück. Es sind wieder zwei Prüfungen (0,2 s), und was du dort einstellst, bleibt jetzt. Falls du absichtlich 1 gewählt hattest, stell es noch einmal ein.
+
 ## 0.34.18
 - **Send logs sagt jetzt, welcher Teil des Plugins noch beschäftigt war, als OBS nicht saubar schließen konnte.** Ein paar automatische Berichte haben gezeigt, dass OBS sein Herunterfahren normal beginnt und dann mitten drin einfach aufhört, ohne dass danach noch etwas von diesem Plugin protokolliert wird - die führende Theorie ist eine Hintergrundaufgabe, die die paar Sekunden überlebt, die das Plugin auf sie wartet, bevor es loslässt, aber das Log sagte nie, welche. Jede Hintergrundaufgabe markiert sich jetzt selbst, damit das Log sie beim nächsten Mal benennt.
 

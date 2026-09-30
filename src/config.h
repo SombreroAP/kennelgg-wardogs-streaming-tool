@@ -289,6 +289,7 @@ struct Config {
 	bool thresholdV2 = false; // one-time move to 0.80 with the wording-only template
 	int pollMs = 100;
 	int downFrames = 2, upFrames = 2, minDownMs = 0;
+	bool upFramesV2 = false; // back to 2 polls once (0.34.19): an old every-start rule had set upFrames to 1
 	int downDelayMs =
 		2000; // wait this long after the damage log appears before showing the squad mate (cancelled if it goes away)
 	int upDelayMs = 0;      // wait this long after it disappears before coming back (0 = instant)

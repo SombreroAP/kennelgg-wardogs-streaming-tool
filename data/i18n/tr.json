@@ -1041,7 +1041,7 @@
 "Match threshold": "Eşleşme eşiği",
 "once you are down the log counts as still there down to this score, in the\nplace it was found - so a bright sky or smoke over the panel cannot say you are up": "yere düştükten sonra kayıt, bulunduğu yerde bu puana kadar hâlâ orada sayılır -\nböylece panelin üstündeki parlak bir gökyüzü ya da duman ayağa kalktığını söyleyemez",
 "Hold down to": "Yerde tutma sınırı",
-"polls to confirm down / up (10 per second; 2 / 1 = 0.2 s down, 0.1 s up)": "yerde / ayakta onayı için okuma sayısı (saniyede 10; 2 / 1 = 0.2 sn yerde, 0.1 sn ayakta)",
+"polls to confirm down / up (10 per second; 2 / 2 = 0.2 s down, 0.2 s up)": "yerde / ayakta onayı için okuma sayısı (saniyede 10; 2 / 2 = 0.2 sn yerde, 0.2 sn ayakta)",
 "Confirm frames": "Onay kareleri",
 " ms": " ms",
 "show squad mate after": "takım arkadaşını şu süre sonra göster",
