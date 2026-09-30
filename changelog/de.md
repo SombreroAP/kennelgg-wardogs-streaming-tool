@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.20
+- **Behoben: Die Mindestzeit auf dem Squad-Mitglied sprang auf 0 zurück, wenn sie auf 500 oder 2000 ms stand.** Eine Anpassung der Einstellungen, die nur einmal greifen sollte, griff bei jedem Start. Deshalb ging ein Wert von 500 oder 2000 unter Einstellungen, Erweitert, Down-Erkennung, Feintuning, Timing beim nächsten Start von OBS verloren; 250, 1000 und alle anderen Werte blieben erhalten. Was du dort einstellst, bleibt jetzt. Falls du 500 oder 2000 eingestellt hattest, stell es noch einmal ein. Steht dort 0, der Standardwert, ändert sich nichts.
+
 ## 0.34.19
 - **Behoben: Der POV wechselte zu früh zu dir zurück, und die Bestätigungs-Frames blieben nicht gespeichert.** Eine Anpassung der Einstellungen, die nur einmal greifen sollte, griff bei jedem Start. Ab dem zweiten Start reichte deshalb eine einzige Prüfung (0,1 s), um zu entscheiden, dass du wieder auf bist, und eine so schnelle Prüfung lässt sich von hellem Himmel oder Rauch hinter dem Schadenslog täuschen, während du noch down bist. Außerdem setzte sie jeden Wert von 2 bis 5 unter Einstellungen, Erweitert, Down-Erkennung, Feintuning, Bestätigungs-Frames auf 1 zurück. Es sind wieder zwei Prüfungen (0,2 s), und was du dort einstellst, bleibt jetzt. Falls du absichtlich 1 gewählt hattest, stell es noch einmal ein.
 

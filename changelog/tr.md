@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.20
+- **Düzeltildi: takım arkadaşında en az kalma süresi 500 ya da 2000 ms'ye ayarlandığında 0'a dönüyordu.** Yalnızca bir kez çalışması gereken bir ayar güncellemesi her açılışta çalışıyordu; bu yüzden Ayarlar, Gelişmiş, Yere düşme algılama, İnce ayar, Zamanlama altında ayarlanan 500 ya da 2000 değeri, OBS'nin bir sonraki açılışında kayboluyordu. 250, 1000 ve diğer tüm değerler korunuyordu. Artık orada ayarladığın değer kalıyor. 500 ya da 2000 ayarladıysan bir kez daha ayarla. Varsayılan olan 0'da bıraktıysan hiçbir şey değişmez.
+
 ## 0.34.19
 - **Düzeltildi: POV sana çok erken geri dönüyordu ve Onay kareleri kaydedilmiyordu.** Yalnızca bir kez çalışması gereken bir ayar güncellemesi her açılışta çalışıyordu; bu yüzden ikinci açılıştan itibaren ayağa kalktığına karar vermek için tek bir kontrol (0.1 sn) yetiyordu ve bu kadar hızlı bir kontrol, sen hâlâ yerdeyken hasar kaydının arkasındaki parlak bir gökyüzü ya da duman yüzünden yanılabilir. Ayrıca Ayarlar, Gelişmiş, Yere düşme algılama, İnce ayar, Onay kareleri altında 2 ile 5 arasında ayarlanan her değeri 1'e geri çekiyordu. Artık yine iki kontrol (0.2 sn) var ve orada ayarladığın değer kalıyor. 1'i bilerek seçtiysen bir kez daha seç.
 

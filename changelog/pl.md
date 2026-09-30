@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.20
+- **Naprawiono: minimalny czas na koledze z drużyny wracał do 0, gdy był ustawiony na 500 lub 2000 ms.** Zmiana ustawień, która miała zadziałać tylko raz, działała przy każdym starcie, więc wartość 500 lub 2000 ustawiona w Ustawienia, Zaawansowane, Wykrywanie powalenia, Dostrajanie, Czasy przepadała przy następnym starcie OBS; 250, 1000 i wszystkie inne wartości zostawały. To, co tam ustawisz, teraz zostaje. Jeśli było ustawione 500 lub 2000, ustaw to jeszcze raz. Przy 0, wartości domyślnej, nic się nie zmienia.
+
 ## 0.34.19
 - **Naprawiono: POV wracał do ciebie za wcześnie, a Klatki potwierdzenia się nie zapisywały.** Zmiana ustawień, która miała zadziałać tylko raz, działała przy każdym starcie, więc od drugiego startu jeden odczyt (0,1 s) wystarczał, by uznać, że już stoisz, a tak szybki odczyt da się zmylić jasnym niebem albo dymem za dziennikiem obrażeń, gdy wciąż leżysz. Do tego każdą wartość od 2 do 5 ustawioną w Ustawienia, Zaawansowane, Wykrywanie powalenia, Dostrajanie, Klatki potwierdzenia cofała do 1. Znów są dwa odczyty (0,2 s), a to, co tam ustawisz, teraz zostaje. Jeśli 1 było ustawione celowo, ustaw je jeszcze raz.
 

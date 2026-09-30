@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.20
+- **Fixed: the minimum time on the squad mate going back to 0 when set to 500 or 2000 ms.** A settings update meant to run once ran at every start, so either value set under Settings, Advanced, Downed detection, Tuning, Timing was lost the next time OBS started; 250, 1000 and every other value were kept. What you set there now stays. If you had set 500 or 2000, set it once more. If you left it at 0, the default, nothing changes.
+
 ## 0.34.19
 - **Fixed: the POV swapping back to you too soon, and Confirm frames not sticking.** A settings update meant to run once ran at every start, so from the second start on a single check (0.1 s) was enough to decide you were back up, and a check that quick can be fooled by a bright sky or smoke behind the damage log while you are still down. It also reset any 2 to 5 set under Settings, Advanced, Downed detection, Tuning, Confirm frames to 1. It is two checks (0.2 s) again, and what you set there now stays. If you had picked 1 on purpose, pick it once more.
 

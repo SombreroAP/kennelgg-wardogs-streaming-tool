@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.20
+- **Risolto: il tempo minimo sul compagno di squadra tornava a 0 se impostato a 500 o 2000 ms.** Una modifica alle impostazioni pensata per essere applicata una sola volta veniva applicata a ogni avvio, quindi un valore di 500 o 2000 impostato in Impostazioni, Avanzate, Rilevamento a terra, Regolazione, Tempi andava perso al successivo avvio di OBS; 250, 1000 e ogni altro valore restavano. Quello che imposti lì ora resta. Se avevi impostato 500 o 2000, impostalo di nuovo. Se l'hai lasciato a 0, il valore predefinito, non cambia nulla.
+
 ## 0.34.19
 - **Risolto: il POV tornava a te troppo presto, e i Fotogrammi di conferma non restavano salvati.** Una modifica alle impostazioni pensata per essere applicata una sola volta veniva applicata a ogni avvio, quindi dal secondo avvio in poi bastava un solo controllo (0.1 s) per decidere che eri di nuovo in piedi, e un controllo così rapido può essere ingannato da un cielo luminoso o dal fumo dietro il registro dei danni mentre sei ancora a terra. Riportava inoltre a 1 qualsiasi valore da 2 a 5 impostato in Impostazioni, Avanzate, Rilevamento a terra, Regolazione, Fotogrammi di conferma. Sono di nuovo due controlli (0.2 s), e quello che imposti lì ora resta. Se avevi scelto 1 apposta, sceglilo di nuovo.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.20
+- **Corrigido: o tempo mínimo no parceiro de squad voltava para 0 quando definido em 500 ou 2000 ms.** Uma mudança de configuração feita para rodar só uma vez rodava a cada início, então um valor de 500 ou 2000 definido em Configurações, Avançado, Detecção de derrubada, Ajuste fino, Tempos se perdia no próximo início do OBS; 250, 1000 e qualquer outro valor ficavam. O que você definir ali agora fica. Se você tinha definido 500 ou 2000, defina de novo. Se deixou em 0, o padrão, nada muda.
+
 ## 0.34.19
 - **Corrigido: o POV voltava para você cedo demais, e os Quadros de confirmação não ficavam salvos.** Uma mudança de configuração feita para rodar só uma vez rodava a cada início, então a partir do segundo início uma única checagem (0,1 s) bastava para decidir que você estava de pé de novo, e uma checagem tão rápida pode ser enganada por um céu claro ou fumaça atrás do registro de dano enquanto você ainda está caído. Ela também voltava para 1 qualquer valor de 2 a 5 definido em Configurações, Avançado, Detecção de derrubada, Ajuste fino, Quadros de confirmação. São duas checagens (0,2 s) de novo, e o que você definir ali agora fica. Se você tinha escolhido 1 de propósito, escolha de novo.
 

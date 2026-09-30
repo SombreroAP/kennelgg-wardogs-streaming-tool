@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.20
+- **Corregido: el tiempo mínimo en el compañero volvía a 0 si lo ponías en 500 o 2000 ms.** Un cambio de ajustes pensado para aplicarse una sola vez se aplicaba en cada inicio, así que un valor de 500 o 2000 puesto en Ajustes, Avanzado, Detección de derribo, Ajuste fino, Tiempos se perdía en el siguiente inicio de OBS; 250, 1000 y cualquier otro valor se mantenían. Lo que pongas ahí ahora se queda. Si habías puesto 500 o 2000, vuelve a ponerlo. Si lo dejaste en 0, el valor por defecto, no cambia nada.
+
 ## 0.34.19
 - **Corregido: el POV volvía a ti demasiado pronto, y los Fotogramas de confirmación no se guardaban.** Un cambio de ajustes pensado para aplicarse una sola vez se aplicaba en cada inicio, así que desde el segundo inicio bastaba una sola comprobación (0,1 s) para decidir que volvías a estar en pie, y un cielo brillante o el humo detrás del registro de daño pueden engañar a una comprobación tan rápida mientras sigues derribado. También devolvía a 1 cualquier valor de 2 a 5 puesto en Ajustes, Avanzado, Detección de derribo, Ajuste fino, Fotogramas de confirmación. Vuelven a ser dos comprobaciones (0,2 s), y lo que pongas ahí ahora se queda. Si habías elegido 1 a propósito, vuelve a elegirlo.
 

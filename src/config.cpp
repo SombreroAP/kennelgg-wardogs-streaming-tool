@@ -594,8 +594,6 @@ void Config::load()
 		pollMs = 100;
 		downFrames = 2;
 	}
-	if (minDownMs == 2000 || minDownMs == 500)
-		minDownMs = 0;
 	// the built-in template is the wording only now, which scores lower but stands much further
 	// clear of everything else: 0.85 was tuned for the old one and is too strict for this
 	if (!verticalV2) {

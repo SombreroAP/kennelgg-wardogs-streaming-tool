@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.20
+- **Corrigé : le temps minimum sur le coéquipier revenait à 0 quand il était réglé sur 500 ou 2000 ms.** Une mise à jour des réglages prévue pour ne s'appliquer qu'une fois s'appliquait à chaque démarrage : une valeur de 500 ou 2000 choisie dans Paramètres, Avancé, Détection « à terre », Réglages fins, Timing était perdue au démarrage suivant d'OBS, alors que 250, 1000 et toutes les autres valeurs étaient conservées. Ce que tu y règles reste maintenant. Si tu avais choisi 500 ou 2000, choisis-le encore une fois. Si tu l'as laissé à 0, la valeur par défaut, rien ne change.
+
 ## 0.34.19
 - **Corrigé : le POV revenait sur toi trop tôt, et les Images de confirmation ne restaient pas enregistrées.** Une mise à jour des réglages prévue pour ne s'appliquer qu'une fois s'appliquait à chaque démarrage : à partir du deuxième démarrage, une seule vérification (0,1 s) suffisait pour décider que tu étais debout, et une vérification aussi rapide peut être trompée par un ciel lumineux ou de la fumée derrière le journal des dégâts alors que tu es encore à terre. Elle remettait aussi à 1 toute valeur de 2 à 5 choisie dans Paramètres, Avancé, Détection « à terre », Réglages fins, Images de confirmation. C'est de nouveau deux vérifications (0,2 s), et ce que tu y règles reste maintenant. Si tu avais choisi 1 exprès, choisis-le encore une fois.
 
