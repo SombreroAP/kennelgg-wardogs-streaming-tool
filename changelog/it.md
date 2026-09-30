@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.18
+- **Invia log ora dice quale parte del plugin era ancora occupata quando OBS non si è chiuso correttamente.** Alcuni report automatici hanno mostrato OBS che inizia la chiusura normalmente e poi si ferma di colpo a metà, senza che questo plugin registri più nulla dopo - l'ipotesi principale è un'attività in background che sopravvive ai pochi secondi che il plugin aspetta prima di lasciarla andare, ma il log non diceva mai quale. Ogni attività in background ora si etichetta da sé, così se succede di nuovo il log la nominerà.
+
 ## 0.34.17
 - **Risolto: i guadagni di sessione potevano improvvisamente salire di una cifra enorme e inventata.** Se la primissima lettura del portafoglio di una diretta si agganciava a un numero letto male (una schermata di menu con un font che il lettore non conosce), il totale reale comparso una volta caricati in una partita - dopo che il saldo era rimasto fuori schermo per un po' - veniva contato in un colpo solo come denaro guadagnato, perché un saldo nascosto a lungo viene di norma considerato un pagamento vero. La prima lettura dopo un reset non gode più di questa fiducia: un avvio sbagliato viene ora corretto in silenzio invece di diventare una vincita finta. Grazie ad adventurebear per il log.
 

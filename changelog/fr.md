@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.18
+- **Envoyer les journaux dit maintenant quelle partie du plugin était encore occupée quand OBS n'a pas fermé proprement.** Quelques rapports automatiques ont montré OBS commençant sa fermeture normalement puis s'arrêtant net en plein milieu, sans plus rien de ce plugin dans le journal après - une tâche en arrière-plan qui survit aux quelques secondes que le plugin attend avant de la lâcher est la théorie principale, mais le journal ne disait jamais laquelle. Chaque tâche en arrière-plan se marque maintenant elle-même, donc si cela se reproduit, le journal la nommera.
+
 ## 0.34.17
 - **Corrigé : les gains de session pouvaient soudain bondir d'un montant énorme et inventé.** Si la toute première lecture du portefeuille d'un stream se calait sur un nombre mal lu (un écran de menu dans une police que le lecteur ne connaît pas), le vrai total apparu une fois chargé dans une partie - après que le solde soit resté invisible un moment - était compté d'un coup comme de l'argent gagné, car un solde longtemps caché est normalement considéré comme un vrai versement. La première lecture après une remise à zéro ne bénéficie plus de cette confiance : un mauvais départ est maintenant corrigé discrètement au lieu de devenir une fausse manne. Merci à adventurebear pour le journal.
 

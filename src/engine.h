@@ -260,6 +260,12 @@ signals:
 	void controllerWants(const QString &what);
 
 public:
+	// Called by WorkerGuard (engine.cpp), a plain struct outside the class, from any thread: a detached
+	// worker registers its label at spawn and clears it from its own destructor, so waitWorkers can name
+	// whichever one is still outstanding when it times out (LOG-4D7E, LOG-238E: shutdown starts cleanly,
+	// then just stops with no further log - a worker outliving the 2 s wait is the leading theory).
+	void workerBegin(const char *name);
+	void workerEnd(const char *name);
 	bool applied() const { return applied_; }
 	bool dualOn() const { return dualOn_; }
 	/// Turned on by hand (the Force button, a hotkey, the Squad panel): the vehicle detector may
@@ -616,7 +622,9 @@ private:
 	void checkAccess(); // say it once when the roster locks or unlocks
 	std::atomic<bool> busy_{false}, stopping_{false}, frameBusy_{false}, stopped_{false};
 	std::atomic<int> workers_{0}; // detached worker threads in flight (they count themselves out)
-	bool paused_ = false;         // sceneCleanup() ran; reloadConfig() starts the timers again
+	std::mutex workerNamesMx_;
+	std::vector<std::string> workerNames_; // labels of the workers_ currently in flight, for waitWorkers' timeout log
+	bool paused_ = false;                  // sceneCleanup() ran; reloadConfig() starts the timers again
 	void stopTimers();
 	void waitWorkers(int ms);
 	Capture capGame_, capFriend_, capRoi_;

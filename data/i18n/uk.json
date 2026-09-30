@@ -100,7 +100,7 @@
 "ClipHound was ended with OBS.": "ClipHound завершено разом з OBS.",
 "ClipHound closed with OBS.": "ClipHound закрито разом з OBS.",
 "OBS closing": "OBS закривається",
-"%1 worker thread(s) still running after %2 ms.": "Робочих потоків досі працює: %1 після %2 мс.",
+"%1 worker thread(s) still running after %2 ms: %3": "Робочих потоків досі працює: %1 після %2 мс (%3).",
 "scene collection closing": "колекція сцен закривається",
 "locked - enter your Discord username (Setup) so the bot can see you are in the Kennel.gg Discord": "заблоковано — введіть своє ім'я користувача Discord (Майстер налаштування), щоб бот побачив, що ви на сервері Kennel.gg у Discord",
 "locked - \"%1\" is not in the Kennel.gg Discord. Join it (the Discord button on the dock), and check the username is the lower-case one under your display name": "заблоковано — «%1» немає на сервері Kennel.gg у Discord. Приєднайтеся (кнопка Discord на панелі) і перевірте, що ім'я користувача — те, що малими літерами під вашим відображуваним ім'ям",

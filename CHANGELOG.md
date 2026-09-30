@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.18
+- **Send logs now says which part of the plugin was still busy when OBS failed to close cleanly.** A few automatic reports have shown OBS starting its shutdown normally and then simply stopping partway through, with nothing from this plugin logged after - a background task outliving the couple of seconds the plugin waits for it before letting go is the leading theory, but the log never said which one. Each background task now tags itself, so if this happens again, the log will name it.
+
 ## 0.34.17
 - **Fixed: session earnings could suddenly jump by an enormous, made-up amount.** If the very first wallet reading of a stream locked onto a misread number (a menu screen in a font the reader does not know), the real total that showed up once you loaded into a match - after the balance had been off screen a while - was counted as money earned in one go, since a long-hidden balance is normally trusted as a real payout. The first reading after a reset no longer gets that trust: a bad start is now corrected quietly instead of becoming a false windfall. Thanks adventurebear for the log.
 

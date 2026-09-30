@@ -1454,8 +1454,18 @@ void Engine::waitWorkers(int ms)
 	t.start();
 	while (workers_ > 0 && t.elapsed() < ms)
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	if (workers_ > 0)
-		log(tx("%1 worker thread(s) still running after %2 ms.").arg((int)workers_).arg(ms));
+	if (workers_ > 0) {
+		QStringList names;
+		{
+			std::lock_guard<std::mutex> lk(workerNamesMx_);
+			for (const std::string &n : workerNames_)
+				names << QString::fromStdString(n);
+		}
+		log(tx("%1 worker thread(s) still running after %2 ms: %3")
+			    .arg((int)workers_)
+			    .arg(ms)
+			    .arg(names.join(", ")));
+	}
 }
 
 void Engine::sceneCleanup()
@@ -1570,18 +1580,39 @@ namespace {
 /// Counts a detached worker out when its body ends, whichever way it ends.
 struct WorkerGuard {
 	std::atomic<int> &n;
-	explicit WorkerGuard(std::atomic<int> &c) : n(c) {}
-	~WorkerGuard() { n--; }
+	Engine *e;
+	const char *name;
+	WorkerGuard(std::atomic<int> &c, Engine *e, const char *name) : n(c), e(e), name(name) {}
+	~WorkerGuard()
+	{
+		n--;
+		e->workerEnd(name);
+	}
 };
 } // namespace
+
+void Engine::workerBegin(const char *name)
+{
+	std::lock_guard<std::mutex> lk(workerNamesMx_);
+	workerNames_.push_back(name);
+}
+
+void Engine::workerEnd(const char *name)
+{
+	std::lock_guard<std::mutex> lk(workerNamesMx_);
+	auto it = std::find(workerNames_.begin(), workerNames_.end(), std::string(name));
+	if (it != workerNames_.end())
+		workerNames_.erase(it);
+}
 
 void Engine::detectDiscordUser(bool byHand)
 {
 	if (stopping_)
 		return;
 	workers_++;
+	workerBegin("detectDiscordUser");
 	std::thread([this, byHand]() {
-		WorkerGuard guard(workers_);
+		WorkerGuard guard(workers_, this, "detectDiscordUser");
 		std::optional<DiscordIpc::User> u = DiscordIpc::currentUser(1500);
 		QString name = u ? u->username.trimmed().toLower() : QString();
 		QMetaObject::invokeMethod(
@@ -2711,8 +2742,9 @@ void Engine::cashTick()
 	std::string name = cfg.gameSource;
 	auto model = hudModel_;
 	workers_++;
+	workerBegin("cashTick");
 	std::thread([this, name, model]() {
-		WorkerGuard guard(workers_);
+		WorkerGuard guard(workers_, this, "cashTick");
 		hud::Reading r;
 		bool ok = false;
 		obs_source_t *src = obs_get_source_by_name(name.c_str());
@@ -4159,8 +4191,9 @@ void Engine::pictureTick()
 		return;
 	pictureBusy_ = true;
 	workers_++;
+	workerBegin("pictureTick");
 	std::thread([this, names]() {
-		WorkerGuard guard(workers_);
+		WorkerGuard guard(workers_, this, "pictureTick");
 		struct Seen {
 			QString source;
 			Picture::Look look;
@@ -4653,8 +4686,9 @@ void Engine::frameTick()
 	frameBusy_ = true;
 	std::string name = cfg.gameSource;
 	workers_++;
+	workerBegin("frameTick");
 	std::thread([this, due, name]() {
-		WorkerGuard guard(workers_);
+		WorkerGuard guard(workers_, this, "frameTick");
 		struct Out {
 			int id;
 			QByteArray jpeg;
@@ -4744,8 +4778,9 @@ void Engine::tick()
 
 	std::shared_ptr<AltSet> alts = altDets_;
 	workers_++;
+	workerBegin("tick");
 	std::thread([this, gameName, friendName, wantRevive, preview, quick, reviveFull, alts, mateSrc, mateName]() {
-		WorkerGuard guard(workers_);
+		WorkerGuard guard(workers_, this, "tick");
 		Result r;
 		obs_source_t *src = obs_get_source_by_name(gameName.c_str());
 		if (src) {
@@ -6253,8 +6288,9 @@ void Engine::hudSample(const QString &why)
 	hudSent_++;
 	std::string name = cfg.gameSource;
 	workers_++;
+	workerBegin("hudSample");
 	std::thread([this, parts, name, head]() {
-		WorkerGuard guard(workers_);
+		WorkerGuard guard(workers_, this, "hudSample");
 		QJsonArray crops;
 		obs_source_t *s = obs_get_source_by_name(name.c_str());
 		if (s) {
@@ -6407,8 +6443,9 @@ void Engine::startLiveUpdate()
 				return;
 			}
 			workers_++;
+			workerBegin("startLiveUpdate.unpack");
 			std::thread([this, zip, dir, want, ver]() {
-				WorkerGuard guard(workers_);
+				WorkerGuard guard(workers_, this, "startLiveUpdate.unpack");
 				QString err;
 				QFile f(zip);
 				QCryptographicHash h(QCryptographicHash::Sha256);
@@ -6497,8 +6534,9 @@ void Engine::applyLiveUpdate()
 	if (appWas)
 		stopApp();
 	workers_++;
+	workerBegin("applyLiveUpdate.copyTree");
 	std::thread([this, staged, ver, appDir, appWas]() {
-		WorkerGuard guard(workers_);
+		WorkerGuard guard(workers_, this, "applyLiveUpdate.copyTree");
 		QString live = liveDataDir();
 		QDir(live).removeRecursively();
 		QString bad = copyTree(staged + "/data/obs-plugins/kennelgg", live + "/data");

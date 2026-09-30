@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.18
+- **Enviar registros ahora dice qué parte del plugin seguía ocupada cuando OBS no cerró limpiamente.** Unos pocos informes automáticos han mostrado a OBS empezando a cerrarse con normalidad y luego deteniéndose sin más a mitad de camino, sin que este plugin registre nada después - la teoría principal es una tarea en segundo plano que sobrevive a los pocos segundos que el plugin espera por ella antes de soltarla, pero el registro nunca decía cuál. Cada tarea en segundo plano ahora se marca a sí misma, así que si esto vuelve a pasar, el registro la nombrará.
+
 ## 0.34.17
 - **Corregido: las ganancias de la sesión podían dar de repente un salto enorme e inventado.** Si la primerísima lectura de la cartera de una emisión se fijaba en un número mal leído (una pantalla de menú con una fuente que el lector no conoce), el total real que aparecía al cargar en una partida - tras un rato con el saldo fuera de pantalla - se contaba de golpe como dinero ganado, porque un saldo oculto durante mucho tiempo normalmente se toma como un pago real. La primera lectura tras un reinicio ya no recibe esa confianza: un inicio erróneo ahora se corrige en silencio en lugar de convertirse en una ganancia falsa. Gracias a adventurebear por el registro.
 

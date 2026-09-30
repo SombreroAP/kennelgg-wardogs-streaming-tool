@@ -100,7 +100,7 @@
 "ClipHound was ended with OBS.": "ClipHound, OBS ile birlikte sonlandırıldı.",
 "ClipHound closed with OBS.": "ClipHound, OBS ile birlikte kapandı.",
 "OBS closing": "OBS kapanıyor",
-"%1 worker thread(s) still running after %2 ms.": "%2 ms sonra hâlâ çalışan %1 iş parçacığı var.",
+"%1 worker thread(s) still running after %2 ms: %3": "%2 ms sonra hâlâ çalışan %1 iş parçacığı var: %3.",
 "scene collection closing": "sahne koleksiyonu kapanıyor",
 "locked - enter your Discord username (Setup) so the bot can see you are in the Kennel.gg Discord": "kilitli - botun seni Kennel.gg Discord'unda görebilmesi için Discord kullanıcı adını gir (Kurulum)",
 "locked - \"%1\" is not in the Kennel.gg Discord. Join it (the Discord button on the dock), and check the username is the lower-case one under your display name": "kilitli - \"%1\" Kennel.gg Discord'unda değil. Sunucuya katıl (paneldeki Discord düğmesi) ve kullanıcı adının, görünen adının altındaki küçük harfli ad olduğunu kontrol et",

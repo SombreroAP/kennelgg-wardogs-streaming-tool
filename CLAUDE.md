@@ -14,7 +14,7 @@ deleted; do not resurrect it. Builds go to Google Drive `My Drive/Kennel.gg Ward
 | File | What |
 |---|---|
 | `src/plugin-main.cpp` | module load: Engine + Dock (`obs_frontend_add_dock_by_id`), Tools menu, two frontend hotkeys (saved in `hotkeys.json`) |
-| `src/engine.*` | QObject state machine on the UI thread; each poll spawns a worker that captures + matches, posts back via `QMetaObject::invokeMethod` |
+| `src/engine.*` | QObject state machine on the UI thread; each poll spawns a worker that captures + matches, posts back via `QMetaObject::invokeMethod`. Every detached worker (`workers_`, the `WorkerGuard` in engine.cpp) now tags itself with `Engine::workerBegin(name)`/`workerEnd(name)`, so when `waitWorkers(2000)` times out at shutdown its log line names whichever one is still running (0.34.18, diagnostic only - three automatic reports (LOG-4D7E, LOG-238E, LOG-3802) now show OBS's shutdown starting cleanly and then just stopping, with no kennelgg unload line and no crash dump; the leading theory is a worker outliving this 2 s wait, `applyLiveUpdate`'s `copyTree` retry loop being the prime suspect since it can run up to 10 s) |
 | `src/detector.*` | NCC template search: 3x3 blur, integral images, 20 sizes (6 % steps, min height 10 px), band-limited, lock-on fast path |
 | `src/capture.*` | render a source to 800 px BGRA: texrender + stagesurface under `obs_enter_graphics` (the obs-websocket screenshot pattern) |
 | `src/switcher.*` | scene item show/hide, hide filter (`color_filter_v2` opacity 0) + mute for warm mode, browser sources for Twitch / VDO.Ninja / the look overlay, game-audio mute with restore |

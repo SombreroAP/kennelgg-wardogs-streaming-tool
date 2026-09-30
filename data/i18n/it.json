@@ -100,7 +100,7 @@
 "ClipHound was ended with OBS.": "ClipHound è stato terminato insieme a OBS.",
 "ClipHound closed with OBS.": "ClipHound chiuso insieme a OBS.",
 "OBS closing": "chiusura di OBS",
-"%1 worker thread(s) still running after %2 ms.": "%1 thread di lavoro ancora attivi dopo %2 ms.",
+"%1 worker thread(s) still running after %2 ms: %3": "%1 thread di lavoro ancora attivi dopo %2 ms: %3.",
 "scene collection closing": "chiusura della raccolta scene",
 "locked - enter your Discord username (Setup) so the bot can see you are in the Kennel.gg Discord": "bloccato - inserisci il tuo nome utente Discord (Configurazione) così il bot può vedere che sei nel Discord di Kennel.gg",
 "locked - \"%1\" is not in the Kennel.gg Discord. Join it (the Discord button on the dock), and check the username is the lower-case one under your display name": "bloccato - \"%1\" non è nel Discord di Kennel.gg. Entra (il pulsante Discord sul pannello) e controlla che il nome utente sia quello in minuscolo sotto il tuo nome visualizzato",

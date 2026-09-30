@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.18
+- **Send logs artık OBS düzgün kapanmadığında eklentinin hangi kısmının hâlâ meşgul olduğunu söylüyor.** Birkaç otomatik rapor, OBS'nin kapanmaya normal başladığını, sonra yarı yolda hiçbir şey kaydetmeden aniden durduğunu gösterdi - önde gelen teori, eklentinin bırakmadan önce beklediği birkaç saniyeyi aşan bir arka plan görevi, ama günlük hiçbir zaman hangisi olduğunu söylemedi. Her arka plan görevi artık kendini etiketliyor, böylece bu tekrar olursa günlük onu adlandıracak.
+
 ## 0.34.17
 - **Düzeltildi: oturum kazançları aniden devasa, uydurma bir miktar sıçrayabiliyordu.** Bir yayının ilk cüzdan okuması, yanlış okunmuş bir sayıya kilitlenirse (okuyucunun tanımadığı bir yazı tipiyle menü ekranı), maça yüklendikten sonra - bakiye bir süre ekran dışında kaldıktan sonra - ortaya çıkan gerçek toplam, tek seferde kazanılmış para olarak sayılıyordu, çünkü uzun süre gizli kalan bir bakiye normalde gerçek bir ödeme olarak güvenilir. Sıfırlamadan sonraki ilk okuma artık bu güveni almıyor: kötü bir başlangıç artık sessizce düzeltiliyor, sahte bir vurgun haline gelmek yerine. Log için adventurebear'a teşekkürler.
 

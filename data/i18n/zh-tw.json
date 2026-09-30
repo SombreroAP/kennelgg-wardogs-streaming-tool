@@ -100,7 +100,7 @@
 "ClipHound was ended with OBS.": "ClipHound 已隨 OBS 結束。",
 "ClipHound closed with OBS.": "ClipHound 已隨 OBS 關閉。",
 "OBS closing": "OBS 正在關閉",
-"%1 worker thread(s) still running after %2 ms.": "%2 毫秒後仍有 %1 個工作執行緒在執行。",
+"%1 worker thread(s) still running after %2 ms: %3": "%2 毫秒後仍有 %1 個工作執行緒在執行：%3",
 "scene collection closing": "場景集合正在關閉",
 "locked - enter your Discord username (Setup) so the bot can see you are in the Kennel.gg Discord": "已鎖定 - 請輸入你的 Discord 使用者名稱（設定精靈），讓機器人確認你在 Kennel.gg Discord 裡",
 "locked - \"%1\" is not in the Kennel.gg Discord. Join it (the Discord button on the dock), and check the username is the lower-case one under your display name": "已鎖定 -「%1」不在 Kennel.gg Discord 裡。請加入（停駐視窗上的 Discord 按鈕），並確認使用者名稱是顯示名稱下方那個小寫的名稱",

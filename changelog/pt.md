@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.18
+- **O Enviar logs agora diz qual parte do plugin ainda estava ocupada quando o OBS não fechou direito.** Alguns relatórios automáticos mostraram o OBS começando a fechar normalmente e depois simplesmente parando no meio do caminho, sem mais nada deste plugin registrado depois - a teoria principal é uma tarefa em segundo plano que sobrevive aos poucos segundos que o plugin espera por ela antes de soltá-la, mas o log nunca dizia qual. Cada tarefa em segundo plano agora se marca, então se isso acontecer de novo, o log vai nomeá-la.
+
 ## 0.34.17
 - **Corrigido: os ganhos da sessão podiam saltar de repente um valor enorme e inventado.** Se a primeiríssima leitura da carteira de uma live se fixasse num número lido errado (uma tela de menu numa fonte que o leitor não conhece), o total real que aparecia ao carregar numa partida - depois de o saldo ter ficado fora da tela por um tempo - era contado de uma vez como dinheiro ganho, já que um saldo escondido por muito tempo normalmente é tratado como um pagamento real. A primeira leitura depois de um reset já não recebe essa confiança: um início errado agora é corrigido em silêncio em vez de virar um ganho falso. Obrigado a adventurebear pelo log.
 

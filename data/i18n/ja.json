@@ -100,7 +100,7 @@
 "ClipHound was ended with OBS.": "ClipHoundはOBSと一緒に終了しました。",
 "ClipHound closed with OBS.": "ClipHoundはOBSと一緒に閉じました。",
 "OBS closing": "OBS終了中",
-"%1 worker thread(s) still running after %2 ms.": "%2 ms 経ってもワーカースレッドが %1 個動いています。",
+"%1 worker thread(s) still running after %2 ms: %3": "%2 ms 経ってもワーカースレッドが %1 個動いています: %3",
 "scene collection closing": "シーンコレクション終了中",
 "locked - enter your Discord username (Setup) so the bot can see you are in the Kennel.gg Discord": "ロック中 - Kennel.gg Discordにいることをボットが確認できるよう、Discordユーザー名を入力してください（セットアップ）",
 "locked - \"%1\" is not in the Kennel.gg Discord. Join it (the Discord button on the dock), and check the username is the lower-case one under your display name": "ロック中 - 「%1」はKennel.gg Discordにいません。参加して（ドックのDiscordボタン）、ユーザー名が表示名の下にある小文字のものか確認してください",

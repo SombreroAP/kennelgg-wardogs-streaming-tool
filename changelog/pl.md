@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.18
+- **Wysyłka logów teraz mówi, która część wtyczki wciąż była zajęta, gdy OBS nie zamknął się poprawnie.** Kilka automatycznych raportów pokazało, że OBS zaczyna zamykanie normalnie, a potem po prostu przestaje w połowie, bez żadnego kolejnego wpisu od tej wtyczki - główną teorią jest zadanie w tle, które przeżywa te kilka sekund, na które wtyczka czeka przed jego puszczeniem, ale log nigdy nie mówił, które. Każde zadanie w tle teraz oznacza się samo, więc jeśli to się powtórzy, log je nazwie.
+
 ## 0.34.17
 - **Naprawiono: zarobki sesji mogły nagle skoczyć o ogromną, zmyśloną kwotę.** Jeśli zupełnie pierwszy odczyt portfela w streamie trafił na błędnie odczytaną liczbę (ekran menu czcionką, której czytnik nie zna), prawdziwa suma, która pojawiła się po wczytaniu meczu - gdy saldo było przez chwilę poza ekranem - była liczona od razu jako zarobione pieniądze, bo długo ukryte saldo zwykle traktowane jest jak prawdziwa wypłata. Pierwszy odczyt po resecie nie ma już tego zaufania: zły start jest teraz po cichu poprawiany, zamiast zamieniać się w fałszywą fortunę. Dzięki adventurebear za log.
 
