@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.21
+- **Corrigé : un faux « Le tampon de relecture d'OBS est désactivé, aucun clip ne peut donc être sauvegardé » dans le rapport automatique de fin de stream.** Passer en direct peut lui-même arrêter et relancer le tampon de relecture pendant quelques secondes (un changement d'encodeur, par ex. le streaming multitrack) - un petit accroc normal qui se corrigeait tout seul bien avant la fin du stream, mais suffisant pour être enregistré comme un problème pour de bon. Un souci de santé doit maintenant être encore là à la vérification suivante, une demi-minute plus tard, avant de compter. Merci à antonilink pour le journal.
+
 ## 0.34.20
 - **Corrigé : le temps minimum sur le coéquipier revenait à 0 quand il était réglé sur 500 ou 2000 ms.** Une mise à jour des réglages prévue pour ne s'appliquer qu'une fois s'appliquait à chaque démarrage : une valeur de 500 ou 2000 choisie dans Paramètres, Avancé, Détection « à terre », Réglages fins, Timing était perdue au démarrage suivant d'OBS, alors que 250, 1000 et toutes les autres valeurs étaient conservées. Ce que tu y règles reste maintenant. Si tu avais choisi 500 ou 2000, choisis-le encore une fois. Si tu l'as laissé à 0, la valeur par défaut, rien ne change.
 

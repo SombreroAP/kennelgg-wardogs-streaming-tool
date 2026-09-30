@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.21
+- **Risolto: un falso "Il buffer replay di OBS è spento, quindi non si può salvare nessuna clip" nel report automatico di fine diretta.** Andare in diretta può da solo fermare e riavviare il buffer replay per qualche secondo (un cambio di encoder, ad es. lo streaming multitrack) - un intoppo normale che si risolveva da sé molto prima della fine della diretta, ma bastava a essere registrato come problema per sempre. Ora un problema di salute deve essere ancora presente al controllo successivo, mezzo minuto dopo, prima di contare. Grazie ad antonilink per il log.
+
 ## 0.34.20
 - **Risolto: il tempo minimo sul compagno di squadra tornava a 0 se impostato a 500 o 2000 ms.** Una modifica alle impostazioni pensata per essere applicata una sola volta veniva applicata a ogni avvio, quindi un valore di 500 o 2000 impostato in Impostazioni, Avanzate, Rilevamento a terra, Regolazione, Tempi andava perso al successivo avvio di OBS; 250, 1000 e ogni altro valore restavano. Quello che imposti lì ora resta. Se avevi impostato 500 o 2000, impostalo di nuovo. Se l'hai lasciato a 0, il valore predefinito, non cambia nulla.
 

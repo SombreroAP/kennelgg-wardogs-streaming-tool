@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.21
+- **Düzeltildi: yayın sonu otomatik raporunda sahte "OBS'in tekrar oynatma arabelleği kapalı, bu yüzden hiçbir klip kaydedilemez" uyarısı.** Yayına geçmek, tekrar oynatma arabelleğini birkaç saniyeliğine kendiliğinden durdurup yeniden başlatabilir (bir kodlayıcı değişikliği, örneğin çok parçalı yayın) - yayın bitmeden çok önce kendiliğinden düzelen normal bir aksaklık, ama kalıcı olarak sorun diye kaydedilmeye yetiyordu. Artık bir sağlık sorununun sayılması için, yarım dakika sonraki bir sonraki kontrolde hâlâ orada olması gerekiyor. Log için antonilink'e teşekkürler.
+
 ## 0.34.20
 - **Düzeltildi: takım arkadaşında en az kalma süresi 500 ya da 2000 ms'ye ayarlandığında 0'a dönüyordu.** Yalnızca bir kez çalışması gereken bir ayar güncellemesi her açılışta çalışıyordu; bu yüzden Ayarlar, Gelişmiş, Yere düşme algılama, İnce ayar, Zamanlama altında ayarlanan 500 ya da 2000 değeri, OBS'nin bir sonraki açılışında kayboluyordu. 250, 1000 ve diğer tüm değerler korunuyordu. Artık orada ayarladığın değer kalıyor. 500 ya da 2000 ayarladıysan bir kez daha ayarla. Varsayılan olan 0'da bıraktıysan hiçbir şey değişmez.
 

@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.21
+- **Naprawiono: fałszywy komunikat „Bufor powtórek OBS jest wyłączony, więc nie da się zapisać żadnego klipu” w automatycznym raporcie na koniec streama.** Samo przejście na żywo może na kilka sekund zatrzymać i ponownie uruchomić bufor powtórek (zmiana enkodera, np. streaming wielościeżkowy) - normalna, chwilowa usterka, która sama się naprawiała na długo przed końcem streama, ale wystarczyło to, by zostać zapisaną jako problem na stałe. Problem ze stanem musi teraz nadal występować przy kolejnym sprawdzeniu, pół minuty później, żeby się liczył. Dzięki antonilink za log.
+
 ## 0.34.20
 - **Naprawiono: minimalny czas na koledze z drużyny wracał do 0, gdy był ustawiony na 500 lub 2000 ms.** Zmiana ustawień, która miała zadziałać tylko raz, działała przy każdym starcie, więc wartość 500 lub 2000 ustawiona w Ustawienia, Zaawansowane, Wykrywanie powalenia, Dostrajanie, Czasy przepadała przy następnym starcie OBS; 250, 1000 i wszystkie inne wartości zostawały. To, co tam ustawisz, teraz zostaje. Jeśli było ustawione 500 lub 2000, ustaw to jeszcze raz. Przy 0, wartości domyślnej, nic się nie zmienia.
 

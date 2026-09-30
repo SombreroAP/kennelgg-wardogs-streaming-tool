@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.21
+- **Fixed: a false "OBS's replay buffer is off, so no clip can be saved" in the automatic end-of-stream report.** Going live can itself stop and restart the replay buffer for a few seconds (an encoder change, e.g. multitrack streaming) - a normal blip that fixed itself well before the stream ended, but it was enough to be recorded as a problem for good. A health issue now has to still be there the next time it is checked, half a minute later, before it counts. Thanks antonilink for the log.
+
 ## 0.34.20
 - **Fixed: the minimum time on the squad mate going back to 0 when set to 500 or 2000 ms.** A settings update meant to run once ran at every start, so either value set under Settings, Advanced, Downed detection, Tuning, Timing was lost the next time OBS started; 250, 1000 and every other value were kept. What you set there now stays. If you had set 500 or 2000, set it once more. If you left it at 0, the default, nothing changes.
 

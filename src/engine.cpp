@@ -85,13 +85,21 @@ Engine::Engine(QObject *parent) : QObject(parent)
 		if (!liveStaged_.isEmpty() && !liveBusy_ && !applied_ && !detected_ && !replaying() && !povPending_)
 			applyLiveUpdate();
 		if (cfg.helpBuild() && streamStart_.isValid() && replayRetryTick_ % 6 == 0) {
-			// what was broken during this stream, for the logs sent at its end (every 30 s is enough)
+			// what was broken during this stream, for the logs sent at its end (every 30 s is enough).
+			// Only once a health item has stayed broken across two checks in a row: going live can
+			// itself stop and restart the replay buffer for a few seconds (a multitrack encoder
+			// change), and that should not end up as "no clip can be saved" in the report when the
+			// buffer recovered on its own well before the stream ended (LOG-8823).
+			QSet<QString> brokenNow;
 			for (const auto &h : health())
-				if (h.level == 2 && problems_.size() < 40) {
+				if (h.level == 2) {
+					brokenNow << h.key;
 					QString p = h.key + ": " + h.why;
-					if (!problems_.contains(p))
+					if (problemsPrevBroken_.contains(h.key) && problems_.size() < 40 &&
+					    !problems_.contains(p))
 						problems_ << p;
 				}
+			problemsPrevBroken_ = brokenNow;
 			if (clips.lostHotkeyClips() > 0 && !problems_.contains("clips: hotkey clips lost"))
 				problems_ << "clips: hotkey clips lost";
 		}
@@ -5411,6 +5419,7 @@ void Engine::onStreaming(bool live)
 				   false);
 	}
 	problems_.clear();
+	problemsPrevBroken_.clear();
 	streamStart_ = QDateTime();
 	if (cfg.highlightsAuto)
 		requestHighlights(TX_NOOP("stream ended"), false);

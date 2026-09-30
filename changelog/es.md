@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.21
+- **Corregido: un falso «El búfer de repetición de OBS está apagado, así que no se puede guardar ningún clip» en el informe automático de fin de directo.** Salir en directo puede en sí mismo detener y reiniciar el búfer de repetición durante unos segundos (un cambio de codificador, por ejemplo streaming multitrack) - un bache normal que se arreglaba solo mucho antes de que terminara el directo, pero suficiente para quedar registrado como un problema para siempre. Ahora un problema de salud tiene que seguir ahí en la siguiente comprobación, medio minuto después, para contar. Gracias a antonilink por el registro.
+
 ## 0.34.20
 - **Corregido: el tiempo mínimo en el compañero volvía a 0 si lo ponías en 500 o 2000 ms.** Un cambio de ajustes pensado para aplicarse una sola vez se aplicaba en cada inicio, así que un valor de 500 o 2000 puesto en Ajustes, Avanzado, Detección de derribo, Ajuste fino, Tiempos se perdía en el siguiente inicio de OBS; 250, 1000 y cualquier otro valor se mantenían. Lo que pongas ahí ahora se queda. Si habías puesto 500 o 2000, vuelve a ponerlo. Si lo dejaste en 0, el valor por defecto, no cambia nada.
 

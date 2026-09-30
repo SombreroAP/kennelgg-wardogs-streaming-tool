@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.21
+- **Corrigido: um falso "O buffer de replay do OBS está desligado, então nenhum clipe pode ser salvo" no relatório automático de fim de live.** Entrar ao vivo pode, por si só, parar e reiniciar o buffer de replay por alguns segundos (uma mudança de codificador, por exemplo streaming multitrack) - uma falha normal que se corrigia sozinha bem antes do fim da live, mas o suficiente para ficar registrada como problema para sempre. Agora um problema de integridade precisa continuar lá na próxima checagem, meio minuto depois, para contar. Obrigado ao antonilink pelo log.
+
 ## 0.34.20
 - **Corrigido: o tempo mínimo no parceiro de squad voltava para 0 quando definido em 500 ou 2000 ms.** Uma mudança de configuração feita para rodar só uma vez rodava a cada início, então um valor de 500 ou 2000 definido em Configurações, Avançado, Detecção de derrubada, Ajuste fino, Tempos se perdia no próximo início do OBS; 250, 1000 e qualquer outro valor ficavam. O que você definir ali agora fica. Se você tinha definido 500 ou 2000, defina de novo. Se deixou em 0, o padrão, nada muda.
 

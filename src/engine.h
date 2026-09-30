@@ -608,7 +608,8 @@ private:
 	void startReel();
 	void reelNext();
 	void playReplayEntry(const Clips::Entry &e, const QString &why);
-	QStringList problems_; // broken health items seen during this stream: sent with the logs at its end
+	QStringList problems_;             // broken health items seen during this stream: sent with the logs at its end
+	QSet<QString> problemsPrevBroken_; // health keys broken on the previous 30 s poll (see problems_)
 	int autoLogsSent_ = 0;
 	void checkLastCrash();
 	bool manualShow_ = false;

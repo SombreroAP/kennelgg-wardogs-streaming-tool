@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.21
+- **Behoben: ein falsches „Der Wiederholungspuffer von OBS ist aus, also kann kein Clip gespeichert werden“ im automatischen Bericht am Streamende.** Live gehen kann selbst den Wiederholungspuffer für ein paar Sekunden stoppen und neu starten (eine Encoder-Änderung, z. B. Multitrack-Streaming) - ein normaler kurzer Aussetzer, der sich von selbst behob, lange bevor der Stream endete, aber genug, um dauerhaft als Problem festgehalten zu werden. Ein Gesundheitsproblem muss jetzt beim nächsten Check, eine halbe Minute später, immer noch da sein, bevor es zählt. Danke an antonilink für das Protokoll.
+
 ## 0.34.20
 - **Behoben: Die Mindestzeit auf dem Squad-Mitglied sprang auf 0 zurück, wenn sie auf 500 oder 2000 ms stand.** Eine Anpassung der Einstellungen, die nur einmal greifen sollte, griff bei jedem Start. Deshalb ging ein Wert von 500 oder 2000 unter Einstellungen, Erweitert, Down-Erkennung, Feintuning, Timing beim nächsten Start von OBS verloren; 250, 1000 und alle anderen Werte blieben erhalten. Was du dort einstellst, bleibt jetzt. Falls du 500 oder 2000 eingestellt hattest, stell es noch einmal ein. Steht dort 0, der Standardwert, ändert sich nichts.
 
