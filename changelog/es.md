@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Registro de cambios
 
+## 0.34.22
+- **Corregido: OBS podía bloquearse justo cuando se cerraba una ventana de captura de juego.** Leer la fuente del juego para la barra de estadísticas, la búsqueda del registro de daño y el resto se hace fuera del propio hilo de OBS; cerrar la ventana podía empezar a desmontar esa captura en ese mismo instante, y ambas cosas a la vez podían bloquear OBS, dentro de win-capture.dll. Esa lectura ahora se ejecuta como una tarea en el propio hilo gráfico de OBS, así que nunca cae en mitad de ese desmontaje. Gracias a tunersteve por el registro.
+
 ## 0.34.21
 - **Corregido: un falso «El búfer de repetición de OBS está apagado, así que no se puede guardar ningún clip» en el informe automático de fin de directo.** Salir en directo puede en sí mismo detener y reiniciar el búfer de repetición durante unos segundos (un cambio de codificador, por ejemplo streaming multitrack) - un bache normal que se arreglaba solo mucho antes de que terminara el directo, pero suficiente para quedar registrado como un problema para siempre. Ahora un problema de salud tiene que seguir ahí en la siguiente comprobación, medio minuto después, para contar. Gracias a antonilink por el registro.
 

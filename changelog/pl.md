@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Lista zmian
 
+## 0.34.22
+- **Naprawiono: OBS mógł się wywalić dokładnie wtedy, gdy zamykało się okno przechwytywania gry.** Odczyt źródła gry na potrzeby paska statystyk, wyszukiwania dziennika obrażeń i reszty odbywa się poza własnym wątkiem OBS; zamknięcie okna mogło w tym samym momencie zacząć demontować to przechwytywanie, a oba te zdarzenia naraz mogły zawiesić OBS, wewnątrz win-capture.dll. Ten odczyt działa teraz jako zadanie na własnym wątku graficznym OBS, więc nigdy nie trafia w sam środek tego demontażu. Dzięki tunersteve za log.
+
 ## 0.34.21
 - **Naprawiono: fałszywy komunikat „Bufor powtórek OBS jest wyłączony, więc nie da się zapisać żadnego klipu” w automatycznym raporcie na koniec streama.** Samo przejście na żywo może na kilka sekund zatrzymać i ponownie uruchomić bufor powtórek (zmiana enkodera, np. streaming wielościeżkowy) - normalna, chwilowa usterka, która sama się naprawiała na długo przed końcem streama, ale wystarczyło to, by zostać zapisaną jako problem na stałe. Problem ze stanem musi teraz nadal występować przy kolejnym sprawdzeniu, pół minuty później, żeby się liczył. Dzięki antonilink za log.
 

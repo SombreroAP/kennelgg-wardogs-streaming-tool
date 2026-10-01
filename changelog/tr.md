@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Değişiklik günlüğü
 
+## 0.34.22
+- **Düzeltildi: bir oyun yakalama penceresi kapanırken OBS çökebiliyordu.** İstatistik çubuğu, hasar günlüğü araması ve geri kalanı için oyun kaynağını okumak OBS'nin kendi iş parçacığının dışında yapılır; pencerenin kapanması tam o anda o yakalamayı söküp atmaya başlayabiliyordu ve ikisi aynı anda yarışınca OBS, win-capture.dll içinde çökebiliyordu. Bu okuma artık OBS'nin kendi grafik iş parçacığında bir görev olarak çalışıyor, yani asla o sökme işleminin tam ortasına denk gelmiyor. Günlük için tunersteve'e teşekkürler.
+
 ## 0.34.21
 - **Düzeltildi: yayın sonu otomatik raporunda sahte "OBS'in tekrar oynatma arabelleği kapalı, bu yüzden hiçbir klip kaydedilemez" uyarısı.** Yayına geçmek, tekrar oynatma arabelleğini birkaç saniyeliğine kendiliğinden durdurup yeniden başlatabilir (bir kodlayıcı değişikliği, örneğin çok parçalı yayın) - yayın bitmeden çok önce kendiliğinden düzelen normal bir aksaklık, ama kalıcı olarak sorun diye kaydedilmeye yetiyordu. Artık bir sağlık sorununun sayılması için, yarım dakika sonraki bir sonraki kontrolde hâlâ orada olması gerekiyor. Log için antonilink'e teşekkürler.
 

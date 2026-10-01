@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novità
 
+## 0.34.22
+- **Risolto: OBS poteva andare in crash proprio quando si chiudeva una finestra di cattura del gioco.** Leggere la fonte del gioco per la barra statistiche, la ricerca del registro danni e il resto avviene fuori dal thread di OBS stesso; la chiusura della finestra poteva iniziare a smontare quella cattura nello stesso istante, e le due cose insieme potevano mandare in crash OBS, dentro win-capture.dll. Questa lettura ora viene eseguita come attività sul thread grafico di OBS stesso, quindi non cade mai nel bel mezzo di quello smontaggio. Grazie a tunersteve per il log.
+
 ## 0.34.21
 - **Risolto: un falso "Il buffer replay di OBS è spento, quindi non si può salvare nessuna clip" nel report automatico di fine diretta.** Andare in diretta può da solo fermare e riavviare il buffer replay per qualche secondo (un cambio di encoder, ad es. lo streaming multitrack) - un intoppo normale che si risolveva da sé molto prima della fine della diretta, ma bastava a essere registrato come problema per sempre. Ora un problema di salute deve essere ancora presente al controllo successivo, mezzo minuto dopo, prima di contare. Grazie ad antonilink per il log.
 

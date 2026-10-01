@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Änderungen
 
+## 0.34.22
+- **Behoben: OBS konnte abstürzen, genau wenn sich ein Fenster der Spielerfassung schloss.** Das Lesen der Spielquelle für die Statusleiste, die Schadensprotokoll-Suche und den Rest läuft außerhalb von OBS' eigenem Thread; das Schließen des Fensters konnte diese Erfassung im selben Moment abbauen, und beides gleichzeitig konnte OBS zum Absturz bringen, in win-capture.dll. Dieses Lesen läuft jetzt als Aufgabe auf OBS' eigenem Grafik-Thread, sodass es nie mitten in diesem Abbau liegt. Danke an tunersteve für das Log.
+
 ## 0.34.21
 - **Behoben: ein falsches „Der Wiederholungspuffer von OBS ist aus, also kann kein Clip gespeichert werden“ im automatischen Bericht am Streamende.** Live gehen kann selbst den Wiederholungspuffer für ein paar Sekunden stoppen und neu starten (eine Encoder-Änderung, z. B. Multitrack-Streaming) - ein normaler kurzer Aussetzer, der sich von selbst behob, lange bevor der Stream endete, aber genug, um dauerhaft als Problem festgehalten zu werden. Ein Gesundheitsproblem muss jetzt beim nächsten Check, eine halbe Minute später, immer noch da sein, bevor es zählt. Danke an antonilink für das Protokoll.
 

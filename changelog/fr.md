@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Journal des modifications
 
+## 0.34.22
+- **Corrigé : OBS pouvait planter juste au moment où une fenêtre de capture de jeu se fermait.** La lecture de la source du jeu pour la barre de stats, la recherche du journal de dégâts et le reste se fait hors du thread d'OBS lui-même ; la fermeture de la fenêtre pouvait démarrer le démontage de cette capture au même instant, et les deux en même temps pouvaient faire planter OBS, dans win-capture.dll. Cette lecture tourne maintenant comme une tâche sur le thread graphique d'OBS lui-même, donc elle ne tombe jamais en plein milieu de ce démontage. Merci à tunersteve pour le journal.
+
 ## 0.34.21
 - **Corrigé : un faux « Le tampon de relecture d'OBS est désactivé, aucun clip ne peut donc être sauvegardé » dans le rapport automatique de fin de stream.** Passer en direct peut lui-même arrêter et relancer le tampon de relecture pendant quelques secondes (un changement d'encodeur, par ex. le streaming multitrack) - un petit accroc normal qui se corrigeait tout seul bien avant la fin du stream, mais suffisant pour être enregistré comme un problème pour de bon. Un souci de santé doit maintenant être encore là à la vérification suivante, une demi-minute plus tard, avant de compter. Merci à antonilink pour le journal.
 

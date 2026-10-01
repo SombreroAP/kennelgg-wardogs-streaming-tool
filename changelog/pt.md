@@ -1,5 +1,8 @@
 # Kennel.gg Wardogs Streaming Tool — Novidades
 
+## 0.34.22
+- **Corrigido: o OBS podia travar bem na hora em que uma janela de captura de jogo fechava.** Ler a fonte do jogo para a barra de estatísticas, a busca do registro de dano e o resto acontece fora da própria thread do OBS; fechar a janela podia começar a desmontar aquela captura no mesmo instante, e as duas coisas juntas podiam travar o OBS, dentro da win-capture.dll. Essa leitura agora roda como uma tarefa na própria thread gráfica do OBS, então nunca cai no meio dessa desmontagem. Obrigado ao tunersteve pelo log.
+
 ## 0.34.21
 - **Corrigido: um falso "O buffer de replay do OBS está desligado, então nenhum clipe pode ser salvo" no relatório automático de fim de live.** Entrar ao vivo pode, por si só, parar e reiniciar o buffer de replay por alguns segundos (uma mudança de codificador, por exemplo streaming multitrack) - uma falha normal que se corrigia sozinha bem antes do fim da live, mas o suficiente para ficar registrada como problema para sempre. Agora um problema de integridade precisa continuar lá na próxima checagem, meio minuto depois, para contar. Obrigado ao antonilink pelo log.
 

@@ -2,6 +2,9 @@
 
 All notable changes to Kennel.gg Wardogs Streaming Tool. Release notes on GitHub are taken from here.
 
+## 0.34.22
+- **Fixed: OBS could crash right as a game-capture window closed.** Reading the game source for the stats bar, the damage-log search and the rest happens off OBS's own thread; the window closing could start tearing that capture down at the very same moment, and the two racing together could crash OBS, inside win-capture.dll. That read now runs as a task on OBS's own graphics thread, so it is never in the middle of that teardown. Thanks tunersteve for the log.
+
 ## 0.34.21
 - **Fixed: a false "OBS's replay buffer is off, so no clip can be saved" in the automatic end-of-stream report.** Going live can itself stop and restart the replay buffer for a few seconds (an encoder change, e.g. multitrack streaming) - a normal blip that fixed itself well before the stream ended, but it was enough to be recorded as a problem for good. A health issue now has to still be there the next time it is checked, half a minute later, before it counts. Thanks antonilink for the log.
 

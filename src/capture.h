@@ -4,8 +4,9 @@
 #include <vector>
 #include <obs.h>
 
-/// Renders an OBS source into a small BGRA buffer (targetWidth wide) from any thread.
-/// The same pattern obs-websocket uses for GetSourceScreenshot: texrender + stage surface.
+/// Renders an OBS source into a small BGRA buffer (targetWidth wide): callable from any thread,
+/// but the actual render (texrender + stage surface) always runs as a task on OBS's own graphics
+/// thread, in step with that source's own tick/render instead of racing it.
 class Capture {
 public:
 	~Capture();
@@ -24,6 +25,9 @@ public:
 	}
 
 private:
+	struct RenderCtx;
+	static void renderTask(void *param);
+
 	gs_texrender_t *tr_ = nullptr;
 	gs_stagesurf_t *st_ = nullptr;
 	int stW_ = 0, stH_ = 0;
